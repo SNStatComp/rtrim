@@ -1,0 +1,119 @@
+#' Stores TRIM command options
+#'
+#'
+#' @slot origin Where did the data for this object come from (either a filname or 'commandline').
+#' @slot file    \code{[character]} name of file containing training data.
+#' @slot title   \code{[character]} A string to be printed in the output file.
+#' @slot ntimes  \code{[character]} Number of time points.
+#' @slot ncovars \code{[character]} Number of covariates.
+#' @slot labels  \code{[character]} Covariate label.
+#' @slot weight  \code{[logical]} Whether a weight column is present in the \code{file}.
+#' @slot comment \code{[character]} A string to be printed in the output file.
+#' @slot weighting \code{[logical]} Whether weights are to be used in the model.
+#' @slot serialcor \code{[logical]} Whether serial correlation is assumed in the model.
+#' @slot overdist \code{[logical]} Whether overdispersion is taken into account by the model.
+#' @slot basetime \code{[integer]} Position of the base time point (must be positive).
+#' @slot model    \code{[integer]} What model to use (1, 2 or 3).
+#' @slot covariates \code{[integer]} Numbers of the covariates to include.
+#' @slot changepoints \code{[integer]} Positions of the change points to include.
+#' @slot stepwise \code{[logical]} Whether stepwise selection of the changepoints is to be used.
+#' @slot outputfiles \code{[character]} Type of outputfile to generate ('F' and/or 'S')
+#' @slot run \code{[logical]}, IGNORED (run the file)
+#'
+#' @rdname TRIMcommand
+#' 
+#' @seealso \code{\link{read_tcf}}
+#'
+TRIMcommand <- setClass(Class="TRIMcommand"
+  , slots=c(
+     origin       = "character"
+    , file         = "character"
+    , title        = "character"
+    , ntimes       = "integer"
+    , ncovars      = "integer"
+    , labels       = "character"
+    , weight       = "logical"
+    , comment      = "character"
+    , weighting    = "logical"
+    , serialcor    = "logical"
+    , overdisp     = "logical"
+    , basetime     = "integer"
+    , model        = "integer"
+    , covariates   = "integer"
+    , changepoints = "integer"
+    , stepwise     = "logical"
+    , outputfiles  = "character"
+    , run          = "logical"
+    )    
+)
+
+
+extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logical')){
+  type <- match.arg(type)
+  re <- ifelse(is.null(endkey)
+      , paste0(key,".+?\\n")
+      , paste0(key,".+?END"))
+  m <- regexpr(re,x)
+  s <- regmatches(x,m)
+  re2 <- paste0(key,"[[:blank:]]+|\\n")
+  s <- gsub(re2,"",s)
+  if (!is.null(endkey)){
+    s <- gsub(endkey,"",s)
+    s <- strsplit(s,"[[:blank:]]+|\\n")[[1]]
+  }
+  if (type == 'integer'){
+    as.integer(s)
+  } else if (type == "logical") {
+    ifelse(length(s) == 1 && tolower(s) %in% c("on","present"),TRUE, FALSE) 
+  } else {
+    s
+  }
+}
+
+#' Read a TRIM command file
+#'
+#' @param file Location of tcf file.
+#' 
+#' @return An object of class \code{\link{TRIMcommand}}
+#' @export
+read_tcf <- function(file){
+
+  tcf <- readChar(file,file.info(file)$size)
+
+  TRIMcommand(
+    origin = file
+    , file           = extract_tcf_key(tcf,"FILE")
+    , title        = extract_tcf_key(tcf, "TITLE")
+    , ntimes       = extract_tcf_key(tcf, "NTIMES" , type="integer")
+    , ncovars      = extract_tcf_key(tcf, "NCOVARS", type="integer")
+    , labels       = extract_tcf_key(tcf, "LABELS", endkey="END")
+    , weight       = extract_tcf_key(tcf, "WEIGHT", type="logical")
+    , comment      = extract_tcf_key(tcf, "COMMENT")
+    , weighting    = extract_tcf_key(tcf, "WEIGHTING", type="logical")
+    , serialcor    = extract_tcf_key(tcf, "SERIALCOR", type="logical")
+    , overdisp     = extract_tcf_key(tcf, "OVERDISP", type="logical")
+    , basetime     = extract_tcf_key(tcf, "BASETIME", type="integer")
+    , model        = extract_tcf_key(tcf, "MODEL", type="integer")
+    , covariates   = extract_tcf_key(tcf, "COVARIATES", type="integer")
+    , changepoints = extract_tcf_key(tcf, "CHANGEPOINTS", type="integer")
+    , stepwise     = extract_tcf_key(tcf,"STEPWISE", type="logical")
+    , outputfiles  = extract_tcf_key(tcf,"OUTPUTFILS")
+    , run          = grepl("RUN",tcf)
+    )
+}
+
+
+setMethod("show",signature = "TRIMcommand",function(object){
+  cat(sprintf("Object of class '%s' with the following parameters:\n",class(object)))
+  for (n in slotNames(object)){
+    cat(sprintf("%-12s: %s\n",n,as.character(paste(slot(object,n),collapse=", ") ) ))
+  }
+})
+
+
+
+### some tests
+#read_tcf("test.tcf")
+
+
+
