@@ -37,7 +37,7 @@ Stores TRIM command options
 
 \item{\code{model}}{\code{[integer]} What model to use (1, 2 or 3).}
 
-\item{\code{covariates}}{\code{[integer]} Numbers of the covariates to include.}
+\item{\code{covariates}}{\code{[integer]} Number of covariates to include.}
 
 \item{\code{changepoints}}{\code{[integer]} Positions of the change points to include.}
 

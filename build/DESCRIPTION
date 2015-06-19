@@ -9,6 +9,7 @@ Authors@R: c( person("Mark", "van der Loo", role=c("aut","cre"),email="mark.vand
 Description: Reimplementation of the TRIM software of Pannekoek and van Strien.
 Version: 0.0.1
 Depends: R (>= 2.15.3)
+Imports: methods
 URL: https://github.com/markvanderloo/rtrim
 BugReports: https://github.com/markvanderloo/rtrim/issues
 Date: 2015-06-12

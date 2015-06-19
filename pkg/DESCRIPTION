@@ -1,12 +1,12 @@
 Package: rtrim
 Maintainer: Mark van der Loo <mark.vanderloo@gmail.com>
-License: GPL-3
+License: EUPL
 Title: Trends and Indices for Monitoring Data
 LazyData: no
 Type: Package
 LazyLoad: yes
 Authors@R: c( person("Mark", "van der Loo", role=c("aut","cre"),email="mark.vanderloo@gmail.com"), person("Jeroen", "Pannekoek", role="aut"))
-Description: Reimplementation of the TRIM software of J. Pannekoek.
+Description: Reimplementation of the TRIM software of Pannekoek and van Strien.
 Version: 0.0.1
 Depends: R (>= 2.15.3)
 Imports: methods

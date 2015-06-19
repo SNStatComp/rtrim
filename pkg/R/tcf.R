@@ -14,7 +14,7 @@
 #' @slot overdist \code{[logical]} Whether overdispersion is taken into account by the model.
 #' @slot basetime \code{[integer]} Position of the base time point (must be positive).
 #' @slot model    \code{[integer]} What model to use (1, 2 or 3).
-#' @slot covariates \code{[integer]} Numbers of the covariates to include.
+#' @slot covariates \code{[integer]} Number of covariates to include.
 #' @slot changepoints \code{[integer]} Positions of the change points to include.
 #' @slot stepwise \code{[logical]} Whether stepwise selection of the changepoints is to be used.
 #' @slot outputfiles \code{[character]} Type of outputfile to generate ('F' and/or 'S')
@@ -53,12 +53,13 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
   re <- ifelse(is.null(endkey)
       , paste0(key,".+?\\n")
       , paste0(key,".+?END"))
-  m <- regexpr(re,x)
+  m <- regexpr(re,x,ignore.case=TRUE)
   s <- regmatches(x,m)
-  re2 <- paste0(key,"[[:blank:]]+|\\n")
-  s <- gsub(re2,"",s)
+  re2 <- paste0(key,"[[:blank:]]*|\\n")
+  s <- gsub(re2,"",s,ignore.case=TRUE)
+  s <- gsub("^[[:blank:]]+|[[:blank:]]+$","",s)
   if (!is.null(endkey)){
-    s <- gsub(endkey,"",s)
+    s <- gsub(endkey,"",s,ignore.case=TRUE)
     s <- strsplit(s,"[[:blank:]]+|\\n")[[1]]
   }
   if (type == 'integer'){
@@ -78,11 +79,12 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
 #' @export
 read_tcf <- function(file){
 
+  # TODO: interpret changepoints properly
   tcf <- readChar(file,file.info(file)$size)
 
   TRIMcommand(
     origin = file
-    , file           = extract_tcf_key(tcf,"FILE")
+    , file         = convert_path(extract_tcf_key(tcf,"FILE"))
     , title        = extract_tcf_key(tcf, "TITLE")
     , ntimes       = extract_tcf_key(tcf, "NTIMES" , type="integer")
     , ncovars      = extract_tcf_key(tcf, "NCOVARS", type="integer")
@@ -97,7 +99,7 @@ read_tcf <- function(file){
     , covariates   = extract_tcf_key(tcf, "COVARIATES", type="integer")
     , changepoints = extract_tcf_key(tcf, "CHANGEPOINTS", type="integer")
     , stepwise     = extract_tcf_key(tcf,"STEPWISE", type="logical")
-    , outputfiles  = extract_tcf_key(tcf,"OUTPUTFILS")
+    , outputfiles  = extract_tcf_key(tcf,"OUTPUTFILES")
     , run          = grepl("RUN",tcf)
     )
 }
@@ -110,10 +112,18 @@ setMethod("show",signature = "TRIMcommand",function(object){
   }
 })
 
-
+convert_path <- function(x){
+  if (grepl("\\\\",x)){
+    y <- gsub("\\\\","/",x)
+    message(sprintf("Converting DOS style path '%s'\nto POSIX compliant path '%s'\n",x,y))
+    y
+  } else {
+    x
+  }
+}
 
 ### some tests
-#read_tcf("test.tcf")
+#x <- read_tcf("test.tcf")
 
 
 
