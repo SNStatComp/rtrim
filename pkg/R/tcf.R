@@ -73,6 +73,11 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
 
 #' Read a TRIM command file
 #'
+#' @section Details
+#' 
+#' Read Trim Command Files, compatible with the Windows TRIM programme.
+#' 
+#'
 #' @param file Location of tcf file.
 #' 
 #' @return An object of class \code{\link{TRIMcommand}}
