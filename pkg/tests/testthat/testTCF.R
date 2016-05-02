@@ -45,3 +45,4 @@ test_that("read_tcf parses tcf files", {
   expect_equal(x@outputfiles,"F")
   expect_equal(x@run,TRUE)
 })
+tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))
