@@ -18,3 +18,10 @@ Date: 2015-06-12
 Suggests:
     testthat
 RoxygenNote: 5.0.1
+Collate:
+    'getset.R'
+    'read_tdf.R'
+    'rtrim-pkg.R'
+    'tcf.R'
+    'trim.R'
+    'trim_engine.R'

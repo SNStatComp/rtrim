@@ -2,4 +2,5 @@
 
 export(read_tcf)
 export(read_tdf)
+export(trim)
 import(methods)
