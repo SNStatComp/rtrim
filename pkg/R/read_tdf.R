@@ -3,7 +3,7 @@
 #'
 #' @param file \code{[character]} Input data file. See details section for spec.
 #' @param missing_code \code{[integer]} Code for missing counts (see Details).
-#' @param nsnif \code{[integer]} Number of lines read to determine input format.
+#' @param snif \code{[integer]} Number of lines read to determine input format.
 #'
 #'
 #' @section Details:
@@ -33,9 +33,9 @@
 #'
 #'
 #' @export
-read_tdf <- function(file, missing_code=-1L, nsnif=10L){
+read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE){
   # snif the file structure
-  lines <- readLines(con=file, n=nsnif, warn=FALSE)
+  lines <- readLines(con=file, n=snif, warn=FALSE)
   L <- strsplit(x=lines,split=" +")
   len <- sapply(L,length)
   ncol <- unique(len)
@@ -45,14 +45,20 @@ read_tdf <- function(file, missing_code=-1L, nsnif=10L){
   if (ncol==0){
     warning("This file contains no records")
     return(NULL)
-  } else if( ncol < 4){
-    stop(sprintf("A TRIM data input file must contain at least 4 columns, found %s",len))
+  } else{ 
+    mincol <- ifelse(weight,4,3)
+    if( ncol < mincol  ){
+    stop(sprintf("A TRIM data input file must contain at least %d columns, found %d"
+                 ,mincol,len))
+    }
   }
   
   col_classes <- c("integer","integer","integer","numeric")
   ncat <- len-4
   col_classes <- c(col_classes, rep("integer",ncol-4))
-  col_names <- c("site","time","count","weight")
+  col_names <- c("site","time","count")
+  if (weight) col_names <- c(col_names,"weight")
+  
   col_names <- c(col_names,sprintf("covar%02d",seq_len(ncol-4))) 
   dat <- read.table(file=file
     , header=FALSE

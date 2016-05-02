@@ -15,7 +15,7 @@ writeLines("1 1992 186 1.0000 1
 1 2000 0 1.0000 1
 1 2001 -1 1.0000 1",con=f)
 
-  dat <- read_tdf(file=f,missing_code=-1L,nsnif=5)
+  dat <- read_tdf(file=f,missing_code=-1L, snif=5, weight=TRUE)
   expect_equal(dat[1,],
       data.frame(
         site=1
@@ -41,14 +41,13 @@ writeLines("1 1992 186 1
              1 1999 0 1.0000 1
              1 2000 0 1.0000 1
              1 2001 -1 1.0000 1",con=f)
-  expect_error(read_tdf(file=f),regexp = "numbers of columns")
+  expect_error(read_tdf(file=f,weight=TRUE),regexp = "numbers of columns")
   expect_warning(read_tdf(textConnection("")),regexp = "no records")
 writeLines("1 1992 186
 1 1993 60 
 1 1994 39 
 1 2001 -1",con=f)
-  expect_error(read_tdf(file=f),regexp="at least 4")
-    
+  expect_error(read_tdf(file=f,weight=TRUE),regexp="at least 4")
 })
 
 
