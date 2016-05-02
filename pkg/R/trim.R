@@ -3,6 +3,10 @@
 
 #' Compute the TRIM model
 #' 
+#' 
+#' @description Compute the TRIM model
+#' 
+#' 
 #' @name trim
 #' @title Compute TRIM model
 #' 
@@ -22,7 +26,7 @@ setGeneric("trim",function(x,y,...) standardGeneric("trim"))
 setMethod("trim",signature = c("TRIMcommand","ANY"), function(x,y=NULL,...){
   x <- tc_merge(x,...)
   dat <- read_tdf(data_file(x))
-  do_trim(dat=dat, cmd=cmd)
+  do_trim(dat=dat, cmd=x)
   ## possibly do some output object building.
 })
 
