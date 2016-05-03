@@ -45,8 +45,28 @@ setMethod("trim",signature=c("data.frame","TRIMcommand"), function(x,y,...){
 
 
 
+# merge optins in ... with TRIMcommand object cmd
+# an error is generated when arguments in ... are not slots
+# in TRIMcommand. Assigned values will be coerced to the correct
+# type when possible.
 tc_merge <- function(cmd,...){
-  # merge optins in ... with TRIMcommand object cmd
+  slot_types <- getSlots("TRIMcommand")
+  slot_names <- names(slot_types)
+  L <- list(...)
+  
+  in_names <- names(L)
+  
+  ii <- in_names %in% slot_names
+  if ( !all(ii) ){
+    w <- sprintf("Arguments %s are not valid TRIMcommand slots and will be ignored",
+            paste(in_names[!ii],collapse=", "))
+    warning(w)
+    in_names <- in_names[!ii]
+  }
+  
+  for ( n in in_names ){
+    slot(cmd, n) <- as(L[in_names],slot_types[n])
+  }
   cmd
 }
 
