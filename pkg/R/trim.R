@@ -61,11 +61,10 @@ tc_merge <- function(cmd,...){
     w <- sprintf("Arguments %s are not valid TRIMcommand slots and will be ignored",
             paste(in_names[!ii],collapse=", "))
     warning(w)
-    in_names <- in_names[!ii]
+    in_names <- in_names[ii]
   }
-  
   for ( n in in_names ){
-    slot(cmd, n) <- as(L[in_names],slot_types[n])
+    slot(cmd, n) <- as(L[n],slot_types[n])
   }
   cmd
 }
