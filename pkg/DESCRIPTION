@@ -11,7 +11,8 @@ Version: 0.0.1
 Depends:
     R (>= 2.15.3)
 Imports:
-    methods
+    methods,
+    utils
 URL: https://github.com/markvanderloo/rtrim
 BugReports: https://github.com/markvanderloo/rtrim/issues
 Date: 2015-06-12

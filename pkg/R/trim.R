@@ -25,7 +25,7 @@ setGeneric("trim",function(x,y,...) standardGeneric("trim"))
 #' @rdname trim
 setMethod("trim",signature = c("TRIMcommand","ANY"), function(x,y=NULL,...){
   x <- tc_merge(x,...)
-  dat <- read_tdf(data_file(x))
+  dat <- read_tdf(trim_file(x))
   do_trim(dat=dat, cmd=x)
   ## possibly do some output object building.
 })

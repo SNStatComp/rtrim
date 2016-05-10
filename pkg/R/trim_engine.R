@@ -5,9 +5,8 @@
 # cmd: a TRIMcommand object
 #
 do_trim <- function(dat,cmd){
-  if(weighting(cmd)){
-    # do this
-    
+  if(trim_weighting(cmd)){
+    print("weighted trim :-)")
   } else {
     # do that
   }

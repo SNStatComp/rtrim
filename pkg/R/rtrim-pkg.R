@@ -3,4 +3,5 @@
 #' @name rtrim-package
 #' @docType package
 #' @import methods
+#' @importFrom utils read.table
 {}

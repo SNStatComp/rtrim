@@ -49,8 +49,9 @@ test_that("read_tcf parses tcf files", {
 test_that("merging TRIM command options",{
   cmd <- read_tcf(f)
   tc_merge(cmd, weight=FALSE)
-  expect_false(weight(tc_merge(cmd,weight=FALSE)))
+  expect_false(trim_weight(tc_merge(cmd,weight=FALSE)))
   expect_warning(tc_merge(cmd,ncovars="a"))
+  expect_warning(tc_merge(cmd,fiets=2))
 })
 
 tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))

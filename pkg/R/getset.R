@@ -6,181 +6,181 @@
 #'
 #' @keywords internal
 #' @rdname trim-options
-origin <- function(x){
+trim_origin <- function(x){
   slot(x,"origin")
 }
 
 #' @rdname trim-options
-`origin<-` <- function(x,value){
+`trim_origin<-` <- function(x,value){
   slot(x,"origin") <- value
 }
 
 #' @rdname trim-options
-data_file <- function(x){
-  slot(x,"data_file")
+trim_file <- function(x){
+  slot(x,"file")
 }
 
 #' @rdname trim-options
-`data_file<-` <- function(x,value){
-  slot(x,"data_file") <- value
+`trim_file<-` <- function(x,value){
+  slot(x,"file") <- value
 }
 
 #' @rdname trim-options
-title <- function(x){
+trim_title <- function(x){
   slot(x,"title")
 }
 
 #' @rdname trim-options
-`title<-` <- function(x,value){
+`trim_title<-` <- function(x,value){
   slot(x,"title") <- value
 }
 
 #' @rdname trim-options
-ntimes <- function(x){
+trim_ntimes <- function(x){
   slot(x,"ntimes")
 }
 
 #' @rdname trim-options
-`ntimes<-` <- function(x,value){
+`trim_ntimes<-` <- function(x,value){
   slot(x,"ntimes") <- value
 }
 
 #' @rdname trim-options
-ncovars <- function(x){
+trim_ncovars <- function(x){
   slot(x,"ncovars")
 }
 
 #' @rdname trim-options
-`ncovars<-` <- function(x,value){
+`trim_ncovars<-` <- function(x,value){
   slot(x,"ncovars") <- value
 }
 
 #' @rdname trim-options
-labels <- function(x){
+trim_labels <- function(x){
   slot(x,"labels")
 }
 
 #' @rdname trim-options
-`labels<-` <- function(x,value){
+`trim_labels<-` <- function(x,value){
   slot(x,"labels") <- value
 }
 
 #' @rdname trim-options
-weight <- function(x){
+trim_weight <- function(x){
   slot(x,"weight")
 }
 
 #' @rdname trim-options
-`weight<-` <- function(x,value){
+`trim_weight<-` <- function(x,value){
   slot(x,"weight") <- value
 }
 
 #' @rdname trim-options
-comment <- function(x){
+trim_comment <- function(x){
   slot(x,"comment")
 }
 
 #' @rdname trim-options
-`comment<-` <- function(x,value){
+`trim_comment<-` <- function(x,value){
   slot(x,"comment") <- value
 }
 
 #' @rdname trim-options
-weighting <- function(x){
+trim_weighting <- function(x){
   slot(x,"weighting")
 }
 
 #' @rdname trim-options
-`weighting<-` <- function(x,value){
+`trim_weighting<-` <- function(x,value){
   slot(x,"weighting") <- value
 }
 
 #' @rdname trim-options
-serialcor <- function(x){
+trim_serialcor <- function(x){
   slot(x,"serialcor")
 }
 
 #' @rdname trim-options
-`serialcor<-` <- function(x,value){
+`trim_serialcor<-` <- function(x,value){
   slot(x,"serialcor") <- value
 }
 
 #' @rdname trim-options
-overdisp <- function(x){
+trim_overdisp <- function(x){
   slot(x,"overdisp")
 }
 
 #' @rdname trim-options
-`overdisp<-` <- function(x,value){
+`trim_overdisp<-` <- function(x,value){
   slot(x,"overdisp") <- value
 }
 
 #' @rdname trim-options
-basetime <- function(x){
+trim_basetime <- function(x){
   slot(x,"basetime")
 }
 
 #' @rdname trim-options
-`basetime<-` <- function(x,value){
+`trim_basetime<-` <- function(x,value){
   slot(x,"basetime") <- value
 }
 
 #' @rdname trim-options
-model <- function(x){
+trim_model <- function(x){
   slot(x,"model")
 }
 
 #' @rdname trim-options
-`model<-` <- function(x,value){
+`trim_model<-` <- function(x,value){
   slot(x,"model") <- value
 }
 
 #' @rdname trim-options
-covariates <- function(x){
+trim_covariates <- function(x){
   slot(x,"covariates")
 }
 
 #' @rdname trim-options
-`covariates<-` <- function(x,value){
+`trim_covariates<-` <- function(x,value){
   slot(x,"covariates") <- value
 }
 
 #' @rdname trim-options
-changepoints <- function(x){
+trim_changepoints <- function(x){
   slot(x,"changepoints")
 }
 
 #' @rdname trim-options
-`changepoints<-` <- function(x,value){
+`trim_changepoints<-` <- function(x,value){
   slot(x,"changepoints") <- value
 }
 
 #' @rdname trim-options
-stepwise <- function(x){
+trim_stepwise <- function(x){
   slot(x,"stepwise")
 }
 
 #' @rdname trim-options
-`stepwise<-` <- function(x,value){
+`trim_stepwise<-` <- function(x,value){
   slot(x,"stepwise") <- value
 }
 
 #' @rdname trim-options
-outputdata_files <- function(x){
-  slot(x,"outputdata_files")
+trim_outputfiles <- function(x){
+  slot(x,"outputfiles")
 }
 
 #' @rdname trim-options
-`outputdata_files<-` <- function(x,value){
-  slot(x,"outputdata_files") <- value
+`trim_outputfiles<-` <- function(x,value){
+  slot(x,"outputfiles") <- value
 }
 
 #' @rdname trim-options
-run <- function(x){
+trim_run <- function(x){
   slot(x,"run")
 }
 
 #' @rdname trim-options
-`run<-` <- function(x,value){
+`trim_run<-` <- function(x,value){
   slot(x,"run") <- value
 }
