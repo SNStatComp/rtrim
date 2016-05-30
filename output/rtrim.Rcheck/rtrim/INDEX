@@ -1,6 +1,0 @@
-TRIMcommand-class       Stores TRIM command options
-read_tcf                Read a TRIM command file
-read_tdf                Read TRIM data file
-rtrim-package           Reimplementation of the TRIM software of Jeroen
-                        Pannekoek
-trim                    Compute TRIM model
