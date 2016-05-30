@@ -7,6 +7,7 @@
 #' @slot ntimes  \code{[character]} Number of time points.
 #' @slot ncovars \code{[character]} Number of covariates.
 #' @slot labels  \code{[character]} Covariate label.
+#' @slot missing \code{[integer]} Missing value indicator.
 #' @slot weight  \code{[logical]} Whether a weight column is present in the \code{file}.
 #' @slot comment \code{[character]} A string to be printed in the output file.
 #' @slot weighting \code{[logical]} Whether weights are to be used in the model.
@@ -32,6 +33,7 @@ TRIMcommand <- setClass(Class="TRIMcommand"
     , ntimes       = "integer"
     , ncovars      = "integer"
     , labels       = "character"
+    , missing      = "integer"
     , weight       = "logical"
     , comment      = "character"
     , weighting    = "logical"
@@ -95,6 +97,7 @@ read_tcf <- function(file){
     , ntimes       = extract_tcf_key(tcf, "NTIMES" , type="integer")
     , ncovars      = extract_tcf_key(tcf, "NCOVARS", type="integer")
     , labels       = extract_tcf_key(tcf, "LABELS", endkey="END")
+    , missing      = extract_tcf_key(tcf, "MISSING", type="integer")
     , weight       = extract_tcf_key(tcf, "WEIGHT", type="logical")
     , comment      = extract_tcf_key(tcf, "COMMENT")
     , weighting    = extract_tcf_key(tcf, "WEIGHTING", type="logical")

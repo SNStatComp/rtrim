@@ -32,6 +32,7 @@ test_that("read_tcf parses tcf files", {
   expect_equal(x@ntimes,8L)
   expect_equal(x@ncovars,2L)
   expect_equal(x@labels,c("HABITAT","Cov2"))
+  expect_equal(x@missing, -1L)
   expect_equal(x@weight,TRUE)
   expect_equal(x@weighting,FALSE)
   expect_equal(x@comment,"Hello Bird")
