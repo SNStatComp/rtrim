@@ -14,4 +14,4 @@ vignettes/*.pdf
 .Rproj.user
 
 pkg/man/*.Rd
-
+output/*
