@@ -42,9 +42,10 @@
 #' for covariate labels.
 #'
 #' @export
-read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALSE){
+read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALSE) {
   # snif the file structure
   lines <- readLines(con=file, n=snif, warn=FALSE)
+  lines <- trimws(lines) # remove leading/trailing whitespace which fcks up splitting
   L <- strsplit(x=lines,split=" +")
   len <- sapply(L,length)
   ncol <- unique(len)
@@ -61,14 +62,24 @@ read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALS
                  ,mincol,len))
     }
   }
+
+  # required columns
+  col_classes <- c("integer", "integer", "numeric")
+  col_names   <- c("site",    "time",    "count")
   
-  col_classes <- c("integer","integer","numeric","numeric")
-  ncat <- len-4
-  col_classes <- c(col_classes, rep("integer",ncol-4))
-  col_names <- c("site","time","count")
-  if (weight) col_names <- c(col_names,"weight")
+  # optional column: weight
+  if (weight) {
+    col_classes <- c(col_classes, "numeric")
+    col_names   <- c(col_names,   "weight")
+  }
   
-  col_names <- c(col_names,sprintf("covar%02d",seq_len(ncol-4))) 
+  # optional columns: covariates
+  ncovar = ifelse(weight, ncol-4, ncol-3)
+  stopifnot(ncovar>=0)
+  col_classes <- c(col_classes, rep("integer",ncovar))
+  col_names   <- c(col_names,   sprintf("covar%02d",seq_len(ncovar))) # seq_len guarantees correct effect for ncovar==0
+  
+  print(col_names)
   dat <- read.table(file=file
     , header=FALSE
     , sep=""
