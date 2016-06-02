@@ -50,28 +50,36 @@ TRIMcommand <- setClass(Class="TRIMcommand"
 )
 
 
-extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logical')){
+extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logical')) {
   type <- match.arg(type)
   re <- ifelse(is.null(endkey)
-      , paste0(key,".+?\\n")
-      , paste0(key,".+?END"))
-  m <- regexpr(re,x,ignore.case=TRUE)
-  s <- regmatches(x,m)
-  re2 <- paste0(key,"[[:blank:]]*|\\n")
-  s <- gsub(re2,"",s,ignore.case=TRUE)
-  s <- gsub("^[[:blank:]]+|[[:blank:]]+$","",s)
-  if (!is.null(endkey)){
-    s <- gsub(endkey,"",s,ignore.case=TRUE)
-    s <- strsplit(s,"[[:blank:]]+|\\n")[[1]]
+               , paste0(key,".+?(\\n|$)") # PWB: fixed erroneous neglectance of last item
+               , paste0(key,".+?END"))
+  
+  
+  m <- regexpr(re,x,ignore.case=TRUE)         # Fetch key-value
+  s <- trimws(regmatches(x,m))                # ... remove surrounding whitespace
+  s = trimws(gsub(key,"",s,ignore.case=TRUE)) # Remove key and more  whitespace
+  
+  # remove endkey if appropriate
+  if (!is.null(endkey)) s <- trimws(gsub(endkey,"",s,ignore.case=TRUE))
+  
+  # try splitting into tokens
+  if (length(s)>0 && nchar(s)>0) {
+    L <- strsplit(s, split="([[:blank:]]|\n)+")
+    s <- unlist(L)
   }
+  
   if (type == 'integer'){
-    as.integer(s)
+    out <- as.integer(s)
   } else if (type == "logical") {
-    ifelse(length(s) == 1 && tolower(s) %in% c("on","present"),TRUE, FALSE) 
+    out <- ifelse(length(s) == 1 && tolower(s) %in% c("on","present"),TRUE, FALSE) 
   } else {
-    s
+    out <- s
   }
+  out
 }
+
 
 #' Read a TRIM command file
 #'
