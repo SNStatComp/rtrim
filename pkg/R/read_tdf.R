@@ -42,7 +42,52 @@
 #' for covariate labels.
 #'
 #' @export
-read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALSE) {
+#read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALSE) {
+read_tdf <- function(tcf=NULL,
+                     file="nofile.dat", missing_code=-1L, weight=FALSE, covars=as.character(0),
+                     snif=10L, strict=FALSE, dbg=TRUE)
+{
+  # Extended argument parsing
+  if (!is.null((tcf))) {
+
+    if (missing(file)) {
+      if (dbg) cat(sprintf("Using TCF file = \"%s\"\n", tcf@file))
+      file <- tcf@file
+    }
+    
+    if (missing(missing_code)) {
+      if (dbg) cat(sprintf("Using TCF missing = %d\n", tcf@missing))
+      missing_code <- tcf@missing
+    }
+    
+    if (missing(weight)) {
+      if (dbg) cat(sprintf("Using TCF weight = %s\n", tcf@weight))
+      weight <- tcf@weight
+    }
+    
+    if (missing(covars)) {
+      covars <- tcf@labels
+      if (dbg) cat(sprintf("Using TCF covars = [%s]\n", paste(covars,collapse=", ")))
+    }
+    
+  } else if (dbg) {
+    
+    if (missing(file)) printf("Using default: file=\"%s\"\n", file)
+    else               printf("Using specified: file=\"%s\"\n", file)
+    
+    if (missing(file)) printf("Using default: missing=%d\n", missing_code)
+    else               printf("Using specified: missing=%d\n", missing_code)
+
+    if (missing(file)) printf("Using default: weight=%s\n", weight)
+    else               printf("Using specified: weight=%s\n", weight)
+    
+    if (missing(covars)) printf("Using default: covars=[%s]\n", paste(covars,collapse=", "))
+    else               printf("Using specified: covars=[%s]\n", paste(covars,collapse=", "))
+  } else stop("Can't happen")
+  
+  # handle file origin
+  if (!is.null((tcf))) file <- paste(dirname(tcf@origin), file, sep="/")
+  
   # snif the file structure
   lines <- readLines(con=file, n=snif, warn=FALSE)
   lines <- trimws(lines) # remove leading/trailing whitespace which fcks up splitting
@@ -53,15 +98,14 @@ read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALS
     warning("This file contains no records")
     return(NULL)
   }
-  if (length(ncol) !=1 ) {
-    stop(sprintf("Detected different numbers of columns in first %d rows",length(L)))
-  } else{ 
-    mincol <- ifelse(weight,4,3)
-    if( ncol < mincol  ){
-    stop(sprintf("A TRIM data input file must contain at least %d columns, found %d"
-                 ,mincol,len))
-    }
-  }
+  
+  # Check correct number of columns
+  if (length(ncol) !=1 ) stop(sprintf("Detected different numbers of columns in first %d rows",length(L)))
+  mincol <- 3 # site, time, count
+  if (weight) mincol <- mincol+1
+  ncovars <- length(covars)
+  mincol <- mincol + ncovars
+  if (ncol < mincol) stop(sprintf("TRIM data input file must contain at least %d columns, found %d", mincol, ncol))
 
   # required columns
   col_classes <- c("integer", "integer", "numeric")
@@ -73,13 +117,23 @@ read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALS
     col_names   <- c(col_names,   "weight")
   }
   
-  # optional columns: covariates
-  ncovar = ifelse(weight, ncol-4, ncol-3)
-  stopifnot(ncovar>=0)
-  col_classes <- c(col_classes, rep("integer",ncovar))
-  col_names   <- c(col_names,   sprintf("covar%02d",seq_len(ncovar))) # seq_len guarantees correct effect for ncovar==0
+  # Specified covariate columns
+  col_classes <- c(col_classes, rep("integer",ncovars))
+  col_names   <- c(col_names, covars)
   
-  print(col_names)
+  # Unspecified covariate columns
+  if (ncol > mincol) {
+    nextra = ncol - mincol
+    col_classes <- c(col_classes, rep("integer", nextra))
+    col_names   <- c(col_names,   sprintf("covar%02d",seq_len(nextra)+ncovars))
+    ncovars <- ncovars + nextra
+  }
+  
+  # last check
+  stopifnot(length(col_classes)==ncol)
+  stopifnot(length(col_names)==ncol)
+  
+
   dat <- read.table(file=file
     , header=FALSE
     , sep=""
@@ -88,7 +142,23 @@ read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALS
   )
   
   dat <- within(dat, count[count==missing_code] <- NA)
-  if (strict) check_tdf(dat) else dat
+  if (strict) check_tdf(dat)
+  
+  # Convert site, time and covariates to factors
+  dat$site = factor(dat$site)
+  dat$time = ordered(dat$time)
+  covar_cols = ifelse(weight, 5,4) : ncol # beware: ifelse(weight, 5:ncol, 4:ncol) does not work
+  for (col in covar_cols) {
+    dat[ ,col] = factor(dat[ ,col])
+  }
+
+  if (dbg) {
+    print(head(dat, n=3))
+    cat(sprintf("...\n"))
+    print(tail(dat, n=3))
+  }
+  
+  dat
 }
 
 # check against the TRIM requirements
