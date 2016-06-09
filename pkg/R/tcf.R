@@ -46,7 +46,7 @@ TRIMcommand <- setClass(Class="TRIMcommand"
     , stepwise     = "logical"
     , outputfiles  = "character"
     , run          = "logical"
-    )    
+    )
 )
 
 
@@ -70,13 +70,20 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
     s <- unlist(L)
   }
   
-  if (type == 'integer'){
-    out <- as.integer(s)
+  cat(sprintf("key: %s\n", key))
+  print(s)
+  print(str(s))
+  
+  if (type == 'character') {
+    out <- ifelse(length(s)==0, NA_character_, s)
+  } else if (type == 'integer') {
+    out <- ifelse(length(s)==0, NA_integer_, as.integer(s))
   } else if (type == "logical") {
-    out <- ifelse(length(s) == 1 && tolower(s) %in% c("on","present"),TRUE, FALSE) 
+    out <- ifelse(length(s)==0, NA, ifelse(length(s) == 1 && tolower(s) %in% c("on","present"),TRUE, FALSE))
   } else {
-    out <- s
+    stop("Can't happen")
   }
+  
   out
 }
 
