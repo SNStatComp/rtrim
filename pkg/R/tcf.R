@@ -70,10 +70,6 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
     s <- unlist(L)
   }
   
-  cat(sprintf("key: %s\n", key))
-  print(s)
-  print(str(s))
-  
   if (type == 'character') {
     out <- ifelse(length(s)==0, NA_character_, s)
   } else if (type == 'integer') {
