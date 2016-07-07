@@ -22,7 +22,7 @@
 #' @slot run \code{[logical]}, IGNORED (run the file)
 #'
 #' @rdname TRIMcommand
-#' 
+#'
 #' @seealso \code{\link{read_tcf}}
 #'
 TRIMcommand <- setClass(Class="TRIMcommand"
@@ -55,21 +55,21 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
   re <- ifelse(is.null(endkey)
                , paste0(key,".+?(\\n|$)") # PWB: fixed erroneous neglectance of last item
                , paste0(key,".+?END"))
-  
-  
+
+
   m <- regexpr(re,x,ignore.case=TRUE)         # Fetch key-value
   s <- trimws(regmatches(x,m))                # ... remove surrounding whitespace
   s = trimws(gsub(key,"",s,ignore.case=TRUE)) # Remove key and more  whitespace
-  
+
   # remove endkey if appropriate
   if (!is.null(endkey)) s <- trimws(gsub(endkey,"",s,ignore.case=TRUE))
-  
+
   # try splitting into tokens
   if (key != "COMMENT" && length(s)>0 && nchar(s)>0) {
     L <- strsplit(s, split="([[:blank:]]|\n)+")
     s <- unlist(L)
   }
-  
+
   if (type == 'character') {
     out <- ifelse(length(s)==0, NA_character_, s)
   } else if (type == 'integer') {
@@ -79,7 +79,7 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
   } else {
     stop("Can't happen")
   }
-  
+
   out
 }
 
@@ -87,12 +87,12 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
 #' Read a TRIM command file
 #'
 #' @section Details:
-#' 
+#'
 #' Read Trim Command Files, compatible with the Windows TRIM programme.
-#' 
+#'
 #'
 #' @param file Location of tcf file.
-#' 
+#'
 #' @return An object of class \code{\link{TRIMcommand}}
 #' @export
 read_tcf <- function(file){
