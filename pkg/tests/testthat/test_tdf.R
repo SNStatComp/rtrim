@@ -15,14 +15,14 @@ writeLines("1 1992 186 1.0000 1
 1 2000 0 1.0000 1
 1 2001 -1 1.0000 1",con=f)
 
-  dat <- read_tdf(file=f,missing_code=-1L, snif=5, weight=TRUE)
+  dat <- read_tdf(file=f,missing_code=-1L, snif=5, weight=TRUE,covars="covar01")
   expect_equal(dat[1,],
       data.frame(
-        site=1
-        ,time=1992
+        site=factor(1)
+        ,time=ordered(1992,levels=1992:2001)
         ,count=186
         ,weight=1
-        ,covar01=1
+        ,covar01=factor(1)
       ))
   expect_equal(dat[10,3],NA_integer_)  
   tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))

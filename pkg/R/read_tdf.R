@@ -72,21 +72,21 @@ read_tdf <- function(tcf=NULL,
     
   } else if (dbg) {
     
-    if (missing(file)) printf("Using default: file=\"%s\"\n", file)
-    else               printf("Using specified: file=\"%s\"\n", file)
+    if (missing(file)) sprintf("Using default: file=\"%s\"\n", file)
+    else               sprintf("Using specified: file=\"%s\"\n", file)
     
-    if (missing(file)) printf("Using default: missing=%d\n", missing_code)
-    else               printf("Using specified: missing=%d\n", missing_code)
+    if (missing(file)) sprintf("Using default: missing=%d\n", missing_code)
+    else               sprintf("Using specified: missing=%d\n", missing_code)
 
-    if (missing(file)) printf("Using default: weight=%s\n", weight)
-    else               printf("Using specified: weight=%s\n", weight)
+    if (missing(file)) sprintf("Using default: weight=%s\n", weight)
+    else               sprintf("Using specified: weight=%s\n", weight)
     
-    if (missing(covars)) printf("Using default: covars=[%s]\n", paste(covars,collapse=", "))
-    else               printf("Using specified: covars=[%s]\n", paste(covars,collapse=", "))
+    if (missing(covars)) sprintf("Using default: covars=[%s]\n", paste(covars,collapse=", "))
+    else               sprintf("Using specified: covars=[%s]\n", paste(covars,collapse=", "))
   } else stop("Can't happen")
   
   # handle file origin
-  if (!is.null((tcf))) file <- paste(dirname(tcf@origin), file, sep="/")
+  if (!is.null((tcf))) file <- file.path(dirname(tcf@origin), file) 
   
   # snif the file structure
   lines <- readLines(con=file, n=snif, warn=FALSE)
