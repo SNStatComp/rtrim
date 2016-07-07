@@ -53,33 +53,45 @@ TRIMcommand <- setClass(Class="TRIMcommand"
 extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logical')) {
   type <- match.arg(type)
   re <- ifelse(is.null(endkey)
-               , paste0(key,".+?(\\n|$)") # PWB: fixed erroneous neglectance of last item
-               , paste0(key,".+?END"))
+               , paste0("(\\n|^)",key,".+?(\\n|$)") # PWB: fixed erroneous neglectance of last item
+               , paste0("(\\n|^)",key,".+?END"))
 
+  debug = FALSE
+  if (debug) printf("\n\nTCF Looking for: %s\n", key)
+  if (debug) { cat("TCF: re ="); print(re) }
 
   m <- regexpr(re,x,ignore.case=TRUE)         # Fetch key-value
+  if (debug) { cat("TCF m="); print(m) }
   s <- trimws(regmatches(x,m))                # ... remove surrounding whitespace
+  if (debug) { cat("TCF s="); print(s) }
   s = trimws(gsub(key,"",s,ignore.case=TRUE)) # Remove key and more  whitespace
 
   # remove endkey if appropriate
   if (!is.null(endkey)) s <- trimws(gsub(endkey,"",s,ignore.case=TRUE))
+  if (debug) { cat("TCF s="); print(s) }
+
+  # remove endkey if appropriate
+  if (!is.null(endkey)) s <- trimws(gsub(endkey,"",s,ignore.case=TRUE))
+  if (debug) { cat("TCF s="); print(s) }
 
   # try splitting into tokens
   if (key != "COMMENT" && length(s)>0 && nchar(s)>0) {
     L <- strsplit(s, split="([[:blank:]]|\n)+")
     s <- unlist(L)
   }
+  if (debug) { cat("TCF s="); print(s) }
 
-  if (type == 'character') {
-    out <- ifelse(length(s)==0, NA_character_, s)
+  out <- if (type == 'character') {
+    ifelse(length(s)==0, NA_character_, s)
   } else if (type == 'integer') {
-    out <- ifelse(length(s)==0, NA_integer_, as.integer(s))
+    ifelse(length(s)==0, NA_integer_, as.integer(s))
   } else if (type == "logical") {
-    out <- ifelse(length(s)==0, NA, ifelse(length(s) == 1 && tolower(s) %in% c("on","present"),TRUE, FALSE))
+    ifelse(length(s)==0, NA, ifelse(length(s) == 1 && tolower(s) %in% c("on","present"),TRUE, FALSE))
   } else {
     stop("Can't happen")
   }
 
+  if(debug) { cat("TCF out:"); print(out)}
   out
 }
 
