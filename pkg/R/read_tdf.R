@@ -44,7 +44,7 @@
 #' @export
 #read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALSE) {
 read_tdf <- function(tcf=NULL,
-                     file="nofile.dat", missing_code=-1L, weight=FALSE, covars=as.character(0),
+                     file="nofile.dat", missing_code=-1L, weight=FALSE, covars=character(0),
                      snif=10L, strict=FALSE, dbg=TRUE)
 {
   # Extended argument parsing

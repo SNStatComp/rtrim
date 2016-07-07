@@ -42,7 +42,7 @@ writeLines("1 1992 186 1
              1 2000 0 1.0000 1
              1 2001 -1 1.0000 1",con=f)
   expect_error(read_tdf(file=f,weight=TRUE),regexp = "numbers of columns")
-  expect_warning(read_tdf(textConnection("")),regexp = "no records")
+  expect_warning(read_tdf(file=textConnection("")),regexp = "no records")
 writeLines("1 1992 186
 1 1993 60 
 1 1994 39 
