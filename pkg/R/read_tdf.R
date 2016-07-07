@@ -1,12 +1,14 @@
 
 #' Read TRIM data file
 #'
+#' @param tcf \code{[TRIMcommand]} object 
 #' @param file \code{[character]} Input data file. See details section for spec.
 #' @param missing_code \code{[integer]} Code for missing counts (see Details).
 #' @param snif \code{[integer]} Number of lines read to determine input format.
 #' @param weight \code{[logical]} Is there a weight column present?
 #' @param strict \code{[logical]} Check data against TRIM requirements? (see Details).
-#'
+#' @param covars \code{[character]} Names of covariates
+#' @param dbg \code{[logical]} debug mode: be verbose about argument  and input checks
 #'
 #' @section Details:
 #' 
