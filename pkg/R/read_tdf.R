@@ -1,12 +1,14 @@
 
 #' Read TRIM data file
 #'
+#' @param tcf \code{[TRIMcommand]} object 
 #' @param file \code{[character]} Input data file. See details section for spec.
 #' @param missing_code \code{[integer]} Code for missing counts (see Details).
 #' @param snif \code{[integer]} Number of lines read to determine input format.
 #' @param weight \code{[logical]} Is there a weight column present?
 #' @param strict \code{[logical]} Check data against TRIM requirements? (see Details).
-#'
+#' @param covars \code{[character]} Names of covariates
+#' @param dbg \code{[logical]} debug mode: be verbose about argument  and input checks
 #'
 #' @section Details:
 #' 
@@ -44,7 +46,7 @@
 #' @export
 #read_tdf <- function(file, missing_code=-1L, snif=10L, weight=FALSE, strict=FALSE) {
 read_tdf <- function(tcf=NULL,
-                     file="nofile.dat", missing_code=-1L, weight=FALSE, covars=as.character(0),
+                     file="nofile.dat", missing_code=-1L, weight=FALSE, covars=character(0),
                      snif=10L, strict=FALSE, dbg=TRUE)
 {
   # Extended argument parsing
@@ -72,21 +74,21 @@ read_tdf <- function(tcf=NULL,
     
   } else if (dbg) {
     
-    if (missing(file)) printf("Using default: file=\"%s\"\n", file)
-    else               printf("Using specified: file=\"%s\"\n", file)
+    if (missing(file)) sprintf("Using default: file=\"%s\"\n", file)
+    else               sprintf("Using specified: file=\"%s\"\n", file)
     
-    if (missing(file)) printf("Using default: missing=%d\n", missing_code)
-    else               printf("Using specified: missing=%d\n", missing_code)
+    if (missing(file)) sprintf("Using default: missing=%d\n", missing_code)
+    else               sprintf("Using specified: missing=%d\n", missing_code)
 
-    if (missing(file)) printf("Using default: weight=%s\n", weight)
-    else               printf("Using specified: weight=%s\n", weight)
+    if (missing(file)) sprintf("Using default: weight=%s\n", weight)
+    else               sprintf("Using specified: weight=%s\n", weight)
     
-    if (missing(covars)) printf("Using default: covars=[%s]\n", paste(covars,collapse=", "))
-    else               printf("Using specified: covars=[%s]\n", paste(covars,collapse=", "))
+    if (missing(covars)) sprintf("Using default: covars=[%s]\n", paste(covars,collapse=", "))
+    else               sprintf("Using specified: covars=[%s]\n", paste(covars,collapse=", "))
   } else stop("Can't happen")
   
   # handle file origin
-  if (!is.null((tcf))) file <- paste(dirname(tcf@origin), file, sep="/")
+  if (!is.null((tcf))) file <- file.path(dirname(tcf@origin), file) 
   
   # snif the file structure
   lines <- readLines(con=file, n=snif, warn=FALSE)

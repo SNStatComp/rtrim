@@ -65,7 +65,7 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
   if (!is.null(endkey)) s <- trimws(gsub(endkey,"",s,ignore.case=TRUE))
   
   # try splitting into tokens
-  if (length(s)>0 && nchar(s)>0) {
+  if (key != "COMMENT" && length(s)>0 && nchar(s)>0) {
     L <- strsplit(s, split="([[:blank:]]|\n)+")
     s <- unlist(L)
   }
