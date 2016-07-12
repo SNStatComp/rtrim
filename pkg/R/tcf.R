@@ -99,7 +99,7 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
 #'
 #' Read TRIM Command Files, compatible with the Windows TRIM programme.
 #'
-#' @section TRIM Command file format.
+#' @section TRIM Command file format:
 #' 
 #' TRIM command files are text files that specify a TRIM job, where a job
 #' consists of one or more models to be computed on a single data input file.
