@@ -10,8 +10,8 @@ NCOVARS 2
 LABELS
  HABITAT
  Cov2
-End
-Comment Hello Bird
+END
+COMMENT Hello Bird
 MISSING -1
 WEIGHT Present
 WEIGHTING off
@@ -19,8 +19,8 @@ SERIALCOR on
 OVERDISP on
 BASETIME 1
 MODEL 3
-Covariates 2
-outputfiles F
+COVARIATES 2 8
+OUTPUTFILES F
 RUN", con=f)
 
 
