@@ -67,9 +67,6 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
   # remove endkey if appropriate
   if (!is.null(endkey)) s <- trimws(gsub(endkey,"",s,ignore.case=TRUE))
 
-  # remove endkey if appropriate
-  if (!is.null(endkey)) s <- trimws(gsub(endkey,"",s,ignore.case=TRUE))
-
   # try splitting into tokens
   if (key != "COMMENT" && length(s)>0 && nchar(s)>0) {
     L <- strsplit(s, split="([[:blank:]]|\n)+")
@@ -99,6 +96,9 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
 #' @section Details:
 #'
 #' Read Trim Command Files, compatible with the Windows TRIM programme.
+#'
+#' 
+#'
 #'
 #'
 #' @param file Location of tcf file.
