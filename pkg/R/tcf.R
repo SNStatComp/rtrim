@@ -59,10 +59,7 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
                , paste0("(\\n|^)",key,".+?(\\n|$)") # PWB: fixed erroneous neglectance of last item
                , paste0("(\\n|^)",key,".+?END"))
 
-  if (key == "LABELS"){
-    browser()
-  }
-  
+
   m <- regexpr(re,x,ignore.case=TRUE)         # Fetch key-value
   s <- trimws(regmatches(x,m))                # ... remove surrounding whitespace
   s = trimws(gsub(key,"",s,ignore.case=TRUE)) # Remove key and more  whitespace
