@@ -50,6 +50,9 @@ TRIMcommand <- setClass(Class="TRIMcommand"
 )
 
 
+
+
+
 extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logical')) {
   type <- match.arg(type)
   re <- ifelse(is.null(endkey)
@@ -93,23 +96,52 @@ extract_tcf_key <- function(x,key,endkey=NULL,type=c('character','integer','logi
 
 #' Read a TRIM command file
 #'
-#' @section Details:
 #'
-#' Read Trim Command Files, compatible with the Windows TRIM programme.
+#' Read TRIM Command Files, compatible with the Windows TRIM programme.
 #'
+#' @section TRIM Command file format.
+#' 
+#' TRIM command files are text files that specify a TRIM job, where a job
+#' consists of one or more models to be computed on a single data input file.
+#' TRIM command files are commonly stored with the extension \code{.tcf}, but
+#' this is not a strict requirement.
+#'
+#' A TRIM command file is built up out of a sequence of commands and optionally 
+#' comments. A command can be single-line or multi-line. In the case of a 
+#' single-line command, the line starts with a keyword, followed by one or more 
+#' spaces, followed by one or more option values. If there are multiple option 
+#' values, these are separated one or more spaces. A multi-line command starts 
+#' with a keyword, followed by one option value on each consecutive line. The 
+#' end of a multiline command is indicated with the keyword \code{END} on a new
+#' line. Currently, the only multi-line command is \code{LABELS}.
+#' 
+#' The keyword \code{RUN} (at the beginning of a single line) ends the
+#' specification of a single model. After this a new model can be specified.
+#' Parameters not specified in the next model will be copied from the previous
+#' one.
+#' 
+#' @section Encoding issues:
+#'
+#' To read files containing non-ASCII characters encoded in a format that is not
+#' native to your system, specifiy the \code{encoding} option. This causes R to 
+#' re-encode to native encoding upon reading. Input encodings supported for your
+#' system can be listed by calling \code{\link[base]{iconvlist}()}. For more 
+#' information on Encoding in R, see \code{\link[base]{Encoding}}.
 #' 
 #'
 #'
-#'
 #' @param file Location of tcf file.
+#' @param encoding The encoding in which the file is stored.
 #'
 #' @return An object of class \code{\link{TRIMcommand}}
 #' @export
-read_tcf <- function(file){
+read_tcf <- function(file, encoding=getOption("encoding")){
 
   # TODO: interpret changepoints properly
   #tcf <- readChar(file,file.info(file)$size)
-  tcf <- paste(readLines(file), collapse="\n") # PWB: fixed CRLF issue
+  con <- file(description = file, encoding=encoding)
+  tcf <- paste(readLines(con), collapse="\n") # PWB: fixed CRLF issue
+  close(con)
 
   TRIMcommand(
     origin = file
