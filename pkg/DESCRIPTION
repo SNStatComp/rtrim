@@ -24,6 +24,5 @@ Collate:
     'read_tcf.R'
     'read_tdf.R'
     'rtrim-pkg.R'
-    'tcf.R'
     'trim.R'
     'trim_engine.R'
