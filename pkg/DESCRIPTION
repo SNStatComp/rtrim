@@ -20,7 +20,6 @@ Suggests:
     testthat
 RoxygenNote: 5.0.1
 Collate:
-    'getset.R'
     'read_tcf.R'
     'read_tdf.R'
     'rtrim-pkg.R'
