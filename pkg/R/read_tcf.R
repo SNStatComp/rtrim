@@ -1,5 +1,35 @@
-
-new_TRIMcommand <- function(...){
+#' Create a TRIMCommand object
+#'
+#' Define a TRIM calculation through a TRIMCommand object. 
+#' 
+#' @section Description:
+#' 
+#' If no parameters are passed, a default TRIMCommand is returned. All parameters listed here
+#' are optional.
+#' 
+#' 
+#' @param file    \code{[character]} name of file containing training data.
+#' @param title   \code{[character]} A string to be printed in the output file.
+#' @param ntimes  \code{[character]} Number of time points.
+#' @param ncovars \code{[character]} Number of covariates.
+#' @param labels  \code{[character]} Covariate label.
+#' @param missing \code{[integer]} Missing value indicator.
+#' @param weight  \code{[logical]} Whether a weight column is present in the \code{file}.
+#' @param comment \code{[character]} A string to be printed in the output file.
+#' @param weighting \code{[logical]} Whether weights are to be used in the model.
+#' @param serialcor \code{[logical]} Whether serial correlation is assumed in the model.
+#' @param overdist \code{[logical]} Whether overdispersion is taken into account by the model.
+#' @param basetime \code{[integer]} Position of the base time point (must be positive).
+#' @param model    \code{[integer]} What model to use (1, 2 or 3).
+#' @param covariates \code{[integer]} Number of covariates to include.
+#' @param changepoints \code{[integer]} Positions of the change points to include.
+#' @param stepwise \code{[logical]} Whether stepwise selection of the changepoints is to be used.
+#' @param outputfiles \code{[character]} Type of outputfile to generate ('F' and/or 'S')
+#'
+#'
+#' @export
+new_TRIMCommand <- function(...){
+  # decide on default values
   tc <- list(
     file           = character(0)
     , title        = character(0)
@@ -16,6 +46,8 @@ new_TRIMcommand <- function(...){
     , model        = integer(0)
     , covariates   = integer(0)
     , changepoints = integer(0)
+    , stepwise     = "off"
+    , outputfiles  = character(0)
   )
   class(tc) <- c("TRIMCommand","list")
   L <- list(...)
@@ -32,7 +64,6 @@ new_TRIMcommand <- function(...){
 convert_path <- function(x){
   if (grepl("\\\\",x)){
     y <- gsub("\\\\","/",x)
-#    message(sprintf("Converting DOS style path '%s'\nto POSIX compliant path '%s'\n",x,y))
     y
   } else {
     x
@@ -61,6 +92,12 @@ print.TRIMCommand <- function(x,pretty=FALSE,...){
     cat(sprintf("  Weights are %s and turned %s for the model\n", tolower(x$weight), x$weighting))
     cat(sprintf("  Data contains %d covariates labeled %s\n", x$ncovars, paste0("",paste(x$labels,collapse=", ")) ))
     cat(sprintf("  Covatiates used in the model include %s\n",paste(x$covariates,collapse=", ")))
+    if (length(x$changepoints)==0){ 
+      cat(sprintf("  No changepoints defined."))
+    } else {
+      cat(sprintf("  Changepoints defined at %s.",paste0(x$changepoints,collapse=", ")))
+    }
+    cat(" Stepwise turned %s",x$stepwise)
   }
 }
 
@@ -93,20 +130,78 @@ extract_keyval <- function(trimkey, x){
 }
 
 
-tc_from_char <- function(x){
-  tc <- new_TRIMcommand()
+tc_from_char <- function(x, tc0){
+  tc <- new_TRIMCommand()
   L <- lapply(names(tc), extract_keyval, x)
   L <- setNames(L, names(tc))
-  do.call(new_TRIMcommand, L)
+  # filter undefined values so default value is kept.
+  L <- Filter(function(x) length(x)>0, L)
+  # copy old values when relevant.
+  if (!missing(tc0)){
+    for (i in seq_along(tc0)){
+      if (length(L[[i]])==0) L[[i]] <- tc0[[i]]
+    }
+  }
+  do.call(new_TRIMCommand, L)
 }
 
+#' Read a TRIM command file
+#'
+#' Read TRIM Command Files, compatible with the Windows TRIM programme.
+#'
+#' @section TRIM Command file format:
+#' 
+#' TRIM command files are text files that specify a TRIM job, where a job
+#' consists of one or more models to be computed on a single data input file.
+#' TRIM command files are commonly stored with the extension \code{.tcf}, but
+#' this is not a strict requirement.
+#'
+#' A TRIM command file is built up out of a sequence of commands and optionally 
+#' comments. A command can be single-line or multi-line. In the case of a 
+#' single-line command, the line starts with a keyword, followed by one or more 
+#' spaces, followed by one or more option values. If there are multiple option 
+#' values, these are separated one or more spaces. A multi-line command starts 
+#' with a keyword, followed by one option value on each consecutive line. The 
+#' end of a multiline command is indicated with the keyword \code{END} on a new
+#' line. Currently, the only multi-line command is \code{LABELS}.
+#' 
+#' The keyword \code{RUN} (at the beginning of a single line) ends the
+#' specification of a single model. After this a new model can be specified.
+#' Parameters not specified in the next model will be copied from the previous
+#' one.
+#' 
+#' @section Encoding issues:
+#'
+#' To read files containing non-ASCII characters encoded in a format that is not
+#' native to your system, specifiy the \code{encoding} option. This causes R to 
+#' re-encode to native encoding upon reading. Input encodings supported for your
+#' system can be listed by calling \code{\link[base]{iconvlist}()}. For more 
+#' information on Encoding in R, see \code{\link[base]{Encoding}}.
+#' 
+#' @section Note on filenames:
+#' 
+#' If the \code{file} is specified using backslashes to separate directories
+#' (Windows style), this will be converted to a filename using forward slashes
+#' (POSIX style, as used by R).
+#' 
+#' 
+#'
+#' @param file Location of tcf file.
+#' @param encoding The encoding in which the file is stored.
+#'
+#' @return An object of class \code{\link{TRIMcommand}}
+#' @export
 read_tcf <- function(file, encoding=getOption("encoding")){
   con <- file(description = file, encoding=encoding)
   tcf <- paste(readLines(con), collapse="\n") 
   close(con)
   
   tcflist <- trimws(strsplit(tcf,"(\\n|^)RUN"))
-  L <- lapply(tcflist, tc_from_char)
+  L <- vector(mode="list",length=length(tcflist))
+  L[[1]] <- tc_from_char(tcflist[[1]])
+  for ( i in seq_along(L[-1]) ){
+    L[[i]] <- tc_from_char(tcflist[[i]], L[[i-1]])
+  }
   class(L) <- "TRIMCommandList"
   L
 }
@@ -140,6 +235,8 @@ summary.TRIMCommandList <- function(x,...){
     , model     = sapply(x, `[[`, "model")
     , covariates = sapply(x, function(m) paste(m$covariates,collapse=", ") )
     , changepoints = sapply(x, function(m) paste(m$changepoints, collapse=", "))
+    , stepwise = sapply(x, `[[`, "stepwise")
+    , outputfiles = sapply(x, `[[`,"outputfiles")
     , stringsAsFactors=FALSE
   )
   print(models)
