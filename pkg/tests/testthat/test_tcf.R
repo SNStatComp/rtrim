@@ -47,7 +47,41 @@ test_that("read_tcf parses tcf files", {
 
 tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))
 
-test_that("parsing multi-model files",{})
+
+
+f <- tempfile()
+writeLines("
+FILE F:\\TRIM\\Skylark.dat
+TITLE Skylark.dat
+NTIMES 8
+NCOVARS 2
+LABELS
+ HABITAT
+ Cov2
+END
+COMMENT Hello Bird
+MISSING -1
+WEIGHT Present
+WEIGHTING off
+SERIALCOR on
+OVERDISP on
+BASETIME 1
+MODEL 3
+COVARIATES 2
+OUTPUTFILES F
+RUN
+MODEL 1
+OVERDISP off", con=f)
+
+test_that("parsing multi-model files",{
+  x <- read_tcf(f)
+  expect_equal(length(x),2L)
+  expect_equal(x[[2]]$model, 1L)
+  expect_equal(x[[2]]$overdisp, "off")
+})
+
+tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))
+
 
 
 

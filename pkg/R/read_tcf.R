@@ -7,25 +7,29 @@
 #' If no parameters are passed, a default TRIMCommand is returned. All parameters listed here
 #' are optional.
 #' 
+#' @param ... Options in the form of \code{key=value}. See below for all options.
 #' 
-#' @param file    \code{[character]} name of file containing training data.
-#' @param title   \code{[character]} A string to be printed in the output file.
-#' @param ntimes  \code{[character]} Number of time points.
-#' @param ncovars \code{[character]} Number of covariates.
-#' @param labels  \code{[character]} Covariate label.
-#' @param missing \code{[integer]} Missing value indicator.
-#' @param weight  \code{[logical]} Whether a weight column is present in the \code{file}.
-#' @param comment \code{[character]} A string to be printed in the output file.
-#' @param weighting \code{[logical]} Whether weights are to be used in the model.
-#' @param serialcor \code{[logical]} Whether serial correlation is assumed in the model.
-#' @param overdist \code{[logical]} Whether overdispersion is taken into account by the model.
-#' @param basetime \code{[integer]} Position of the base time point (must be positive).
-#' @param model    \code{[integer]} What model to use (1, 2 or 3).
-#' @param covariates \code{[integer]} Number of covariates to include.
-#' @param changepoints \code{[integer]} Positions of the change points to include.
-#' @param stepwise \code{[logical]} Whether stepwise selection of the changepoints is to be used.
-#' @param outputfiles \code{[character]} Type of outputfile to generate ('F' and/or 'S')
-#'
+#' @section Options:
+#' 
+#' \itemize{
+#' \item{ \code{file}    \code{[character]} name of file containing training data.}
+#' \item{ \code{title}   \code{[character]} A string to be printed in the output file.}
+#' \item{ \code{ntimes}  \code{[character]} Number of time points.}
+#' \item{ \code{ncovars} \code{[character]} Number of covariates.}
+#' \item{ \code{labels}  \code{[character]} Covariate label.}
+#' \item{ \code{missing} \code{[integer]} Missing value indicator.}
+#' \item{ \code{weight}  \code{[logical]} Whether a weight column is present in the \code{file}.}
+#' \item{ \code{comment} \code{[character]} A string to be printed in the output file.}
+#' \item{ \code{weighting} \code{[logical]} Whether weights are to be used in the model.}
+#' \item{ \code{serialcor} \code{[logical]} Whether serial correlation is assumed in the model.}
+#' \item{ \code{overdist} \code{[logical]} Whether overdispersion is taken into account by the model.}
+#' \item{ \code{basetime} \code{[integer]} Position of the base time point (must be positive).}
+#' \item{ \code{model}    \code{[integer]} What model to use (1, 2 or 3).}
+#' \item{ \code{covariates} \code{[integer]} Number of covariates to include.}
+#' \item{ \code{changepoints} \code{[integer]} Positions of the change points to include.}
+#' \item{ \code{stepwise} \code{[logical]} Whether stepwise selection of the changepoints is to be used.}
+#' \item{ \code{outputfiles} \code{[character]} Type of outputfile to generate ('F' and/or 'S')}
+#'}
 #'
 #' @export
 new_TRIMCommand <- function(...){
@@ -55,94 +59,9 @@ new_TRIMCommand <- function(...){
     if (! nm %in% names(tc) ) stop(sprintf("'%s' is not a valid TRIM keyword",nm))
     if (nm == "file") L[[nm]] <- convert_path(L[[nm]])
     # convert and set
-    tc[[nm]] <- as(L[[nm]], class(tc[[nm]]))
+    if (length(L[[nm]])>0) tc[[nm]] <- as(L[[nm]], class(tc[[nm]]))
   }
   tc
-}
-
-
-convert_path <- function(x){
-  if (grepl("\\\\",x)){
-    y <- gsub("\\\\","/",x)
-    y
-  } else {
-    x
-  }
-}
-
-
-shortfilename <- function(x){
-  if (nchar(x)<=20) return(x)
-  st <- substr(x,1,3)
-  n <- nchar(x)
-  en <- substr(x,n-13,n)
-  paste0(st,"...",en)
-}
-
-print.TRIMCommand <- function(x,pretty=FALSE,...){
-  if (!pretty){
-    cat("Object of class TRIMcommand:\n")
-    for ( nm in names(x) ){
-      cat(sprintf("%12s: %s\n",nm,paste0("",paste(x[[nm]]),collapse=", ")) )
-    }
-  } else {
-    cat(sprintf("TRIMcommand: %s (%s)\n",x$title,x$comment))
-    cat(sprintf("  %d time points from %s (%d represents missing)\n",x$ntimes, shortfilename(x$file),x$missing))
-    cat(sprintf("  Model %d with serial correlation %s and overdispersion %s\n",x$model,x$serialcor, x$overdisp))
-    cat(sprintf("  Weights are %s and turned %s for the model\n", tolower(x$weight), x$weighting))
-    cat(sprintf("  Data contains %d covariates labeled %s\n", x$ncovars, paste0("",paste(x$labels,collapse=", ")) ))
-    cat(sprintf("  Covatiates used in the model include %s\n",paste(x$covariates,collapse=", ")))
-    if (length(x$changepoints)==0){ 
-      cat(sprintf("  No changepoints defined."))
-    } else {
-      cat(sprintf("  Changepoints defined at %s.",paste0(x$changepoints,collapse=", ")))
-    }
-    cat(" Stepwise turned %s",x$stepwise)
-  }
-}
-
-summary.TRIMcommand <- function(x,...){
-  print(x,pretty=TRUE)
-}
-
-key_regex <- function(trimkey){
-  re <- paste0("(\\n|^)", trimkey,".+?")
-  re <- if (trimkey == "LABELS"){
-    paste0(re,"END")
-  } else {
-    paste0(re,"(\\n|$)")
-  }
-  re
-}
-
-extract_keyval <- function(trimkey, x){
-  trimkey <- toupper(trimkey)
-  re <- key_regex(trimkey)
-  m <- regexpr(re,x,ignore.case=TRUE)      # Fetch key location
-  s <- regmatches(x,m)                     # extract substring
-  re <- paste0("(",trimkey,")|(END)")      # remove key and whitespace
-  s <- trimws(gsub(re,"",s))               # remove key and return
-  # split values when relevant
-  if (trimkey != "COMMENT" && length(s)>0 && nchar(s)>0) {
-    s <- unlist(strsplit(s, split="([[:blank:]]|\n)+"))
-  }
-  s
-}
-
-
-tc_from_char <- function(x, tc0){
-  tc <- new_TRIMCommand()
-  L <- lapply(names(tc), extract_keyval, x)
-  L <- setNames(L, names(tc))
-  # filter undefined values so default value is kept.
-  L <- Filter(function(x) length(x)>0, L)
-  # copy old values when relevant.
-  if (!missing(tc0)){
-    for (i in seq_along(tc0)){
-      if (length(L[[i]])==0) L[[i]] <- tc0[[i]]
-    }
-  }
-  do.call(new_TRIMCommand, L)
 }
 
 #' Read a TRIM command file
@@ -189,34 +108,27 @@ tc_from_char <- function(x, tc0){
 #' @param file Location of tcf file.
 #' @param encoding The encoding in which the file is stored.
 #'
-#' @return An object of class \code{\link{TRIMcommand}}
+#' @return An object of class \code{TRIMCommand}
+#' 
+#' @seealso \code{\link{new_TRIMCommand}}
 #' @export
 read_tcf <- function(file, encoding=getOption("encoding")){
   con <- file(description = file, encoding=encoding)
   tcf <- paste(readLines(con), collapse="\n") 
   close(con)
   
-  tcflist <- trimws(strsplit(tcf,"(\\n|^)RUN"))
+  tcflist <- trimws(strsplit(tcf,"(\\n|^)RUN")[[1]])
   L <- vector(mode="list",length=length(tcflist))
   L[[1]] <- tc_from_char(tcflist[[1]])
-  for ( i in seq_along(L[-1]) ){
-    L[[i]] <- tc_from_char(tcflist[[i]], L[[i-1]])
+  for ( i in 1+seq_along(L[-1]) ){
+    L[[i]] <- tc_from_char(tcflist[[i]], default = L[[i-1]])
   }
   class(L) <- "TRIMCommandList"
   L
 }
 
-print.TRIMCommandList <- function(x,pretty=TRUE,...){
-  cat(sprintf("TRIMCommandList with %d models:\n",length(x)) )
-  i <- 0
-  for ( tc in x ){
-    i <- i+1
-    cat(sprintf("%02d: ",i))
-    print(tc, pretty=pretty)
-  }
-}
 
-summary.TRIMCommandList <- function(x,...){
+print.TRIMCommandList <- function(x,...){
   y <- x[[1]]
   cat(sprintf("TRIMCommandList: %s\n",y$title))
   cat(sprintf("file: %s (%d means missing)\n"
@@ -242,4 +154,87 @@ summary.TRIMCommandList <- function(x,...){
   print(models)
 }
 
+
+convert_path <- function(x){
+  if (isTRUE(grepl("\\\\",x)) ){
+    y <- gsub("\\\\","/",x)
+    y
+  } else {
+    x
+  }
+}
+
+
+shortfilename <- function(x){
+  if ( identical(x, character(0)) || nchar(x) <= 20 ) return(x)
+  st <- substr(x,1,3)
+  n <- nchar(x)
+  en <- substr(x,n-13,n)
+  paste0(st,"...",en)
+}
+
+print.TRIMCommand <- function(x,pretty=FALSE,...){
+  if (!pretty){
+    cat("Object of class TRIMcommand:\n")
+    for ( nm in names(x) ){
+      cat(sprintf("%12s: %s\n",nm,paste0("",paste(x[[nm]]),collapse=", ")) )
+    }
+  } else {
+    cat(sprintf("TRIMcommand: %s (%s)\n",x$title,x$comment))
+    cat(sprintf("  %d time points from %s (%d represents missing)\n",x$ntimes, shortfilename(x$file),x$missing))
+    cat(sprintf("  Model %d with serial correlation %s and overdispersion %s\n",x$model,x$serialcor, x$overdisp))
+    cat(sprintf("  Weights are %s and turned %s for the model\n", tolower(x$weight), x$weighting))
+    cat(sprintf("  Data contains %d covariates labeled %s\n", x$ncovars, paste0("",paste(x$labels,collapse=", ")) ))
+    cat(sprintf("  Covatiates used in the model include %s\n",paste(x$covariates,collapse=", ")))
+    if (length(x$changepoints)==0){ 
+      cat(sprintf("  No changepoints defined."))
+    } else {
+      cat(sprintf("  Changepoints defined at %s.",paste0(x$changepoints,collapse=", ")))
+    }
+    cat(" Stepwise turned %s\n",paste0("",x$stepwise))
+  }
+}
+
+summary.TRIMcommand <- function(x,...){
+  print(x,pretty=TRUE)
+}
+
+key_regex <- function(trimkey){
+  re <- paste0("(\\n|^)", trimkey,".+?")
+  re <- if (trimkey == "LABELS"){
+    paste0(re,"END")
+  } else {
+    paste0(re,"(\\n|$)")
+  }
+  re
+}
+
+extract_keyval <- function(trimkey, x){
+  trimkey <- toupper(trimkey)
+  re <- key_regex(trimkey)
+  m <- regexpr(re,x,ignore.case=TRUE)      # Fetch key location
+  s <- regmatches(x,m)                     # extract substring
+  re <- paste0("(",trimkey,")|(END)")      # remove key and whitespace
+  s <- trimws(gsub(re,"",s))               # remove key and return
+  # split values when relevant
+  if (trimkey != "COMMENT" && length(s)>0 && nchar(s)>0) {
+    s <- unlist(strsplit(s, split="([[:blank:]]|\n)+"))
+  }
+  s
+}
+
+
+tc_from_char <- function(x, default = new_TRIMCommand()){
+  L <- lapply(names(default), extract_keyval, x)
+  L <- setNames(L, names(default))
+  for ( i in seq_along(L))
+    if (length(L[[i]])==0) L[[i]] <- default[[i]]
+  do.call(new_TRIMCommand, L)
+}
+
+
+setNames <- function (object = nm, nm) {
+  names(object) <- nm
+  object
+}
 

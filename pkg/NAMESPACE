@@ -3,7 +3,6 @@
 export(new_TRIMCommand)
 export(read_tcf)
 export(read_tdf)
-export(trim)
 import(methods)
 importFrom(utils,head)
 importFrom(utils,read.table)
