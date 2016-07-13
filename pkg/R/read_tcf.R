@@ -1,11 +1,46 @@
-#' Create a TRIMCommand object
+new_TRIMCommand <- function(...){
+  # decide on default values
+  tc <- list(
+    file           = character(0)
+    , title        = character(0)
+    , ntimes       = integer(0)
+    , ncovars      = integer(0)
+    , labels       = character(0)
+    , missing      = integer(0)
+    , weight       = logical(0)
+    , comment      = character(0)
+    , weighting    = logical(0)
+    , serialcor    = logical(0)
+    , overdisp     = logical(0)
+    , basetime     = integer(0)
+    , model        = integer(0)
+    , covariates   = integer(0)
+    , changepoints = integer(0)
+    , stepwise     = logical(0)
+    , outputfiles  = character(0)
+  )
+  class(tc) <- c("TRIMCommand","list")
+  L <- list(...)
+  for ( nm in names(L) ){
+    if (! nm %in% names(tc) ) stop(sprintf("'%s' is not a valid TRIM keyword",nm))
+    if (nm == "file") L[[nm]] <- convert_path(L[[nm]])
+    # convert and set
+    if (length(L[[nm]])>0) tc[[nm]] <- as_rtrim(L[[nm]], tc[[nm]])
+  }
+  tc
+}
+
+
+#' Create a trimbatch object
 #'
-#' Define a TRIM calculation through a TRIMCommand object. 
-#' 
+#'
 #' @section Description:
 #' 
-#' If no parameters are passed, a default TRIMCommand is returned. All parameters listed here
-#' are optional.
+#' A \code{trimbatch} object defines one or more models to run for a single 
+#' data set. This function can be used to set up a file description and a single
+#' model. Use \code{\link{add_model}} to add more models incrementally. If no
+#' parameters are passed, a default \code{trimbatch} is
+#' returned. 
 #' 
 #' @param ... Options in the form of \code{key=value}. See below for all options.
 #' 
@@ -30,39 +65,57 @@
 #' \item{ \code{stepwise} \code{[logical]} Whether stepwise selection of the changepoints is to be used.}
 #' \item{ \code{outputfiles} \code{[character]} Type of outputfile to generate ('F' and/or 'S')}
 #'}
-#'
+#' 
+#' @seealso \code{\link{read_tcf}}, \code{\link{add_model}}
+#' 
 #' @export
-new_TRIMCommand <- function(...){
-  # decide on default values
-  tc <- list(
-    file           = character(0)
-    , title        = character(0)
-    , ntimes       = integer(0)
-    , ncovars      = integer(0)
-    , labels       = character(0)
-    , missing      = integer(0)
-    , weight       = character(0)
-    , comment      = character(0)
-    , weighting    = character(0)
-    , serialcor    = character(0)
-    , overdisp     = character(0)
-    , basetime     = integer(0)
-    , model        = integer(0)
-    , covariates   = integer(0)
-    , changepoints = integer(0)
-    , stepwise     = "off"
-    , outputfiles  = character(0)
-  )
-  class(tc) <- c("TRIMCommand","list")
-  L <- list(...)
-  for ( nm in names(L) ){
-    if (! nm %in% names(tc) ) stop(sprintf("'%s' is not a valid TRIM keyword",nm))
-    if (nm == "file") L[[nm]] <- convert_path(L[[nm]])
-    # convert and set
-    if (length(L[[nm]])>0) tc[[nm]] <- as(L[[nm]], class(tc[[nm]]))
-  }
+trimbatch <- function(...){
+  tc <- list(new_TRIMCommand(...))
+  class(tc) <- c("trimbatch", "list")
   tc
 }
+
+
+#' Add a model to a trimbatch object
+#'
+#' Set up multiple models in a trimbatch object.
+#' 
+#'
+#' @param x a \code{trimbatch} object.
+#' @param ... model parameters (see \code{\link{trimbatch}}). Unspecified parameters
+#'    are copied from the last model in the list.
+#' @export
+add_model <- function(x,...){
+  UseMethod("add_model")
+}
+
+#' @export 
+#' @rdname add_model
+add_model.trimbatch <- function(x,...){
+  nmodels <- length(x)
+  template <- x[[nmodels]]
+  L <- list(...)
+  for ( nm in names(L) ){
+    if (!nm %in% names(template)) 
+      warning(sprintf("Skipping invalid option %s",nm))
+    else
+      template[[nm]] <- L[[nm]]
+  }
+  
+  x[[nmodels + 1]] <- template
+  x
+}
+
+
+# convert from character representation of tcf to rtrim internal representation.
+as_rtrim <- function(value, template){
+  if ( inherits(template, "logical") ){
+    if ( tolower(value) %in% c("present","on") ) TRUE else FALSE
+  } else {
+    as(value,class(template))
+  }
+}
+
 
 #' Read a TRIM command file
 #'
@@ -75,19 +128,53 @@ new_TRIMCommand <- function(...){
 #' TRIM command files are commonly stored with the extension \code{.tcf}, but
 #' this is not a strict requirement.
 #'
-#' A TRIM command file is built up out of a sequence of commands and optionally 
-#' comments. A command can be single-line or multi-line. In the case of a 
-#' single-line command, the line starts with a keyword, followed by one or more 
-#' spaces, followed by one or more option values. If there are multiple option 
-#' values, these are separated one or more spaces. A multi-line command starts 
-#' with a keyword, followed by one option value on each consecutive line. The 
-#' end of a multiline command is indicated with the keyword \code{END} on a new
-#' line. Currently, the only multi-line command is \code{LABELS}.
+#' A TRIM command file consists of two parts. The first part describes the
+#' data file to be read, the second part describes the model(s) to be run. A
+#' TRIM command file can only contain a single data specification part, but multiple
+#' models may be specified.
+#' 
+#' Each command starts on a new line with a keyword, followed by at least
+#' one space and at least one option value, where multiple option values are
+#' separated by spaces. All commands must be written on a single line, except
+#' the \code{LABELS} command (to set labels for covariates). The latter command
+#' starts with \code{LABELS} on a single line, followed by a newline, followed
+#' by a new label on each following line. The keyword \code{END} (at the beginning of a line) 
+#' signals the end of the labels command.
 #' 
 #' The keyword \code{RUN} (at the beginning of a single line) ends the
 #' specification of a single model. After this a new model can be specified.
-#' Parameters not specified in the next model will be copied from the previous
+#' Parameters not specified in the current model will be copied from the previous
 #' one.
+#' 
+#' @section TRIM commands:
+#' 
+#' The commands are identical to those in the original TRIM software. Commands
+#' that represent a simple toggle (on/off, present/absent) are translated to a
+#' \code{logical} upon reading.
+#' 
+#' \tabular{ll}{
+#' \bold{Data}\tab\cr
+#' \code{FILE}   \tab data filename and path.\cr
+#' \code{TITLE}  \tab A title (appears in output when exported).\cr
+#' \code{NTIMES} \tab [positive integer] Number of time points in data file.\cr
+#' \code{NCOVARS}\tab [nonnegative integer] Number of covariates in data file.\cr
+#' \code{LABELS} \tab Covariate labels (multiline command). \cr
+#' \code{END}    \tab Signals end of \code{LABELS} command.\cr
+#' \code{MISSING}\tab missing value indicator.\cr
+#' \code{WEIGHT} \tab [\code{present}, \code{absent}] Indicates whether weights are present in the data file [translated to \code{logical}].\cr
+#' \bold{Model}  \tab\cr
+#' \code{COMMENT}  \tab A comment for the current model.\cr
+#' \code{WEIGHTING}\tab [\code{on},\code{off}] Switch use of weights for current model [translated to \code{logical}].\cr
+#' \code{SERIALCOR}\tab [\code{on},\code{off}] Switch use of serial correlation for current model [translated to \code{logical}].\cr
+#' \code{OVERDISP}\tab [\code{on},\code{off}] Switch use of overdispersion for current model [translated to \code{logical}].\cr
+#' \code{BASETIME}\tab [integer] Index of base time-point.\cr
+#' \code{MODEL}\tab [\code{1}, \code{2}, \code{3}] Choose the current model\cr
+#' \code{COVARIATES}\tab [integers] indices of covariates to use (1st covariate has index 1)\cr
+#' \code{CHANGEPOINTS} \tab [integers] indices of changepoints\cr
+#' \code{RUN}\tab Signals end of current model specification.
+#' }
+#' 
+#' 
 #' 
 #' @section Encoding issues:
 #'
@@ -108,9 +195,9 @@ new_TRIMCommand <- function(...){
 #' @param file Location of tcf file.
 #' @param encoding The encoding in which the file is stored.
 #'
-#' @return An object of class \code{TRIMCommand}
+#' @return An object of class \code{\link{trimbatch}}
 #' 
-#' @seealso \code{\link{new_TRIMCommand}}
+#' @seealso \code{\link{read_tcf}}, \code{\link{trimbatch}}
 #' @export
 read_tcf <- function(file, encoding=getOption("encoding")){
   con <- file(description = file, encoding=encoding)
@@ -127,31 +214,22 @@ read_tcf <- function(file, encoding=getOption("encoding")){
   L
 }
 
-
-print.TRIMCommandList <- function(x,...){
+#' print a trimbatch object
+#'
+#' @export
+#' @keywords internal
+#' @param x an object
+#' @param ... options (ignored)
+print.trimbatch <- function(x,...){
   y <- x[[1]]
-  cat(sprintf("TRIMCommandList: %s\n",y$title))
-  cat(sprintf("file: %s (%d means missing)\n"
-              , y$file, y$missing))
-  cat(sprintf("Weights %s, %d covariates labeled %s\n",y$weight, y$ncovars
+  cat(sprintf("trimbatch: %s\n",pr(y$title)))
+  cat(sprintf("file: %s (%s means missing)\n"
+              , pr(y$file), pr(y$missing)))
+  cat(sprintf("Weights %s, %s covariates labeled %s\n",pr(y$weight), pr(y$ncovars)
               ,paste0("",paste(y$labels,collapse=", "))))
 
   cat("\nModel parameter overview:\n") 
-  models <- data.frame(
-    Nr = seq_along(x)
-    , comment = sapply(x,`[[`,"comment")
-    , weighting = sapply(x,`[[`,"weighting")
-    , serialcor = sapply(x, `[[`,"serialcor")
-    , overdisp  = sapply(x, `[[`,"overdisp")
-    , basetime  = sapply(x, `[[`,"basetime")
-    , model     = sapply(x, `[[`, "model")
-    , covariates = sapply(x, function(m) paste(m$covariates,collapse=", ") )
-    , changepoints = sapply(x, function(m) paste(m$changepoints, collapse=", "))
-    , stepwise = sapply(x, `[[`, "stepwise")
-    , outputfiles = sapply(x, `[[`,"outputfiles")
-    , stringsAsFactors=FALSE
-  )
-  print(models)
+  oneliner(x)
 }
 
 
@@ -173,30 +251,18 @@ shortfilename <- function(x){
   paste0(st,"...",en)
 }
 
-print.TRIMCommand <- function(x,pretty=FALSE,...){
-  if (!pretty){
-    cat("Object of class TRIMcommand:\n")
-    for ( nm in names(x) ){
-      cat(sprintf("%12s: %s\n",nm,paste0("",paste(x[[nm]]),collapse=", ")) )
-    }
-  } else {
-    cat(sprintf("TRIMcommand: %s (%s)\n",x$title,x$comment))
-    cat(sprintf("  %d time points from %s (%d represents missing)\n",x$ntimes, shortfilename(x$file),x$missing))
-    cat(sprintf("  Model %d with serial correlation %s and overdispersion %s\n",x$model,x$serialcor, x$overdisp))
-    cat(sprintf("  Weights are %s and turned %s for the model\n", tolower(x$weight), x$weighting))
-    cat(sprintf("  Data contains %d covariates labeled %s\n", x$ncovars, paste0("",paste(x$labels,collapse=", ")) ))
-    cat(sprintf("  Covatiates used in the model include %s\n",paste(x$covariates,collapse=", ")))
-    if (length(x$changepoints)==0){ 
-      cat(sprintf("  No changepoints defined."))
-    } else {
-      cat(sprintf("  Changepoints defined at %s.",paste0(x$changepoints,collapse=", ")))
-    }
-    cat(" Stepwise turned %s\n",paste0("",x$stepwise))
-  }
-}
 
-summary.TRIMcommand <- function(x,...){
-  print(x,pretty=TRUE)
+#' print a TRIMCommand object
+#'
+#' @export
+#' @keywords internal
+#' @param x an R object
+#' @param ... optional parameters (ignored)
+print.TRIMCommand <- function(x,...){
+  cat("Object of class TRIMcommand:\n")
+  for ( nm in names(x) ){
+    cat(sprintf("%12s: %s\n",nm,paste0("",paste(x[[nm]]),collapse=", ")) )
+  }
 }
 
 key_regex <- function(trimkey){
@@ -237,4 +303,31 @@ setNames <- function (object = nm, nm) {
   names(object) <- nm
   object
 }
+
+pr <- function(s){
+  a <- if ( length(s) == 0 ) "<none>" else paste(as.character(s),collapse=", ")
+}
+
+oneliner <- function(x){
+  cat(sprintf("%10s %9s %9s %8s %8s %6s %6s %12s %8s %8s\n"
+              ,"comment","weighting","serialcor","overdisp"
+              ,"basetime","model","covars","changepoints","stepwise","outfiles"))
+  for ( i in seq_along(x)){
+    tc <- x[[i]]
+    cat(sprintf("%10s %9s %9s %8s %8s %6s %6s %12s %8s %8s\n"
+      , pr(tc$comment)
+      , pr(tc$weighting)
+      , pr(tc$serialcor)
+      , pr(tc$overdisp)
+      , pr(tc$basetime)
+      , pr(tc$model)
+      , pr(tc$covariates)
+      , pr(tc$changepoints)
+      , pr(tc$stepwise)
+      , pr(tc$outputfiles)
+      ))
+  }
+  
+}
+
 
