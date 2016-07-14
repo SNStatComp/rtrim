@@ -1,13 +1,52 @@
 
 #' Read TRIM data files
 #' 
+#' Read data files intended for the original TRIM programme.
+#' 
+#' @section The TRIM data file format:
+#' 
+#' TRIM input data is stored in an \code{ASCII} encoded file where columns
+#' are separated by one or more spaces. In the original format, the following
+#' columns and restrictions applied:
+#'\tabular{lll}{ 
+#' \bold{Variable}        \tab \bold{Values} \tab \bold{Required/optional} \cr
+#' Site identifier        \tab \code{integer < 1E8}. \tab required\cr
+#' Time-point identifier  \tab \code{integer < 1e4}  \tab required\cr
+#' Count                  \tab \code{integer <2e9} or missing code \tab required\cr
+#' Weight                 \tab \code{real > 0.001}\tab optional\cr
+#' Category of 1st covariate  \tab \code{integer} in \code{1,2,...,90}\tab optional\cr
+#' \eqn{\vdots}           \tab\tab\cr
+#' Category of last covariate \tab\tab\cr
+#' } 
+#' 
+#' The restrictions on the values applied because of the internal representation
+#' of data in TRIM. In the current implementation, all columns are read into R's
+#' \code{integer} or \code{numeric} format. This means that the largest possible
+#' integer is now given by \code{.Machine$integer.max} (see
+#' \code{\link[base]{.Machine}}).
+#' 
+#' 
 #' @param x a filename or a \code{\link{trimbatch}} object
 #' @param missing \code{[integer]} missing value indicator
 #' @param weight \code{[logical]} indicate presence of a weight column
 #' @param ncovars \code{[logical]} The number of covariates in the file
 #' @param labels \code{[character]} (optional) specify labels for the covariates. 
 #'     Defaults to \code{cov<i>} (\code{i=1,2,...,ncovars}) if none are specified.
-#' @param ... Options passed to other methods
+#' @param ... (unused)
+#'
+#' @return A \code{data.frame} with the following columns
+#' \tabular{lll}{
+#' \bold{Variable}    \tab\bold{status}   \tab \bold{R class}\cr
+#' \code{site}        \tab requiered \tab \code{integer}\cr
+#' \code{time}        \tab required  \tab \code{integer}\cr
+#' \code{count}       \tab required  \tab \code{numeric}\cr
+#' \code{weight}      \tab optional  \tab \code{numeric}\cr
+#' \code{<covariate1>}\tab optional\tab \code{integer}\cr
+#' \code{...}\tab\tab\cr
+#' \code{<covariateN>}\tab optional\tab \code{integer}\cr
+#' }
+#' Missing values are translated to \code{\link{NA}}. 
+#'
 #'
 #' @export
 read_tdf <- function(x,...){
