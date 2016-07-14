@@ -15,22 +15,22 @@ writeLines("1 1992 186 1.0000 1
 1 2000 0 1.0000 1
 1 2001 -1 1.0000 1",con=f)
 
-  dat <- read_tdf(file=f,missing_code=-1L, snif=5, weight=TRUE,covars="covar01")
+  dat <- read_tdf(x=f,missing=-1L, weight=TRUE, ncovars=1,labels="covar01")
   expect_equal(dat[1,],
       data.frame(
-        site=factor(1)
-        ,time=ordered(1992,levels=1992:2001)
+        site= 1
+        ,time=1992
         ,count=186
         ,weight=1
-        ,covar01=factor(1)
+        ,covar01=1 
       ))
   expect_equal(dat[10,3],NA_integer_)  
-  tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))
+  tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlink temporary file %s",f)))
 })
 
 
 test_that("reading with errors",{
-  f <- tempfile()
+f <- tempfile()
 writeLines("1 1992 186 1
              1 1993 60 1.0000 1
              1 1994 39 1.0000 1
@@ -41,13 +41,7 @@ writeLines("1 1992 186 1
              1 1999 0 1.0000 1
              1 2000 0 1.0000 1
              1 2001 -1 1.0000 1",con=f)
-  expect_error(read_tdf(file=f,weight=TRUE),regexp = "numbers of columns")
-  expect_warning(read_tdf(file=textConnection("")),regexp = "no records")
-writeLines("1 1992 186
-1 1993 60 
-1 1994 39 
-1 2001 -1",con=f)
-  expect_error(read_tdf(file=f,weight=TRUE),regexp="at least 4")
+  expect_error(read_tdf(x=f,weight=TRUE),regexp = "Expected 4 columns")
 })
 
 
