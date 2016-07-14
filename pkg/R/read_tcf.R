@@ -210,7 +210,7 @@ read_tcf <- function(file, encoding=getOption("encoding")){
   for ( i in 1+seq_along(L[-1]) ){
     L[[i]] <- tc_from_char(tcflist[[i]], default = L[[i-1]])
   }
-  class(L) <- "TRIMCommandList"
+  class(L) <- "trimbatch"
   L
 }
 
@@ -222,9 +222,9 @@ read_tcf <- function(file, encoding=getOption("encoding")){
 #' @param ... options (ignored)
 print.trimbatch <- function(x,...){
   y <- x[[1]]
-  cat(sprintf("trimbatch: %s\n",pr(y$title)))
+  cat(sprintf("trimbatch: %s\n",pr(y$title, len=Inf)))
   cat(sprintf("file: %s (%s means missing)\n"
-              , pr(y$file), pr(y$missing)))
+              , pr(y$file, len=50), pr(y$missing)))
   cat(sprintf("Weights %s, %s covariates labeled %s\n",pr(y$weight), pr(y$ncovars)
               ,paste0("",paste(y$labels,collapse=", "))))
 
@@ -243,13 +243,6 @@ convert_path <- function(x){
 }
 
 
-shortfilename <- function(x){
-  if ( identical(x, character(0)) || nchar(x) <= 20 ) return(x)
-  st <- substr(x,1,3)
-  n <- nchar(x)
-  en <- substr(x,n-13,n)
-  paste0(st,"...",en)
-}
 
 
 #' print a TRIMCommand object
@@ -304,8 +297,20 @@ setNames <- function (object = nm, nm) {
   object
 }
 
-pr <- function(s){
+
+# Utilities for pretty printing
+
+shortstr<- function(x,len=12){
+  if ( identical(x, character(0)) || nchar(x) <= len ) return(x)
+  st <- substr(x,1,4)
+  n <- nchar(x)
+  en <- substr(x,n-5,n)
+  paste0(st,"..",en)
+}
+
+pr <- function(s, ...){
   a <- if ( length(s) == 0 ) "<none>" else paste(as.character(s),collapse=", ")
+  shortstr(a, ...)
 }
 
 oneliner <- function(x){
