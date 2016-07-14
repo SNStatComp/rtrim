@@ -1,7 +1,7 @@
 
 #' Read TRIM data file
 #'
-#' @param tcf \code{[TRIMcommand]} object 
+#' @param tcf \code{[TRIMbatch]} object 
 #' @param file \code{[character]} Input data file. See details section for spec.
 #' @param missing_code \code{[integer]} Code for missing counts (see Details).
 #' @param snif \code{[integer]} Number of lines read to determine input format.
@@ -175,5 +175,8 @@ check_tdf <- function(x, weight){
   stopifnot(all(x[I] <=90), all(x[I]>0) )
   x
 }
+
+
+
 
 
