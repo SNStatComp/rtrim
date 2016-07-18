@@ -1,0 +1,4 @@
+R-TRIM example “skylark-1b”
+- model 3
+- overdispersion
+- no autocorreation
