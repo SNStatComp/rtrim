@@ -1,0 +1,16 @@
+FILE skylark.dat
+TITLE  skylark-1d
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT Absent
+
+comment Example 1; using linear trend model
+weighting off
+overdisp on
+serialcor on
+model 2
