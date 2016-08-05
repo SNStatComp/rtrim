@@ -25,25 +25,31 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #-------------------------------------------------------------------------------
 #2                                                                     Interface
 
-# TRIM workhorse function
+#' TRIM workhorse function
+#'
+#' @param count a numerical vector of count data.
+#' @param time.id a numerical vector time points for each count data point.
+#' @param site.id a numerical vector time points for each count data point.
+#' @param covars an optional list of covariates
+#' @param model a model type selector
+#' @param serialcor a flag indication of autoorrelation has to be taken into account.
+#' @param overdisp a flag indicating of overdispersion has to be taken into account.
+#' @param changepoints a numerical vector change points (only for Model 2)
 #
-# count a numerical vector of count data.
-# time.id a numerical vector time points for each count data point.
-# site.id a numerical vector time points for each count data point.
-# covars an optional list of covariates
-# model a model type selector
-# serialcor a flag indication of autoorrelation has to be taken into account.
-# overdisp a flag indicating of overdispersion has to be taken into account.
-# changepoints a numerical vector change points (only for Model 2)
-#
-# Returns a list of class \code{trim}, that contains all output, statistiscs, etc.
-#   Usually this information is retrieved by a set of postprocessing functions
-# 
-# 
-#
-trim_estimate <- function(count, time.id, site.id, covars=list(),
-                          model=c(1,2,3), serialcor=FALSE, overdisp=FALSE,
-                          changepoints=1L) {
+#' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
+#'   Usually this information is retrieved by a set of postprocessing functions
+#' 
+#' 
+#' @keywords internal
+trim_estimate <- local({
+  
+  # variables used to store information during iterations.
+  new_par <- new_cnt <- new_lik <- old_par <- old_cnt <- old_lik <- NULL
+
+  # the actual function
+  function(count, time.id, site.id, covars=list(),
+            model=c(1,2,3), serialcor=FALSE, overdisp=FALSE,
+            changepoints=1L) {
   #2 Preparation
   # Check the arguments. \verb!count! should be a vector of numerics.
   stopifnot(class(count) %in% c("integer","numeric"))
@@ -971,5 +977,6 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
 
   # The TRIM result is returned to the user\ldots
   z
-}
+} # end function
+}) # end local
 # \ldots which ends the main TRIM function.

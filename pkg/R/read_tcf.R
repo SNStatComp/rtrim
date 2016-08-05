@@ -220,7 +220,7 @@ summary.trimbatch <- function(object,...){
               ,paste0("",paste(y$labels,collapse=", "))))
 
   cat("\nModel parameter overview:\n") 
-  oneliner(x)
+  oneliner(object)
 }
 
 

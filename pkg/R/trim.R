@@ -5,7 +5,7 @@
 #'
 #' @export
 #'
-#' @seealso 
+#' @seealso  \code{\link{gof}}, \code{\link{coef.trim}}
 #'
 #' @examples 
 #' data(skylark)
