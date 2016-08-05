@@ -52,7 +52,7 @@ trimcommand <- function(...){
     , basetime     = integer(0)
     , model        = integer(0)
     , covariates   = integer(0)
-    , changepoints = integer(0)
+    , changepoints = 1L
     , stepwise     = logical(0)
     , outputfiles  = character(0)
   )

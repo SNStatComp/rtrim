@@ -25,7 +25,7 @@ RUN", con=f)
 
 
 test_that("read_tcf parses tcf files", {
-  x <- read_tcf(f)[[1]]
+  x <- read_tcf(f)
   expect_equal(x$file,"F:/TRIM/Skylark.dat")
   expect_equal(x$title,"Skylark.dat")
   expect_equal(x$ntimes,8L)
@@ -40,7 +40,7 @@ test_that("read_tcf parses tcf files", {
   expect_equal(x$basetime,1L)
   expect_equal(x$model,3L)
   expect_equal(x$covariates,2L)
-  expect_equal(x$changepoints,integer(0))
+  expect_equal(x$changepoints,1L)
   expect_equal(x$stepwise,logical(0))
   expect_equal(x$outputfiles,"F")
 })
@@ -82,7 +82,7 @@ test_that("parsing multi-model files",{
   capture.output(print(x))
 })
 
-tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))
+tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlink temporary file %s",f)))
 
 
 

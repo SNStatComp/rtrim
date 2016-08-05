@@ -7,6 +7,8 @@ trim <- function(x,...){
   UseMethod('trim')
 }
 
+#' @rdname trim
+#' @export
 trim.trimcommand <- function(x,...){
   dat <- read_tdf(x)
   trim_estimate(count=dat$count
