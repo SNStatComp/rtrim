@@ -32,21 +32,25 @@ summary.TRIMdata <- function(object,...)
   out
 }
 
-dominant_sites <- function(x, threshold=10) {
-  stopifnot(class(x)=="TRIMdata")
 
-  # Compute site totals
-  ST <- ddply(x$df, .(site), summarize, total=sum(count, na.rm=TRUE))
-  ST$percent <- 100 * ST$total / x$totcount
-
-  # Dominate sites: more than 10% of total observations
-  DOM <- subset(ST, percent>threshold)
-
-  # Create summary output
-  out <- list(sites=DOM, threshold=threshold)
-  class(out) <- "trim.dom"
-  out
-}
+### NOTE-MvdL: plyr is basically surpassed by plyr, so better avoid ddply.
+### IMO better try to avoid dependencies on (d)plyr if it is only to
+### summarize.
+# dominant_sites <- function(x, threshold=10) {
+#   stopifnot(class(x)=="TRIMdata")
+# 
+#   # Compute site totals
+#   ST <- ddply(x$df, .(site), summarize, total=sum(count, na.rm=TRUE))
+#   ST$percent <- 100 * ST$total / x$totcount
+# 
+#   # Dominate sites: more than 10% of total observations
+#   DOM <- subset(ST, percent>threshold)
+# 
+#   # Create summary output
+#   out <- list(sites=DOM, threshold=threshold)
+#   class(out) <- "trim.dom"
+#   out
+# }
 
 average <- function(x)
 {
@@ -102,8 +106,6 @@ print.trim.dom <- function(x,...) {
 #                                                                        extract
 
 
-gof <- function(x) UseMethod("gof")
-
 #' Extract TRIM goodness-of-fit information.
 #'
 #' TRIM computes three goodness-of-fit measures:
@@ -131,6 +133,10 @@ gof <- function(x) UseMethod("gof")
 #' L <- gof(z)
 #' LR_p <- L$LR$p # get p-value for likelihood ratio
 #' 
+gof <- function(x) UseMethod("gof")
+
+#' @export
+#' @rdname gof
 gof.trim <- function(x) {
   structure(list(chi2 = x$chi2, LR=x$LR, AIC=x$AIC), class="trim.gof")
 }
@@ -168,7 +174,8 @@ print.trim.gof <- function(x,...) {
 
 #' Extract summary information for a TRIM job
 #'
-#' @param x TRIM output structure (i.e., output of a call to \code{trim})
+#' @param object TRIM output structure (i.e., output of a call to \code{trim})
+#' @param ... Currently unused
 #'
 #' @return a list of type \code{trim.summary} containing elements for estimation method
 #'   (\code{est.method}), overdispersion (\code{sig2}) and autocorrelation (\code{rho})
@@ -215,13 +222,15 @@ print.trim.summary <- function(x,...) {
 
 #' Extract TRIM model coefficients.
 #'
-#' @param x TRIM output structure (i.e., output of a call to \code{trim})
+#' @param object TRIM output structure (i.e., output of a call to \code{trim})
+#' @param ... currently unused
 #'
 #' @return a list containing the model type (element \code{model}, 1,2 or 3), and
 #' element \code{coef}, which is a data frame containing the actual coefficients.
 #' @export
 #'
 #' @examples
+#' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' summary(z) 
 #' # extract autocorrelation strength
@@ -271,7 +280,7 @@ print.trim.coef <- function(x,...) {
 #'
 #' @examples
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site);
+#' z <- trim(count ~ time + site, data=skylark, model=2);
 #' totals(z) 
 #' #print(totals(z,"imputed")) # idem
 #' #totals(z, "both") # mimics classic TRIM
@@ -282,7 +291,7 @@ totals <- function(x, which=c("imputed","model","both")) {
   
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
-  totals <- switch(model
+  totals <- switch(which
     , model   = x$time.totals[c(1,2,3)]
     , imputed = x$time.totals[c(1,4,5)]
     , both    = x$time.totals
@@ -337,12 +346,12 @@ print.trim.totals <- function(x,...) {
 #'
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site,model=2)
+#' z <- trim(count ~ time + site, data=skylark, model=2)
 #' index(z) 
 #' # mimic classic TRIM:
 #' index(z, "both") 
 #' # Extract standard error for the imputed data
-#' SE <- index(z)$idx$std.err 
+#' SE <- index(z)$std.err 
 index <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
 
@@ -350,13 +359,14 @@ index <- function(x, which=c("imputed","model","both")) {
   which <- match.arg(which)
   idx <- switch(which
     , model   = x$time.index[c(1,2,3)]
-    , imputed = x$time.index[c(1,2,3)]
+    , imputed = x$time.index[c(1,4,5)]
     , both    = x$time.index
   )
 
   # wrap the time.index field in a list and make it an S3 class
   # (so that it becomes recognizable as a TRIM time-indices)
   class(idx) <- c("trim.index","data.frame")
+  idx
 }
 
 #-------------------------------------------------------------------------------
@@ -404,7 +414,8 @@ print.trim.index <- function(x,...) {
 #' @export
 #'
 #' @examples
-#' z <- trim(...)
+#' data(skylark)
+#' z <- trim(count ~ time + site, data=skylark, model=3)
 #' # print coefficients of the linear trend
 #' print(linear(z)) 
 #' # get linear trend magnitude
@@ -412,9 +423,12 @@ print.trim.index <- function(x,...) {
 #' # ... and the deviations from that trend
 #' devs  <- linear(z)$dev$Multiplicative   
 linear <- function(x) {
-  stopifnot(class(x)=="trim")
-  stopifnot(x$model==3)
-
+  stopifnot(inherits(x,"trim"))
+  if (x$model !=3 ){
+    message("Cannot extract linear coefficients from TRIM model %d",x$model)
+    return(NULL)
+  }
+  
   structure(list(trend=x$linear.trend, dev=x$deviations), class="trim.linear")
 }
 
@@ -454,7 +468,7 @@ print.trim.linear <- function(x,...) {
 #' z2 <- trim(count ~ time + site, data=skylark, model=2)
 #' # print info on significance of slope parameters
 #' wald(z2)  
-#' z3 <- trim(count ~ time + site, data=skylark model=3)
+#' z3 <- trim(count ~ time + site, data=skylark, model=3)
 #' # print info on significance of deviations from linear trend
 #' wald(z3)
 wald <- function(x) {
@@ -611,67 +625,67 @@ mat2df <- function(m, src=NA) {
   return(df)
 }
 
-plot.trim <- function(x) {
-  #Prepare for plotting. First convert the estimations $\mu$ to a data frame.
-  #Because these estimations are for specific time points, we call it the `discrete' model.
-  Discrete <- rbind(
-    mat2df(x$data,  "Data"),
-    mat2df(x$mu,    "Model")
-  )
-  Discrete <- subset(Discrete, is.finite(Count))
-
-  # Similarly create a data frame for estimations applied to continuous time (the 'continuous' model)
-  if (x$model!=3) {
-    ctime <- seq(1, x$ntime, length.out=100)
-    CModel <- data.frame()
-    for (i in 1:x$nsite) {
-      if (x$model==1) {
-        tmp <- data.frame(Site=i, Time=ctime, Count=exp(out$alpha[i]))
-      } else if (out$model==2) {
-        tmp <- data.frame(Site=i, Time=ctime, Count=exp(out$alpha[i] + out$beta*(ctime-1.0)))
-      }
-      CModel <- rbind(CModel, tmp)
-    }
-    CModel$Site <- factor(CModel$Site)
-  }
-
-  # Plot data and model (both discrete and continuous)
-  g <- ggplot(Discrete, aes(x=Time, y=Count, colour=Site)) + theme_bw()
-  g <- g + geom_point(aes(shape=Source), size=4)
-  g <- g + scale_shape_manual(values=c(1,20))
-  if (model!=3) g <- g + geom_path(data=CModel)
-  g <- g + scale_x_continuous(breaks=1:x$ntime)
-  g <- g + labs(shape="")
-  if (nchar(title)>0) g <- g + labs(title=title)
-
-  # Add the overall trend (based on the imputed)
-  intercept <- x$overall.slope$imp$coef[[1]][1]
-  slope     <- x$overall.slope$imp$coef[[1]][2]
-  t <- seq(1, x$ntime, length.out=100)
-  y <- exp(intercept + slope*t)
-  trend <- data.frame(Time=t, Count=y, Site=NA)
-  g <- g + geom_path(data=trend)
-
-  print(g)
-
-}
-
-
-#-------------------------------------------------------------------------------
-#                                                                       Plotting
-
-
-plot_data_df <- function(df, title="") {
-  ntime <- max(df$Time)
-  # remove NA rows
-  df <- subset(df, is.finite(Count))
-  g <- ggplot(df, aes(x=Time,y=Count,colour=Site)) + theme_bw()
-  g <- g + geom_path(linetype="dashed")
-  g <- g + geom_point(size=4, shape=20)
-  g <- g + scale_x_continuous(breaks=1:ntime)
-  if (nchar(title)) g <- g + labs(title=title)
-  print(g)
-}
+# plot.trim <- function(x) {
+#   #Prepare for plotting. First convert the estimations $\mu$ to a data frame.
+#   #Because these estimations are for specific time points, we call it the `discrete' model.
+#   Discrete <- rbind(
+#     mat2df(x$data,  "Data"),
+#     mat2df(x$mu,    "Model")
+#   )
+#   Discrete <- subset(Discrete, is.finite(Count))
+# 
+#   # Similarly create a data frame for estimations applied to continuous time (the 'continuous' model)
+#   if (x$model!=3) {
+#     ctime <- seq(1, x$ntime, length.out=100)
+#     CModel <- data.frame()
+#     for (i in 1:x$nsite) {
+#       if (x$model==1) {
+#         tmp <- data.frame(Site=i, Time=ctime, Count=exp(out$alpha[i]))
+#       } else if (out$model==2) {
+#         tmp <- data.frame(Site=i, Time=ctime, Count=exp(out$alpha[i] + out$beta*(ctime-1.0)))
+#       }
+#       CModel <- rbind(CModel, tmp)
+#     }
+#     CModel$Site <- factor(CModel$Site)
+#   }
+# 
+#   # Plot data and model (both discrete and continuous)
+#   g <- ggplot(Discrete, aes(x=Time, y=Count, colour=Site)) + theme_bw()
+#   g <- g + geom_point(aes(shape=Source), size=4)
+#   g <- g + scale_shape_manual(values=c(1,20))
+#   if (model!=3) g <- g + geom_path(data=CModel)
+#   g <- g + scale_x_continuous(breaks=1:x$ntime)
+#   g <- g + labs(shape="")
+#   if (nchar(title)>0) g <- g + labs(title=title)
+# 
+#   # Add the overall trend (based on the imputed)
+#   intercept <- x$overall.slope$imp$coef[[1]][1]
+#   slope     <- x$overall.slope$imp$coef[[1]][2]
+#   t <- seq(1, x$ntime, length.out=100)
+#   y <- exp(intercept + slope*t)
+#   trend <- data.frame(Time=t, Count=y, Site=NA)
+#   g <- g + geom_path(data=trend)
+# 
+#   print(g)
+# 
+# }
+# 
+# 
+# #-------------------------------------------------------------------------------
+# #                                                                       Plotting
+# 
+# 
+# plot_data_df <- function(df, title="") {
+#   ntime <- max(df$Time)
+#   # remove NA rows
+#   df <- subset(df, is.finite(Count))
+#   g <- ggplot(df, aes(x=Time,y=Count,colour=Site)) + theme_bw()
+#   g <- g + geom_path(linetype="dashed")
+#   g <- g + geom_point(size=4, shape=20)
+#   g <- g + scale_x_continuous(breaks=1:ntime)
+#   if (nchar(title)) g <- g + labs(title=title)
+#   print(g)
+# }
 
 
 plot_data_mat <- function(m, ...) {

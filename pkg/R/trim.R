@@ -37,6 +37,7 @@ trim.trimcommand <- function(x,...){
 #' @param weights \code{[numeric]} Optional vector of weights.
 #' @param serialcor \code{[logical]} Take serial correlation into account.
 #' @param overdisp \code{[logical]} Take overdispersion into account.
+#' @param changepoints \code{[numeric]} Indices for changepoints.
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, formula, model = c(1,2,3), weights

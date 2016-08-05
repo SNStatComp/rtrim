@@ -186,7 +186,7 @@ as_rtrim <- function(value, template){
 #' 
 #' @return A trimcommand object, or in the case of multiple models in a single
 #' TRIM command file, a \code{list} of \code{trimcommand} objects. In the
-#' latter case, a useful summary can be printed with \code{\link{summary.trimbach}}.
+#' latter case, a useful summary can be printed with \code{\link{summary.trimbatch}}.
 #' 
 #' @seealso \code{\link{read_tcf}}, \code{\link{trimcommand}}
 #' @export
