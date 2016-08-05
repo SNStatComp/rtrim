@@ -69,7 +69,12 @@ trim_estimate <- local({
   stopifnot(class(site.id) %in% c("integer","character","factor"))
   stopifnot(length(site.id)==n)
 
+  if (length(covars)>0){
+    message("Covariates are not implemented net and wil currently be ignored")
+  }
+  
   # \verb!model! should be in the range 1 to 3
+  model <- model[1]
   stopifnot(model %in% 1:3)
 
   # Convert time and site to factors, if they're not yet

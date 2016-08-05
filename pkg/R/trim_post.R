@@ -504,7 +504,7 @@ print.trim.wald <- function(x,...) {
 #' Extract information of TRIM overall slope
 #'
 #' @param x TRIM output object
-#' @param which Selector to choose between "imputed" or "model" counts
+#' @param which Choose between "imputed" or "model" counts
 #'
 #' @return a list containing information overall slope coefficients (\code{coef}),
 #'   the p-value of the overall slope (\code{p}),
@@ -558,7 +558,15 @@ print.trim.overall <- function(x,...) {
 #-------------------------------------------------------------------------------
 #                                                                           Plot
 
-plot.trim.overall <- function(X, imputed=TRUE, ...) {
+#' Plot overall slope
+#'
+#' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
+#' @param imputed Toggle to show imputed counts 
+#' @param ... Further options passed to \code{\link[graphics]{plot}}
+#'
+#' @export
+plot.trim.overall <- function(x, imputed=TRUE, ...) {
+  X <- x
   title <- attr(X, "title")
 
   J <- X$J

@@ -2,6 +2,7 @@
 
 S3method(coef,trim)
 S3method(gof,trim)
+S3method(plot,trim.overall)
 S3method(print,trim.coef)
 S3method(print,trim.gof)
 S3method(print,trim.index)
