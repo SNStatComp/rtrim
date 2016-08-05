@@ -211,8 +211,8 @@ read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
 #' @keywords internal
 #' @param x an object
 #' @param ... options (ignored)
-summary.trimbatch <- function(x,...){
-  y <- x[[1]]
+summary.trimbatch <- function(object,...){
+  y <- object[[1]]
   cat(sprintf("trimbatch: %s\n",pr(y$title, len=Inf)))
   cat(sprintf("file: %s (%s means missing)\n"
               , pr(y$file, len=50), pr(y$missing)))

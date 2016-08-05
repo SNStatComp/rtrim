@@ -7,10 +7,9 @@
 #-------------------------------------------------------------------------------
 #                                                                        extract
 
-summary.TRIMdata <- function(x)
+summary.TRIMdata <- function(object,...)
 {
-  stopifnot(class(x)=="TRIMdata")
-
+  x <- object
   # Collect covariate data
   #   covars <- list()
   #   covar_cols = ifelse(weight, 5,4) : ncol(x$df)
@@ -65,7 +64,7 @@ average <- function(x)
 #-------------------------------------------------------------------------------
 #                                                                          print
 
-print.summary.TRIMdata <- function(x)
+print.summary.TRIMdata <- function(x,...)
 {
   stopifnot(class(x)=="summary.TRIMdata")
 
@@ -89,9 +88,8 @@ print.summary.TRIMdata <- function(x)
 
 }
 
-print.trim.dom <- function(dom) {
-  stopifnot(class(dom)=="trim.dom")
-
+print.trim.dom <- function(x,...) {
+  dom <- x
   printf("\nSites containing more than %d%% of the total count:\n", dom$threshold)
   print(dom$sites, row.names=FALSE)
 }
@@ -145,8 +143,8 @@ gof.trim <- function(x) {
 #' @export
 #' @param x a \code{trim.gof} object
 #' @keywords internal
-print.trim.gof <- function(x) {
-
+print.trim.gof <- function(x,...) {
+   
   # print welcome message
   cat(sprintf("GOODNESS OF FIT\n"))
 
@@ -183,8 +181,8 @@ print.trim.gof <- function(x) {
 #' summary(z) 
 #' # extract autocorrelation strength
 #' rho <- summary(z)$rho 
-summary.trim <- function(x) {
-
+summary.trim <- function(object,...) {
+  x <- object
   if (is.finite(x$sig2) || is.finite(x$rho)) {
     out = list(est.method="Generalised Estimating Equations")
   } else {
@@ -201,7 +199,7 @@ summary.trim <- function(x) {
 #' @export
 #' @param x An object of class \code{trim.summary}
 #' @keywords internal
-print.trim.summary <- function(x) {
+print.trim.summary <- function(x,...) {
   printf("\nEstimation method = %s\n", x$est.method)
   if (is.finite(x$sig2)) printf("  Estimated Overdispersion     = %f\n", x$sig2)
   if (is.finite(x$rho))  printf("  Estimated Serial Correlation = %f\n", x$rho)
@@ -228,8 +226,8 @@ print.trim.summary <- function(x) {
 #' summary(z) 
 #' # extract autocorrelation strength
 #' rho <- summary(z)$rho 
-coef.trim <- function(x) {
-  structure(list(model=x$model, coef=x$coefficients), class="trim.coef")
+coef.trim <- function(object,...) {
+  structure(list(model=object$model, coef=object$coefficients), class="trim.coef")
 }
 
 #-------------------------------------------------------------------------------
@@ -240,7 +238,7 @@ coef.trim <- function(x) {
 #' @export
 #' @param x An object of class \code{trim.coef}
 #' @keywords internal
-print.trim.coef <- function(x) {
+print.trim.coef <- function(x,...) {
   stopifnot(class(x)=="trim.coef")
 
   printf("Parameter estimates\n")
@@ -313,7 +311,7 @@ export.trim.totals <- function(x, species, stratum) {
 #-------------------------------------------------------------------------------
 #                                                                         Print
 
-print.trim.totals <- function(x) {
+print.trim.totals <- function(x,...) {
   printf("Time totals\n")
   print(x$totals, row.names=FALSE)
 }
@@ -384,7 +382,7 @@ export.trim.index <- function(x, species, stratum) {
 #' 
 #' @export
 #' @keywords internal
-print.trim.index <- function(x) {
+print.trim.index <- function(x,...) {
   printf("Time indices\n")
   print(x$idx, row.names=FALSE)
 }
@@ -429,7 +427,7 @@ linear <- function(x) {
 #' 
 #' @export
 #' @keywords internal
-print.trim.linear <- function(x) {
+print.trim.linear <- function(x,...) {
 
   printf("Linear Trend + Deviations for Each Time\n")
   print(x$trend, row.names=TRUE)
@@ -472,7 +470,7 @@ wald <- function(x) {
 #' 
 #' @export
 #' @keywords internal
-print.trim.wald <- function(x) {
+print.trim.wald <- function(x,...) {
   if (x$model==2) {
     printf("Wald test for significance of slope parameter\n")
   } else if (x$model==3) {
@@ -524,7 +522,7 @@ overall <- function(x, which=c("imputed","model")) {
 #' 
 #' @export
 #' @keywords internal
-print.trim.overall <- function(x) {
+print.trim.overall <- function(x,...) {
   stopifnot(class(x)=="trim.overall")
 
   # Compute 95% confidence interval of multiplicative slope
