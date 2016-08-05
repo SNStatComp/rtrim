@@ -118,24 +118,35 @@ gof <- function(x) UseMethod("gof")
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #'
 #' @return a list of type "trim.gof", containing elements \code{chi2}, \code{LR}
-#' and \code{AIC}, for Chi-squared, Likelihoof Ratio and Akaike informatiuon content,
+#' and \code{AIC}, for Chi-squared, Likelihoof Ratio and Akaike information content,
 #' respectively.
 #' @export
 #'
+#'
 #' @examples
-#' z <- trim(tcf)
-#' gof(z) # prints information on the goodness of fit.
-#' LR_p <- gof(z)$LR$p # get p-value for likelihood ratio
+#' data(skylark)
+#' z <- trim(skylark, count ~ time + site, model=2)
+#' # prettyprint GOF information
+#' gof(z)
+#' 
+#' # get individual elements, e.g. p-value
+#' L <- gof(z)
+#' LR_p <- L$LR$p # get p-value for likelihood ratio
+#' 
 gof.trim <- function(x) {
-  stopifnot(class(x)=="trim")
   structure(list(chi2 = x$chi2, LR=x$LR, AIC=x$AIC), class="trim.gof")
 }
 
 #-------------------------------------------------------------------------------
 #                                                                          print
 
+#' Print method for \code{trim.gof}
+#'
+#' @export
+#' @param x a \code{trim.gof} object
+#' @keywords internal
 print.trim.gof <- function(x) {
-  stopifnot(class(x)=="trim.gof")
+
   # print welcome message
   cat(sprintf("GOODNESS OF FIT\n"))
 
@@ -161,16 +172,18 @@ print.trim.gof <- function(x) {
 #'
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #'
-#' @return a list of type 'trim.summary' containing elements for estimation method
+#' @return a list of type \code{trim.summary} containing elements for estimation method
 #'   (\code{est.method}), overdispersion (\code{sig2}) and autocorrelation (\code{rho})
 #' @export
 #'
 #' @examples
-#' z <- trim(...)
-#' summary(z) # prints some summary info
-#' rho <- summary(z)$rho # extract autocorrelation strength
+#' 
+#' data(skylark)
+#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' summary(z) 
+#' # extract autocorrelation strength
+#' rho <- summary(z)$rho 
 summary.trim <- function(x) {
-  stopifnot(class(x)=="trim")
 
   if (is.finite(x$sig2) || is.finite(x$rho)) {
     out = list(est.method="Generalised Estimating Equations")
@@ -183,6 +196,11 @@ summary.trim <- function(x) {
   out
 }
 
+#' Print method for \code{trim.summary}
+#'
+#' @export
+#' @param x An object of class \code{trim.summary}
+#' @keywords internal
 print.trim.summary <- function(x) {
   printf("\nEstimation method = %s\n", x$est.method)
   if (is.finite(x$sig2)) printf("  Estimated Overdispersion     = %f\n", x$sig2)
@@ -206,18 +224,22 @@ print.trim.summary <- function(x) {
 #' @export
 #'
 #' @examples
-#' z <- trim(...)
-#' print(coef(z)) # print all coefficients
-#' mul <- coef(z)$coef[3] # Extract multiplicative coefficients.
+#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' summary(z) 
+#' # extract autocorrelation strength
+#' rho <- summary(z)$rho 
 coef.trim <- function(x) {
-  stopifnot(class(x)=="trim")
-
   structure(list(model=x$model, coef=x$coefficients), class="trim.coef")
 }
 
 #-------------------------------------------------------------------------------
 #                                                                          Print
 
+#' Print method for \code{trim.coef}
+#'
+#' @export
+#' @param x An object of class \code{trim.coef}
+#' @keywords internal
 print.trim.coef <- function(x) {
   stopifnot(class(x)=="trim.coef")
 
@@ -250,23 +272,23 @@ print.trim.coef <- function(x) {
 #' @export
 #'
 #' @examples
-#' z <- trim(tcf,dat);
-#' totals(z) # prints the time-totals for the imputed data
-#' print(totals(z,"imputed")) # idem
-#' totals(z, "both") # mimics classic TRIM
-#' SE <- totals(z)$totals$std.err
+#' data(skylark)
+#' z <- trim(skylark, count ~ time + site);
+#' totals(z) 
+#' #print(totals(z,"imputed")) # idem
+#' #totals(z, "both") # mimics classic TRIM
+#' #SE <- totals(z)$totals$std.err
 totals <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
-
+  which <- match.arg(which)
+  
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
-  if (which=="model") {
-    totals = x$time.totals[c(1,2,3)]
-  } else if (which=="imputed") {
-    totals = x$time.totals[c(1,4,5)]
-  } else if (which=="both") {
-    totals <- x$time.totals
-  } else stop(sprintf("Invalid options which=%s", which))
+  totals <- switch(model
+    , model   = x$time.totals[c(1,2,3)]
+    , imputed = x$time.totals[c(1,4,5)]
+    , both    = x$time.totals
+  )
 
   # wrap the time.index field in a list and make it an S3 class
   # (so that it becomes recognizable as a TRIM time-indices)
@@ -310,33 +332,33 @@ print.trim.totals <- function(x) {
 #' @param which Selector to distinguish between time indices based on the imputed data (default),
 #' the modelled data, or both.
 #'
-#' @return a structure of class \code{trim.index}, which is a list with as single
-#' element the data frame \code{idx}.
+#' @return a structure of class \code{trim.index}, which is a \code{data.frame}
+#' with an extra class label.
+#' 
 #' @export
 #'
 #' @examples
-#' z <- trim(tcf,dat);
-#' index(z) # prints the time-totals for the imputed data
-#' print(index(z,"imputed")) # idem
-#' index(z, "both") # mimics classic TRIM
-#' SE <- index(z)$idx$std.err # Extract standard error for the imputed data
-#' @examples
+#' data(skylark)
+#' z <- trim(count ~ time + site,model=2)
+#' index(z) 
+#' # mimic classic TRIM:
+#' index(z, "both") 
+#' # Extract standard error for the imputed data
+#' SE <- index(z)$idx$std.err 
 index <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
 
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
-  if (which=="model") {
-    idx = x$time.index[c(1,2,3)]
-  } else if (which=="imputed") {
-    idx = x$time.index[c(1,4,5)]
-  } else if (which=="both") {
-    idx <- x$time.index
-  } else stop(sprintf("Invalid options which=%s", which))
+  idx <- switch(which
+    , model   = x$time.index[c(1,2,3)]
+    , imputed = x$time.index[c(1,2,3)]
+    , both    = x$time.index
+  )
 
   # wrap the time.index field in a list and make it an S3 class
   # (so that it becomes recognizable as a TRIM time-indices)
-  structure(list(idx=idx), class="trim.index")
+  class(idx) <- c("trim.index","data.frame")
 }
 
 #-------------------------------------------------------------------------------
@@ -345,7 +367,6 @@ index <- function(x, which=c("imputed","model","both")) {
 export <- function(x, species, stratum) UseMethod("export")
 
 export.trim.index <- function(x, species, stratum) {
-  stopifnot(class(x)=="trim.index")
 
   # Create extra columns to be put before the actual time indices
   df1 = data.frame(species=species, stratum=stratum)
@@ -357,8 +378,13 @@ export.trim.index <- function(x, species, stratum) {
 #-------------------------------------------------------------------------------
 #                                                                         Print
 
+#' Print an object of class trim.index
+#' 
+#' @param x An object of class \code{trim.index}
+#' 
+#' @export
+#' @keywords internal
 print.trim.index <- function(x) {
-  stopifnot(class(x)=="trim.index")
   printf("Time indices\n")
   print(x$idx, row.names=FALSE)
 }
@@ -381,9 +407,12 @@ print.trim.index <- function(x) {
 #'
 #' @examples
 #' z <- trim(...)
-#' print(linear(z)) # print coefficients of the linear trend
-#' slope <- linear(z)$trend$Multiplicative # get linear trend magnitude
-#' devs  <- linear(z)$dev$Multiplicative   # ... and the deviations from that trend
+#' # print coefficients of the linear trend
+#' print(linear(z)) 
+#' # get linear trend magnitude
+#' slope <- linear(z)$trend$Multiplicative 
+#' # ... and the deviations from that trend
+#' devs  <- linear(z)$dev$Multiplicative   
 linear <- function(x) {
   stopifnot(class(x)=="trim")
   stopifnot(x$model==3)
@@ -394,8 +423,13 @@ linear <- function(x) {
 #-------------------------------------------------------------------------------
 #                                                                          print
 
+#' Print an object of class trim.linear
+#' 
+#' @param x An object of class \code{trim.linear}
+#' 
+#' @export
+#' @keywords internal
 print.trim.linear <- function(x) {
-  stopifnot(class(x)=="trim.linear")
 
   printf("Linear Trend + Deviations for Each Time\n")
   print(x$trend, row.names=TRUE)
@@ -418,10 +452,13 @@ print.trim.linear <- function(x) {
 #' @export
 #'
 #' @examples
-#' z2 <- trim(..., model=2)
-#' print(wald(z2))  # print info on significance of slope parameters
-#' z3 <- trim(..., model=3)
-#' print(wald(z3))  # print info on significance of deviations from linear trend
+#' data(skylark)
+#' z2 <- trim(count ~ time + site, data=skylark, model=2)
+#' # print info on significance of slope parameters
+#' wald(z2)  
+#' z3 <- trim(count ~ time + site, data=skylark model=3)
+#' # print info on significance of deviations from linear trend
+#' wald(z3)
 wald <- function(x) {
   structure(x$wald, class="trim.wald")
 }
@@ -429,6 +466,12 @@ wald <- function(x) {
 #-------------------------------------------------------------------------------
 #                                                                          Print
 
+#' Print an object of class trim.wald
+#' 
+#' @param x An object of class \code{trim.wald}
+#' 
+#' @export
+#' @keywords internal
 print.trim.wald <- function(x) {
   if (x$model==2) {
     printf("Wald test for significance of slope parameter\n")
@@ -457,6 +500,9 @@ print.trim.wald <- function(x) {
 #' @export
 #'
 #' @examples
+#' data(skylark)
+#' z <- trim(count ~ time + site, data=skylark, model=2)
+#' overall(z)
 overall <- function(x, which=c("imputed","model")) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
@@ -471,6 +517,13 @@ overall <- function(x, which=c("imputed","model")) {
 #-------------------------------------------------------------------------------
 #                                                                          Print
 
+
+#' Print an object of class trim.overall
+#' 
+#' @param x An object of class \code{trim.overall}
+#' 
+#' @export
+#' @keywords internal
 print.trim.overall <- function(x) {
   stopifnot(class(x)=="trim.overall")
 
@@ -531,7 +584,8 @@ plot.trim.overall <- function(X, imputed=TRUE, ...) {
   # Now plot layer-by-layer
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
-  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", main=title)
+  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count"
+       , main=title,las=1,...)
   polygon(xconf, yconf, col=gray(0.9), lty=0)
   lines(x, ytrend, col=cbred, lwd=3)
   segments(j,y0, j,y1, lwd=3, col=gray(0.5))

@@ -4,8 +4,23 @@
 # \section{Introduction}
 # This document describes the core TRIM function.
 
-# Define a convenience function for console output
-printf <- function(fmt,...) { cat(sprintf(fmt,...)) }
+VERBOSE <- FALSE
+
+#' Set verbosity of trim model functions
+#'
+#' @param verbose \code{[logical]} toggle verbosity.
+#'
+#' @export
+set_trim_verbose <- function(verbose=FALSE){
+  VERBOSE <<- verbose
+}
+
+# Convenience function for console output during runs
+rprintf <- function(fmt,...) { if(VERBOSE) cat(sprintf(fmt,...)) }
+
+# Similar, but for object/summary printing
+printf <- function(fmt,...) {cat(sprintf(fmt,...))}
+
 
 #-------------------------------------------------------------------------------
 #2                                                                     Interface
@@ -26,7 +41,7 @@ printf <- function(fmt,...) { cat(sprintf(fmt,...)) }
 # 
 # 
 #
-trim_estimate <- function(count, time.id, site.id, covars=NA,
+trim_estimate <- function(count, time.id, site.id, covars=list(),
                           model=c(1,2,3), serialcor=FALSE, overdisp=FALSE,
                           changepoints=1L) {
   #2 Preparation
@@ -366,7 +381,7 @@ trim_estimate <- function(count, time.id, site.id, covars=NA,
       conv_cnt <- max_cnt_change < crit
       conv_lik <- max_lik_change < crit
       convergence <- conv_par && conv_cnt && conv_lik
-      printf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
+      rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
     } else {
       convergence = FALSE
     }
@@ -391,7 +406,7 @@ trim_estimate <- function(count, time.id, site.id, covars=NA,
   max_iter  <- 100 # Maximum number of iterations allowed
   conv_crit <- 1e-7
   for (iter in 1:max_iter) {
-    printf("Iteration %d (%s)", iter, method)
+    rprintf("Iteration %d (%s)", iter, method)
 
     update_alpha(method)
     update_mu(fill=FALSE)
@@ -403,21 +418,21 @@ trim_estimate <- function(count, time.id, site.id, covars=NA,
     }
     update_V(method)
     subiters <- update_beta(method)
-    printf(", %d subiters", subiters)
-    printf(", lik=%.3f", likelihood())
-    if (overdisp)  printf(", sig^2=%.5f", sig2)
-    if (serialcor) printf(", rho=%.5f;", rho)
+    rprintf(", %d subiters", subiters)
+    rprintf(", lik=%.3f", likelihood())
+    if (overdisp)  rprintf(", sig^2=%.5f", sig2)
+    if (serialcor) rprintf(", rho=%.5f;", rho)
 
     convergence <- check_convergence(iter)
 
     if (convergence && method==final_method) {
-      printf("\nConvergence reached\n")
+      rprintf("\nConvergence reached\n")
       break
     } else if (convergence) {
-      printf("\nChanging ML --> GEE\n")
+      rprintf("\nChanging ML --> GEE\n")
       method = "GEE"
     } else {
-      printf("\n")
+      rprintf("\n")
     }
   }
 
@@ -469,9 +484,9 @@ trim_estimate <- function(count, time.id, site.id, covars=NA,
       std.err.      = exp(beta) * se_beta,
       check.names   = FALSE # to allow for 2 "std.err." columns
     )
-    printf("----\n")
-    str(z$coefficients)
-    printf("----\n")
+    rprintf("----\n")
+    if (VERBOSE) str(z$coefficients)
+    rprintf("----\n")
     row.names(z$coefficients) <- "Slope"
   }
 
@@ -909,8 +924,8 @@ trim_estimate <- function(count, time.id, site.id, covars=NA,
     t_val <- bhat[2] / b_err[2]
     p <- 2 * pt(abs(t_val), df, lower.tail=FALSE)
 
-    ##   printf("se_b = %f %f\n", b_err_tt, b_err)x
-    ##   printf("p    = %f %f\n", p_tt, p)
+    ##   rprintf("se_b = %f %f\n", b_err_tt, b_err)x
+    ##   rprintf("p    = %f %f\n", p_tt, p)
 
     # Also compute effect size as relative change during the monitoring period.
     effect <- abs(yhat[J] - yhat[1]) / yhat[1]

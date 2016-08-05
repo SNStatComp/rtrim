@@ -15,8 +15,3 @@ Date: 2015-06-12
 Suggests:
     testthat
 RoxygenNote: 5.0.1
-Collate:
-    'read_tcf.R'
-    'read_tdf.R'
-    'rtrim-pkg.R'
-    'trim.R'
