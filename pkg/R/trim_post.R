@@ -52,18 +52,18 @@ summary.TRIMdata <- function(object,...)
 #   out
 # }
 
-average <- function(x)
-{
-  stopifnot(class(x)=="TRIMdata")
-
-  # Number of observations and mean count for each  time point can be computed
-  # directly using the plyr tools.
-  out <- ddply(x$df, .(time), summarise,
-               observations=sum(is.finite(count)),
-               average=mean(count, na.rm=TRUE))
-  out$index <- out$average / out$average[1]
-  out
-}
+# average <- function(x)
+# {
+#   stopifnot(class(x)=="TRIMdata")
+# 
+#   # Number of observations and mean count for each  time point can be computed
+#   # directly using the plyr tools.
+#   out <- ddply(x$df, .(time), summarise,
+#                observations=sum(is.finite(count)),
+#                average=mean(count, na.rm=TRUE))
+#   out$index <- out$average / out$average[1]
+#   out
+# }
 
 #-------------------------------------------------------------------------------
 #                                                                          print
@@ -688,14 +688,14 @@ mat2df <- function(m, src=NA) {
 # }
 
 
-plot_data_mat <- function(m, ...) {
-  df <- mat2df(m)
-  plot_data_df(df, ...)
-}
+# plot_data_mat <- function(m, ...) {
+#   df <- mat2df(m)
+#   plot_data_df(df, ...)
+# }
 
 
-plot_output <- function(out, title="") {
-}
+# plot_output <- function(out, title="") {
+# }
 
 #plot_output(Model)
 
