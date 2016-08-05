@@ -5,7 +5,7 @@ NCOVARS 2
 LABELS
 Habitat
 Cov2
-End
+END
 MISSING 999
 WEIGHT Absent
 

@@ -21,7 +21,7 @@
 #' }
 #' 
 #'  
-#' @param x a filename or a \code{\link{trimbatch}} object
+#' @param x a filename or a \code{\link{trimcommand}} object
 #' @param missing \code{[integer]} missing value indicator. 
 #'      Missing values are translated to \code{\link[base]{NA}}.
 #' @param weight \code{[logical]} indicate presence of a weight column
@@ -45,9 +45,8 @@ read_tdf.character <- function(x, missing = -1, weight = FALSE, ncovars=0, label
 
 
 #' @rdname read_tdf
-read_tdf.trimbatch <- function(x,...){
-  tc <- x[[1]]
-  tdfread(tc$file, missing = tc$missing, weight = tc$weight, ncovars = tc$ncovars, labels=tc$labels)
+read_tdf.trimcommand <- function(x,...){
+  tdfread(x$file, missing = x$missing, weight = x$weight, ncovars = x$ncovars, labels=x$labels)
 }
 
 

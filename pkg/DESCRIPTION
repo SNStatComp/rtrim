@@ -20,4 +20,3 @@ Collate:
     'read_tdf.R'
     'rtrim-pkg.R'
     'trim.R'
-    'trim_engine.R'

@@ -1,46 +1,12 @@
-new_TRIMCommand <- function(...){
-  # decide on default values
-  tc <- list(
-    file           = character(0)
-    , title        = character(0)
-    , ntimes       = integer(0)
-    , ncovars      = integer(0)
-    , labels       = character(0)
-    , missing      = integer(0)
-    , weight       = logical(0)
-    , comment      = character(0)
-    , weighting    = logical(0)
-    , serialcor    = logical(0)
-    , overdisp     = logical(0)
-    , basetime     = integer(0)
-    , model        = integer(0)
-    , covariates   = integer(0)
-    , changepoints = integer(0)
-    , stepwise     = logical(0)
-    , outputfiles  = character(0)
-  )
-  class(tc) <- c("TRIMCommand","list")
-  L <- list(...)
-  for ( nm in names(L) ){
-    if (! nm %in% names(tc) ) stop(sprintf("'%s' is not a valid TRIM keyword",nm))
-    if (nm == "file") L[[nm]] <- convert_path(L[[nm]])
-    # convert and set
-    if (length(L[[nm]])>0) tc[[nm]] <- as_rtrim(L[[nm]], tc[[nm]])
-  }
-  tc
-}
 
-
-#' Create a trimbatch object
+#' Create a trimcommand object
 #'
 #'
 #' @section Description:
 #' 
-#' A \code{trimbatch} object defines one or more models to run for a single 
-#' data set. This function can be used to set up a file description and a single
-#' model. Use \code{\link{add_model}} to add more models incrementally. If no
-#' parameters are passed, a default \code{trimbatch} is
-#' returned. 
+#' A \code{trimcommand} object stores a single TRIM model, including the
+#' specification of the data file. Normally, such an object is defined by
+#' reading a legacy TRIM command file.
 #' 
 #' @param ... Options in the form of \code{key=value}. See below for all options.
 #' 
@@ -66,45 +32,64 @@ new_TRIMCommand <- function(...){
 #' \item{ \code{outputfiles} \code{[character]} Type of outputfile to generate ('F' and/or 'S')}
 #'}
 #' 
-#' @seealso \code{\link{read_tcf}}, \code{\link{add_model}}
+#' @seealso \code{\link{read_tcf}}
 #' 
 #' @export
+trimcommand <- function(...){
+  # decide on default values
+  tc <- list(
+    file           = character(0)
+    , title        = character(0)
+    , ntimes       = integer(0)
+    , ncovars      = integer(0)
+    , labels       = character(0)
+    , missing      = integer(0)
+    , weight       = logical(0)
+    , comment      = character(0)
+    , weighting    = logical(0)
+    , serialcor    = logical(0)
+    , overdisp     = logical(0)
+    , basetime     = integer(0)
+    , model        = integer(0)
+    , covariates   = integer(0)
+    , changepoints = integer(0)
+    , stepwise     = logical(0)
+    , outputfiles  = character(0)
+  )
+  class(tc) <- c("trimcommand","list")
+  L <- list(...)
+  for ( nm in names(L) ){
+    if (! nm %in% names(tc) ) stop(sprintf("'%s' is not a valid TRIM keyword",nm))
+    if (nm == "file") L[[nm]] <- convert_path(L[[nm]])
+    # convert and set
+    if (length(L[[nm]])>0) tc[[nm]] <- as_rtrim(L[[nm]], tc[[nm]])
+  }
+  tc
+}
+
+
 trimbatch <- function(...){
-  tc <- list(new_TRIMCommand(...))
+  tc <- list(trimcommand(...))
   class(tc) <- c("trimbatch", "list")
   tc
 }
 
 
-#' Add a model to a trimbatch object
-#'
-#' Set up multiple models in a trimbatch object.
-#' 
-#'
-#' @param x a \code{trimbatch} object.
-#' @param ... model parameters (see \code{\link{trimbatch}}). Unspecified parameters
-#'    are copied from the last model in the list.
-#' @export
-add_model <- function(x,...){
-  UseMethod("add_model")
-}
+# Add a model to a trimbatch object
+#
+# Set up multiple models in a trimbatch object.
+# 
+#
+# @param x a \code{trimbatch} object.
+# @param ... model parameters (see \code{\link{trimbatch}}). Unspecified parameters
+#    are copied from the last model in the list.
+# @export
+#add_model <- function(x,...){
+#  UseMethod("add_model")
+#}
 
-#' @export 
-#' @rdname add_model
-add_model.trimbatch <- function(x,...){
-  nmodels <- length(x)
-  template <- x[[nmodels]]
-  L <- list(...)
-  for ( nm in names(L) ){
-    if (!nm %in% names(template)) 
-      warning(sprintf("Skipping invalid option %s",nm))
-    else
-      template[[nm]] <- L[[nm]]
-  }
-  
-  x[[nmodels + 1]] <- template
-  x
-}
+# @export 
+# @rdname add_model
 
 
 # convert from character representation of tcf to rtrim internal representation.
@@ -150,7 +135,8 @@ as_rtrim <- function(value, template){
 #' 
 #' The commands are identical to those in the original TRIM software. Commands
 #' that represent a simple toggle (on/off, present/absent) are translated to a
-#' \code{logical} upon reading.
+#' \code{logical} upon reading. Below we give commands in upper case, but the
+#' commands are parsed case insensitively.
 #' 
 #' \tabular{ll}{
 #' \bold{Data}\tab\cr
@@ -192,14 +178,19 @@ as_rtrim <- function(value, template){
 #' 
 #' 
 #'
-#' @param file Location of tcf file.
+#' @param file Location of TRIM command file.
 #' @param encoding The encoding in which the file is stored.
-#'
-#' @return An object of class \code{\link{trimbatch}}
+#' @param simplify Return a single \code{trimcommand} object if only one 
+#'   model is specified in the TRIM command file.
 #' 
-#' @seealso \code{\link{read_tcf}}, \code{\link{trimbatch}}
+#' 
+#' @return A trimcommand object, or in the case of multiple models in a single
+#' TRIM command file, a \code{list} of \code{trimcommand} objects. In the
+#' latter case, a useful summary can be printed with \code{\link{summary.trimbach}}.
+#' 
+#' @seealso \code{\link{read_tcf}}, \code{\link{trimcommand}}
 #' @export
-read_tcf <- function(file, encoding=getOption("encoding")){
+read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
   con <- file(description = file, encoding=encoding)
   tcf <- paste(readLines(con), collapse="\n") 
   close(con)
@@ -210,17 +201,17 @@ read_tcf <- function(file, encoding=getOption("encoding")){
   for ( i in 1+seq_along(L[-1]) ){
     L[[i]] <- tc_from_char(tcflist[[i]], default = L[[i-1]])
   }
-  class(L) <- "trimbatch"
-  L
+  class(L) <- c("trimbatch","list")
+  if (length(L) == 1 && simplify ) L[[1]] else L 
 }
 
-#' print a trimbatch object
+#' summarize a trimbatch object
 #'
 #' @export
 #' @keywords internal
 #' @param x an object
 #' @param ... options (ignored)
-print.trimbatch <- function(x,...){
+summary.trimbatch <- function(x,...){
   y <- x[[1]]
   cat(sprintf("trimbatch: %s\n",pr(y$title, len=Inf)))
   cat(sprintf("file: %s (%s means missing)\n"
@@ -245,14 +236,14 @@ convert_path <- function(x){
 
 
 
-#' print a TRIMCommand object
+#' print a trimcommand object
 #'
 #' @export
 #' @keywords internal
 #' @param x an R object
 #' @param ... optional parameters (ignored)
-print.TRIMCommand <- function(x,...){
-  cat("Object of class TRIMcommand:\n")
+print.trimcommand <- function(x,...){
+  cat("Object of class trimcommand:\n")
   for ( nm in names(x) ){
     cat(sprintf("%12s: %s\n",nm,paste0("",paste(x[[nm]]),collapse=", ")) )
   }
@@ -271,10 +262,10 @@ key_regex <- function(trimkey){
 extract_keyval <- function(trimkey, x){
   trimkey <- toupper(trimkey)
   re <- key_regex(trimkey)
-  m <- regexpr(re,x,ignore.case=TRUE)      # Fetch key location
-  s <- regmatches(x,m)                     # extract substring
-  re <- paste0("(",trimkey,")|(END)")      # remove key and whitespace
-  s <- trimws(gsub(re,"",s))               # remove key and return
+  m <- regexpr(re,x,ignore.case=TRUE)           # Fetch key location
+  s <- regmatches(x,m)                          # extract substring
+  re <- paste0("(",trimkey,")|(END)")           # remove key and whitespace
+  s <- trimws(gsub(re,"",s,ignore.case = TRUE)) # remove key and return
   # split values when relevant
   if (trimkey != "COMMENT" && length(s)>0 && nchar(s)>0) {
     s <- unlist(strsplit(s, split="([[:blank:]]|\n)+"))
@@ -283,12 +274,12 @@ extract_keyval <- function(trimkey, x){
 }
 
 
-tc_from_char <- function(x, default = new_TRIMCommand()){
+tc_from_char <- function(x, default = trimcommand()){
   L <- lapply(names(default), extract_keyval, x)
   L <- setNames(L, names(default))
   for ( i in seq_along(L))
     if (length(L[[i]])==0) L[[i]] <- default[[i]]
-  do.call(new_TRIMCommand, L)
+  do.call(trimcommand, L)
 }
 
 
