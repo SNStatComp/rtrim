@@ -1,0 +1,72 @@
+---
+title: "Working with TRIM command files and TRIM data files"
+author: "Patrick Bogaart, Mark van der Loo, and Jeroen Pannekoek"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Working with TRIM command files and TRIM data files}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## TRIM Command Files
+
+The original TRIM software can be controlled with text files containing a series of commands that specify both the location and format of the data, an the model (or models) to compute. Such TRIM command files (usually stored with the extension `.tcf`) should be considered legacy but for backwards compatability they can be used from R.
+
+To try this, execute the code below to create a `tcf` file and a TRIM data file in the current
+working directory of R.
+```{r}
+library(rtrim)
+tmp <- "FILE skylark.dat
+TITLE  skylark-1d
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+END
+MISSING 999
+WEIGHT Absent
+COMMENT Example 1; using linear trend model
+WEIGHTING off
+OVERDISP on
+SERIALCOR on
+MODEL 2
+"
+write(tmp,file="skylark.tcf")
+data(skylark)
+skylark[is.na(skylark)] <- 999
+write.table(skylark,file="skylark.dat",col.names=FALSE,row.names=FALSE)
+```
+
+Executing a TRIM command file is as easy as reading the file using `read_tcf` and passing the result to `trim`.
+
+```{r}
+tc <- read_tcf("skylark.tcf")
+m <- trim(tc)
+```
+The resulting `trim` object can be evaluated as described in the [getting started](Getting_started.html) vignette. For example
+```{r}
+wald(m)
+``` 
+
+
+The object `tc`, resulting from `read_tcf` is an object of class `trimcommand`. It stores all commands defined in the TRIM command file. Note that logical parameters such as `WEIGHT` are transformed to `logical` in R.
+```{r}
+tc
+```
+
+
+**NOTE.** Be aware that R has its own present working directory. If relative paths (that is, file names not starting with the full path to their location) are used in the TRIM command file, R wil interpret them as relative to the current working directory. 
+
+
+## TRIM data files
+
+TRIM data files are basically space-separated, tabular tekstfiles where the order and type of columns is fixed by a few parameters. Given such a specification, a file can be read with `read_tdf`. 
+
+
+
+
+
