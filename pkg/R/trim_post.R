@@ -122,7 +122,8 @@ print.trim.dom <- function(x,...) {
 #' respectively.
 #' @export
 #'
-#'
+#' @family analyses
+#' 
 #' @examples
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site, model=2)
@@ -181,6 +182,8 @@ print.trim.gof <- function(x,...) {
 #'   (\code{est.method}), overdispersion (\code{sig2}) and autocorrelation (\code{rho})
 #' @export
 #'
+#' @family analyses 
+#' @seealso trim
 #' @examples
 #' 
 #' data(skylark)
@@ -229,6 +232,7 @@ print.trim.summary <- function(x,...) {
 #' element \code{coef}, which is a data frame containing the actual coefficients.
 #' @export
 #'
+#' @family analyses
 #' @examples
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
@@ -278,6 +282,7 @@ print.trim.coef <- function(x,...) {
 #' element the data frame \code{totals}.
 #' @export
 #'
+#' @family analyses
 #' @examples
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2);
@@ -344,6 +349,7 @@ print.trim.totals <- function(x,...) {
 #' 
 #' @export
 #'
+#' @family analyses
 #' @examples
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
@@ -413,6 +419,7 @@ print.trim.index <- function(x,...) {
 #'   and \code{dev}, containing the deviations from that trend.
 #' @export
 #'
+#' @family analyses
 #' @examples
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=3)
@@ -463,6 +470,7 @@ print.trim.linear <- function(x,...) {
 #' @return a model-dependent list of Wald statistics
 #' @export
 #'
+#' @family analyses
 #' @examples
 #' data(skylark)
 #' z2 <- trim(count ~ time + site, data=skylark, model=2)
@@ -511,6 +519,7 @@ print.trim.wald <- function(x,...) {
 #'   the size-effect (\code{effect}),
 #' @export
 #'
+#' @family analyses
 #' @examples
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
@@ -564,6 +573,7 @@ print.trim.overall <- function(x,...) {
 #' @param imputed Toggle to show imputed counts 
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
+#' @family analyses
 #' @export
 plot.trim.overall <- function(x, imputed=TRUE, ...) {
   X <- x

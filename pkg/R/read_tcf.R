@@ -32,7 +32,7 @@
 #' \item{ \code{outputfiles} \code{[character]} Type of outputfile to generate ('F' and/or 'S')}
 #'}
 #' 
-#' @seealso \code{\link{read_tcf}}
+#' @family modelspec
 #' 
 #' @export
 trimcommand <- function(...){
@@ -188,7 +188,7 @@ as_rtrim <- function(value, template){
 #' TRIM command file, a \code{list} of \code{trimcommand} objects. In the
 #' latter case, a useful summary can be printed with \code{\link{summary.trimbatch}}.
 #' 
-#' @seealso \code{\link{read_tcf}}, \code{\link{trimcommand}}
+#' @family modelspec
 #' @export
 read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
   con <- file(description = file, encoding=encoding)

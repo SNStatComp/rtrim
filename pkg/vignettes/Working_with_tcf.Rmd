@@ -47,7 +47,7 @@ Executing a TRIM command file is as easy as reading the file using `read_tcf` an
 tc <- read_tcf("skylark.tcf")
 m <- trim(tc)
 ```
-The resulting `trim` object can be evaluated as described in the [getting started](Getting_started.html) vignette. For example
+The resulting `trim` object can be evaluated as described in the [getting started](rtrim_for_TRIM_users.html) vignette. For example
 ```{r}
 wald(m)
 ``` 

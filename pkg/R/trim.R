@@ -5,7 +5,8 @@
 #'
 #' @export
 #'
-#' @seealso  \code{\link{gof}}, \code{\link{coef.trim}}
+#' @family modelspec
+#' @seealso \code{\link{summary.trim}}
 #'
 #' @examples 
 #' data(skylark)

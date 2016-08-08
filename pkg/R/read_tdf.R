@@ -32,7 +32,7 @@
 #'
 #' @return A \code{data.frame}.
 #'
-#'
+#' @family modelspec
 #' @export
 read_tdf <- function(x,...){
   UseMethod("read_tdf")
