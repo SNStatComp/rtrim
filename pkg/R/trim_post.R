@@ -183,7 +183,7 @@ print.trim.gof <- function(x,...) {
 #' @export
 #'
 #' @family analyses 
-#' @seealso trim
+#' @seealso \code{\link{trim}}
 #' @examples
 #' 
 #' data(skylark)

@@ -1,12 +1,18 @@
-#' Estimate TRIM model
+#' Estimate TRIM model parameters
+#'
+#'
+#' Compute TRIM model parameters as specified in the
+#' \href{https://www.cbs.nl/NR/rdonlyres/2E9912EB-534B-4A32-AD22-17A73402C083/0/trim3man.pdf}{TRIM3 manual}.
+#'
 #'
 #' @param x a \code{\link{trimcommand}}, a \code{data.frame}, or a \code{formula}
 #' @param ... Currently unused
 #'
+#'
 #' @export
 #'
 #' @family modelspec
-#' @seealso \code{\link{summary.trim}}
+#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \code{\link{summary.trim}}
 #'
 #' @examples 
 #' data(skylark)
@@ -41,7 +47,7 @@ trim.trimcommand <- function(x,...){
 #' @param changepoints \code{[numeric]} Indices for changepoints.
 #' @rdname trim
 #' @export
-trim.data.frame <- function(x, formula, model = c(1,2,3), weights
+trim.data.frame <- function(x, formula, model = 2, weights
                             , serialcor=FALSE, overdisp=FALSE, changepoints=1L, ...){
   
   # argument parsing

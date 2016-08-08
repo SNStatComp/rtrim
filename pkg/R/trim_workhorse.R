@@ -48,7 +48,7 @@ trim_estimate <- local({
 
   # the actual function
   function(count, time.id, site.id, covars=list(),
-            model=c(1,2,3), serialcor=FALSE, overdisp=FALSE,
+            model=2, serialcor=FALSE, overdisp=FALSE,
             changepoints=1L) {
   #2 Preparation
   # Check the arguments. \verb!count! should be a vector of numerics.
@@ -74,9 +74,11 @@ trim_estimate <- local({
   }
   
   # \verb!model! should be in the range 1 to 3
-  model <- model[1]
   stopifnot(model %in% 1:3)
-
+  if (model==1){
+    message("Alas, Model 1 is not implemented yet. Returning zippedidooda (NULL)")
+    return(NULL)
+  }
   # Convert time and site to factors, if they're not yet
   if (any(class(time.id) %in% c("integer","numeric"))) time.id <- ordered(time.id)
   ntime = length(levels(time.id))

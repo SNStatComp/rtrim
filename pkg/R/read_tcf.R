@@ -33,7 +33,7 @@
 #'}
 #' 
 #' @family modelspec
-#' 
+#' @seealso \href{../doc/Working_with_tcf.html}{Working with TRIM command files and TRIM data files}.
 #' @export
 trimcommand <- function(...){
   # decide on default values
@@ -189,6 +189,7 @@ as_rtrim <- function(value, template){
 #' latter case, a useful summary can be printed with \code{\link{summary.trimbatch}}.
 #' 
 #' @family modelspec
+#' @seealso \href{../doc/Working_with_tcf.html}{Working with TRIM command files and TRIM data files}.
 #' @export
 read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
   con <- file(description = file, encoding=encoding)
