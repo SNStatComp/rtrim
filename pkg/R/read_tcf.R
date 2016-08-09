@@ -265,7 +265,7 @@ extract_keyval <- function(trimkey, x){
   re <- key_regex(trimkey)
   m <- regexpr(re,x,ignore.case=TRUE)           # Fetch key location
   s <- regmatches(x,m)                          # extract substring
-  re <- paste0("(",trimkey,")|(END)")           # remove key and whitespace
+  re <- paste0("((\\n|^)",trimkey,")|(END)")           # remove key and whitespace
   s <- trimws(gsub(re,"",s,ignore.case = TRUE)) # remove key and return
   # split values when relevant
   if (trimkey != "COMMENT" && length(s)>0 && nchar(s)>0) {
