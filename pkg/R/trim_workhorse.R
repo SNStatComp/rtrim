@@ -4,7 +4,6 @@
 # \section{Introduction}
 # This document describes the core TRIM function.
 
-VERBOSE <- FALSE
 
 #' Set verbosity of trim model functions
 #'
@@ -12,11 +11,12 @@ VERBOSE <- FALSE
 #'
 #' @export
 set_trim_verbose <- function(verbose=FALSE){
-  VERBOSE <<- verbose
+  stopifnot(isTRUE(verbose)|!isTRUE(verbose))
+  options(trim_verbose=verbose)
 }
 
 # Convenience function for console output during runs
-rprintf <- function(fmt,...) { if(VERBOSE) cat(sprintf(fmt,...)) }
+rprintf <- function(fmt,...) { if(getOption("trim_verbose")) cat(sprintf(fmt,...)) }
 
 # Similar, but for object/summary printing
 printf <- function(fmt,...) {cat(sprintf(fmt,...))}
@@ -498,7 +498,7 @@ trim_estimate <- local({
       check.names   = FALSE # to allow for 2 "std.err." columns
     )
     rprintf("----\n")
-    if (VERBOSE) str(z$coefficients)
+    if (getOption("trim_verbose")) str(z$coefficients)
     rprintf("----\n")
     row.names(z$coefficients) <- "Slope"
   }

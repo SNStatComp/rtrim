@@ -9,3 +9,8 @@
 #' @importFrom stats pchisq pt qt time
 #'
 {}
+
+.onLoad <- function(libname, pkgname){
+  options(trim_verbose=FALSE)
+}
+
