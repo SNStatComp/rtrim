@@ -3,7 +3,7 @@ library(ggplot2)
 library(plyr)
 library(testthat)
 #library(rtrim)
-source("../../pkg/R/tcf.R")
+source("../../pkg/R/read_tcf.R")
 source("../../pkg/R/read_tdf.R")
 
 printf <- function(fmt,...) { cat(sprintf(fmt,...)) }
@@ -15,11 +15,11 @@ job = "skylark-1d"
 # Load command file
 tcf <- read_tcf(sprintf("%s.tcf", job))
 # Check for mandatory TCF elements
-if (is.na(tcf@file)) stop("No file in TCF")
-if (is.na(tcf@model)) stop ("No model specified in TCF file")
+if (is.na(tcf$file)) stop("No file in TCF")
+if (is.na(tcf$model)) stop ("No model specified in TCF file")
 
 # Read data and calc some stats. We store the results in a special TRIMdata object.
-df <- read_tdf(tcf, dbg=FALSE)
+df <- read_tdf(tcf)
 dat <- list(df=df,  # Data as read into the data.table
             # TODO: sites with only missings
             nzero = sum(df$count==0, na.rm=TRUE), # Number of observed zero counts
@@ -30,15 +30,15 @@ dat <- list(df=df,  # Data as read into the data.table
             totcount = sum(df$count, na.rm=TRUE), # Total count
             nsite = nlevels(df$site), # Number of actual sites
             ntime = nlevels(df$time),  # Number of actual time points
-            weight = tcf@weight,
-            missing = tcf@missing,
-            file = tcf@file)
+            weight = tcf$weight,
+            missing = tcf$missing,
+            file = tcf$file)
 class(dat) <- "TRIMdata"
 
 # Do some checks on the datax
-if (tcf@ntimes != dat$ntime) {
+if (tcf$ntimes != dat$ntime) {
   stop(sprintf("Data contains different number of time points (%d) than specified in TCF file (%d)",
-               dat$ntime, tcf@ntimes))
+               dat$ntime, tcf$ntimes))
 }
 
 #===============================================================================

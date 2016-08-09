@@ -304,7 +304,8 @@ totals <- function(x, which=c("imputed","model","both")) {
 
   # wrap the time.index field in a list and make it an S3 class
   # (so that it becomes recognizable as a TRIM time-indices)
-  structure(list(totals=totals), class="trim.totals")
+  class(totals) <- c("trim.totals","data.frame")
+  totals
 }
 
 #-------------------------------------------------------------------------------
@@ -359,7 +360,7 @@ print.trim.totals <- function(x,...) {
 #' # Extract standard error for the imputed data
 #' SE <- index(z)$std.err 
 index <- function(x, which=c("imputed","model","both")) {
-  stopifnot(class(x)=="trim")
+  stopifnot(inherits(x,"trim"))
 
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
@@ -400,7 +401,7 @@ export.trim.index <- function(x, species, stratum) {
 #' @keywords internal
 print.trim.index <- function(x,...) {
   printf("Time indices\n")
-  print(x$idx, row.names=FALSE)
+  print.data.frame(x, row.names=FALSE)
 }
 
 #===============================================================================

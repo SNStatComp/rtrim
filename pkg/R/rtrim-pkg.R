@@ -6,7 +6,7 @@
 #' @importFrom utils read.table head tail str
 #' @importFrom grDevices  gray rgb
 #' @importFrom graphics lines plot points polygon segments title
-#' @importFrom stats pchisq pt qt time
+#' @importFrom stats pchisq pt qt time setNames
 #'
 {}
 

@@ -1,0 +1,101 @@
+ TRIM 3.61 :  TRend analysis and Indices for Monitoring data 
+ STATISTICS NETHERLANDS 
+
+ Date/Time: 4-7-2016 15:08:28
+
+ Title :   skylark-1d
+
+ Comment: Example 1; using linear trend model
+
+ The following  5 variables have been read from file: 
+ F:\TRIM\TRIM_manual_demo\skylark.dat
+
+ 1. Site             number of values:    55
+ 2. Time             number of values:     8
+ 3. Count            missing =        999
+ 4. HABITAT          number of values:  2
+ 5. COV2             number of values:  4
+
+ Number of sites without positive counts (removed)       0
+
+ Number of observed zero counts           0
+ Number of observed positive counts     202
+ Total number of observed counts        202
+ Number of missing counts               238
+ Total number of counts                 440
+
+ Total count                         2536.0
+
+ Sites containing more than 10% of the total count 
+   Site Number  Observed Total    %   
+         3        431.0         17.0
+        37        266.0         10.5
+        40        624.0         24.6
+
+ Time Point Averages 
+   TimePoint  Observations  Average   Index  
+       1              25       8.52    1.00
+       2              20       8.10    0.95
+       3              30      10.90    1.28
+       4              30      11.27    1.32
+       5              28      12.75    1.50
+       6              29      14.66    1.72
+       7              22      17.00    2.00
+       8              18      18.89    2.22
+
+ RESULTS FOR MODEL: Linear Trend
+ ---------------------------------
+
+
+ ESTIMATION METHOD = Generalised Estimating Equations
+
+
+  Total time used:  3.23 seconds
+
+  Estimated Overdispersion     =  1.439
+  Estimated Serial Correlation =  0.281
+
+ GOODNESS OF FIT
+  Chi-square                210.09, df    146, p 0.0004
+  Likelihood Ratio          175.28, df    146, p 0.0495
+  AIC (up to a constant)   -116.72
+
+ WALD-TEST FOR SIGNIFICANCE OF SLOPE PARAMETER 
+  Wald-Test             11.69, df     1, p  0.0006
+
+ PARAMETER ESTIMATES 
+
+         Additive    std.err.   Multiplicative  std.err.
+ Slope    0.0484       0.0142       1.0496      0.0149
+
+ Time INDICES
+  Time     Model     std.err.     Imputed    std.err.
+     1     1                       1
+     2     1.0496     0.0149       0.8948     0.0410
+     3     1.1017     0.0312       0.9777     0.0601
+     4     1.1563     0.0491       0.9790     0.0678
+     5     1.2137     0.0687       1.0698     0.0800
+     6     1.2738     0.0902       1.1727     0.0945
+     7     1.3370     0.1136       1.2527     0.1094
+     8     1.4033     0.1391       1.3226     0.1283
+
+ TIME TOTALS
+  Time      Model    std.err.     Imputed    std.err.
+     1        404         26          443         28
+     2        424         23          396         26
+     3        445         19          433         26
+     4        468         17          434         26
+     5        491         17          474         26
+     6        515         20          519         28
+     7        541         25          555         30
+     8        567         32          586         35
+
+ OVERALL SLOPE MODEL: Moderate increase (p<0.01) **
+  Additive      std.err.   Multiplicative  std.err.
+    0.0484       0.0142         1.0496      0.0149
+
+ OVERALL SLOPE IMPUTED+(recommended): Moderate increase (p<0.01) **
+  Additive      std.err.   Multiplicative  std.err.
+    0.0509       0.0139         1.0522      0.0146
+
+
