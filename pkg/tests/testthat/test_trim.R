@@ -4,7 +4,11 @@ test_that("skylark-1d model",{
   tc <- read_tcf("outfiles/skylark-1d.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1d.out")
-  
+
+  # data basics
+  expect_equal(m$nsite, get_n_site(to))
+  expect_equal(m$ntime, get_n_time(to))
+    
   # time index check
   tgt <- get_time_indices(to)
   out <- index(m,"both")

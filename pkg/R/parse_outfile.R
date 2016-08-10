@@ -28,6 +28,37 @@ print.tof <- function(x,...){
   cat(x)
 }
 
+
+#' Extract nr of times from \code{tof} object
+#'
+#' @param x An object of class \code{tof}
+#' 
+#' @return \code{numeric}
+#' @family parse_output
+#' @keywords internal
+get_n_site <- function(x){
+  mm <- regexpr("Site[[:blank:]]{5,}.*?\n",x)
+  s <- regmatches(x,mm)
+  get_num(s)
+}
+
+
+#' Extract nr of sites from \code{tof} object
+#'
+#' @param x An object of class \code{tof}
+#' 
+#' @return \code{numeric}
+#' @family parse_output
+#' @keywords internal
+get_n_time <- function(x){
+  mm <- regexpr("Time[[:blank:]]{5,}.*?\n",x)
+  s <- regmatches(x,mm)
+  get_num(s)
+}
+
+
+
+
 #' Extract time indices from \code{tof} object
 #'
 #' @param x An object of class \code{tof}
