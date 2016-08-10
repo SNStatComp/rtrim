@@ -144,22 +144,18 @@ get_serial_correlation <- function(x){
   get_oneliner(x,"SERIAL CORRELATION")
 }
 
-
-to_vector <- function(x){
-  sapply(x, function(u){
-    mm <- regexpr("[^0-9]+",u,ignore.case=TRUE)
-    lab <- trimws(regmatches(u,mm))
-    mm <- regexpr("[0-9]+\\.?[0-9]*",u)
-    num <- as.numeric(regmatches(u,mm))
-    setNames(num,lab)
-  },USE.NAMES=FALSE)
+# extract numbers from text.
+get_num <- function(x){
+  mm <- regexpr("[0-9]+\\.?[0-9]*",x)
+  as.numeric(regmatches(x,mm))
 }
+
 
 #' Extract goodness of fit from \code{tof} object
 #'
 #' @inheritParams get_time_indices
 #'
-#' @return \code{character} string
+#' @return List of type \code{trim.gof}
 #' @family parse_output
 #' @keywords internal
 get_gof <- function(x){
@@ -169,7 +165,78 @@ get_gof <- function(x){
   s <- gsub("\n\n","\n",s)
   s <- trimws(strsplit(s,"\\n")[[1]][-1])
   L <- strsplit(s,",")
-  lapply(L,to_vector)
+  K <- lapply(L,function(x) sapply(x, get_num, USE.NAMES=FALSE))
+  names(K) <- c("chi2","LR","AIC")
+  K$chi2 <- setNames(as.list(K$chi2),c("chi2","df","p"))
+  K$LR <- setNames(as.list(K$LR),c("LR","df","p"))
+  K$AIC <- unname(K$AIC)
+  structure(K,class="trim.gof")
+}
+
+#' Extract Wald test parameters from \code{tof} object
+#'
+#' @inheritParams get_time_indices
+#'
+#' @return list of type \code{trim.wald}
+#' @family parse_output
+#' @keywords internal
+get_wald <- function(x){
+  stopifnot(inherits(x,"tof"))
+  
+  model <- get_model(x)
+  
+  # Wald test parameters.
+  # TODO: implement for model=1, model=3
+  L <- switch(as.character(model)
+    , "2" = {
+      re <- "Wald-test[[:blank:]]{5,}.*?\\n[[:blank:]]*\\n"
+      mm <- regexpr(re,x,ignore.case=TRUE)   
+      s <- regmatches(x,mm)
+      num <- sapply(strsplit(s,",")[[1]],get_num,USE.NAMES=FALSE)
+      list(model=model, W = num[1],df=num[2], p=num[3])
+  })
+  structure(L,class="trim.wald")
+}
+
+
+#' Extract model type from \code{tof} object
+#'
+#' @inheritParams get_time_indices
+#'
+#' @return Model number, either 1, 2 or 3.
+#' @family parse_output
+#' @keywords internal
+get_model <- function(x){
+  stopifnot(inherits(x,"tof"))
+  if (grep("WALD-TEST FOR SIGNIFICANCE OF SLOPE",x)){ 
+    2L
+  } else if(grep("WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE",x)) {
+    3L
+  } else {
+    1L
+  }
+}
+
+#' Extract model coefficients from \code{tof} object
+#'
+#' @inheritParams get_time_indices
+#'
+#' @return list of class \code{trim.coef}
+#' @family parse_output
+#' @keywords internal
+get_coef <- function(x){
+  stopifnot(inherits(x,"tof"))
+  model <- get_model(x)
+  
+  # find parameter estimates block
+  re <- "PARAMETER ESTIMATES[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
+  mm <- regexpr(re,x)
+  s <- regmatches(x,mm)
+  # remove first two lines
+  s <- sub(".*?\\n\\n","",s)
+  coef <- read.table(text=s, header=TRUE)
+  names(coef)[4] <- "std.err"
+  structure(list(model=model, coef=coef),class="trim.coef")
 }
 
 

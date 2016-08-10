@@ -14,6 +14,7 @@ test_that("skylark-1d model",{
     )
   }
   
+  # time totals check
   tgt <- get_time_totals(to)
   out <- totals(m,"both")
   for ( i in seq_len(ncol(tgt)) ){
@@ -22,6 +23,7 @@ test_that("skylark-1d model",{
     )
   }
   
+  # overall slope
   tgt <- get_overal_imputed_slope(to)
   out <- overall(m,"imputed")
   # std errors are not tested here...
@@ -29,14 +31,35 @@ test_that("skylark-1d model",{
   # but here, with a somewhat higher tolerance:
   expect_true( max( abs(out$coef[2,c(2,4)] - tgt[c(2,4)]) ) < 1e-3)
 
+  # goodness-of-fit
   tgt <- get_gof(to)
   out <- gof(m)
-  expect_true(abs(out$chi2$chi2 - tgt[[1]][1]) < 1e-3)
-  expect_true(out$chi2$df == tgt[[1]][2])
-  expect_true(abs(out$chi2$p - tgt[[1]][3]) < 1e-5)    
+  expect_equal(out$chi2$chi2, tgt$chi2$chi2, tol = 1e-3, info="chi2 value")
+  expect_equal(out$chi2$df, tgt$chi2$df, info="chi2 df")
+  expect_equal(out$chi2$p, tgt$chi2$p, tol= 1e-5, info="chi2 p-value") 
+  expect_equal(out$LR$LR, tgt$LR$LR, tol=1e-3, info="Likelihood ratio")
+  expect_equal(out$LR$df, tgt$LR$df,info="Likelihood ratio df")  
+  expect_equal(abs(out$AIC), abs(tgt$AIC), tol=1e-4, info="AIC value") 
   
+  # wald test
+  tgt <- get_wald(to)
+  out <- wald(m)
+  expect_equal(out$W,tgt$W,tol=1e-3, info="Wald test value")
+  expect_equal(out$df,tgt$df, info="Wald test df")
+  expect_equal(out$model,tgt$model, info="model type")
+  expect_equal(out$p, tgt$p, tol=1e-4, info="Wald test p-value")
   
+  # coefficients
+  tgt <- get_coef(to)
+  out <- coefficients(m)
   
+  expect_equal(out$model, tgt$model)
+  for ( i in seq_len(ncol(tgt$coef)) ){
+    expect_equal(out$coef[,i], tgt$coef[,i], tol=1e-4
+       , info=sprintf("Coefficients column %d",i)
+   )
+  }
+
 })
 
 
