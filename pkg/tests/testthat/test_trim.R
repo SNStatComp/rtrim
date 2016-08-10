@@ -63,7 +63,18 @@ test_that("skylark-1d model",{
        , info=sprintf("Coefficients column %d",i)
    )
   }
+})
 
+context("Output printers")
+test_that("S3 output printers", {
+  data(skylark)
+  m2 <- trim(count ~ time + site, data=skylark, model=2, overdisp=TRUE, serialcor = TRUE)
+  expect_output(print(m2))
+  expect_output(print(coef(m2)))
+  expect_output(print(wald(m2)))
+  expect_output(print(overall(m2)))
+  expect_output(print(totals(m2)))
+  expect_output(print(index(m2)))
 })
 
 
