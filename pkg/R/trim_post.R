@@ -141,8 +141,23 @@ print.trim.summary <- function(x,...) {
 #' summary(z) 
 #' # extract autocorrelation strength
 #' rho <- summary(z)$rho 
-coef.trim <- function(object,...) {
-  structure(list(model=object$model, coef=object$coefficients), class="trim.coef")
+coef.trim <- function(object, which=c("additive","multiplicative","both")) {
+  stopifnot(class(object)=="trim")
+
+  # Craft a custom output
+  which <- match.arg(which)
+  if (which=="additive") {
+    if (object$use.changepoints) out <- cbind(object$coef$int, object$coef$add)
+    else                    out <- object$coef$add
+  } else if (which=="multiplicative") {
+    if (object$use.changepoints) out <- cbind(object$coef$int, object$coef$mul)
+    else                    out <- object$coef$mul
+  } else if (which=="both") {
+    if (object$use.changepoints) out <- cbind(object$coef$int, object$coef$add, object$coef$mul)
+    else                    out <- cbind(object$coef$add, object$coef$mul)
+  } else stop(sprintf("Invalid options which=%s", which))
+
+  structure(list(model=object$model, coef=out), class="trim.coef")
 }
 
 #-------------------------------------------------------------------------------
@@ -429,13 +444,12 @@ print.trim.wald <- function(x,...) {
 #' overall(z)
 overall <- function(x, which=c("imputed","model")) {
   stopifnot(class(x)=="trim")
-  which = match.arg(which)
+  which <- match.arg(which)
   if (which=="imputed") {
-     out=structure(x$overall$imp, class="trim.overall", src="imputed")
-  } else if (which=="model") {
-     out=structure(x$overall$mod, class="trim.overall", src="model")
+     structure(x$overall$imp, class="trim.overall", src="imputed")
+  } else {
+     structure(x$overall$mod, class="trim.overall", src="model")
   }
-  out
 }
 
 #-------------------------------------------------------------------------------

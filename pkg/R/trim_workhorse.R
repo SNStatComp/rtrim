@@ -38,18 +38,18 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
-#' 
-#' 
+#'
+#'
 #' @keywords internal
 trim_estimate <- local({
-  
+
   # variables used to store information during iterations.
   new_par <- new_cnt <- new_lik <- old_par <- old_cnt <- old_lik <- NULL
 
   # the actual function
   function(count, time.id, site.id, covars=list(),
             model=2, serialcor=FALSE, overdisp=FALSE,
-            changepoints=1L) {
+            changepoints=NULL) {
   #2 Preparation
   # Check the arguments. \verb!count! should be a vector of numerics.
   stopifnot(class(count) %in% c("integer","numeric"))
@@ -72,7 +72,7 @@ trim_estimate <- local({
   if (length(covars)>0){
     message("Covariates are not implemented net and wil currently be ignored")
   }
-  
+
   # \verb!model! should be in the range 1 to 3
   stopifnot(model %in% 1:3)
   if (model==1){
@@ -106,10 +106,16 @@ trim_estimate <- local({
   # For model 2, we do not allow for changepoints $<1$ or $\geq J$. At the same time,
   # a changepoint $1$ must be present
   if (model==2) {
-    stopifnot(all(changepoints>=1L))
-    stopifnot(all(changepoints<ntime))
-    stopifnot(all(diff(changepoints)>0))
-    if (changepoints[1]!=1L) changepoints = c(1L, changepoints)
+    if (is.null(changepoints)) {
+      use.changepoints <- FALSE # Pretend we're not using changepoints at all
+      changepoints <- 1L        # but internally use them nevertheless
+    } else {
+      use.changepoints <- TRUE
+      stopifnot(all(changepoints>=1L))
+      stopifnot(all(changepoints<ntime))
+      stopifnot(all(diff(changepoints)>0))
+      if (changepoints[1]!=1L) changepoints = c(1L, changepoints)
+    }
   }
 
   # We make use of the generic model structure
@@ -306,7 +312,7 @@ trim_estimate <- local({
   # where the $n$ terms are the number of observations, $\alpha$'s and $\beta$'s, respectively.
   # Summation is over the observed $i,j$ only.
   # and $r_{ij}$ are Pearson residuals (Section~\ref{r})
-  sig2 = 1.0 # default value (Maximum Likelihood case)
+  sig2 <- 1.0 # default value (Maximum Likelihood case)
   update_sig2 <- function() {
     df <- sum(nobs) - length(alpha) - length(beta) # degrees of freedom
     sig2 <<- sum(r^2, na.rm=TRUE) / df
@@ -470,7 +476,8 @@ trim_estimate <- local({
   # together with parameter values and other usefull information.
 
   z <- list(title=title, data=f, nsite=nsite, ntime=ntime,
-            model=model, mu=mu, imputed=imputed, alpha=alpha, beta=beta)
+            model=model, use.changepoints=use.changepoints, changepoints=changepoints,
+            mu=mu, imputed=imputed, alpha=alpha, beta=beta)
   class(z) <- "trim"
 
   # Several kinds of statistics can now be computed, and added to this output object.
@@ -489,18 +496,31 @@ trim_estimate <- local({
     var_beta <- -solve(i_b)
     se_beta  <- sqrt(diag(var_beta))
 
-    # Again, results are stored in the TRIM object
-    z$coefficients <- data.frame(
+    z$coef = list()
+
+    if (use.changepoints) {
+      ncp = length(changepoints)
+      z$coef$int <- data.frame(
+        from = changepoints,
+        upto = c(changepoints[2:ncp], ntime)
+      )
+    }
+
+    z$coef$add <- data.frame(
       Additive      = beta,
-      std.err.      = se_beta,
-      Mutiplicative = exp(beta),
-      std.err.      = exp(beta) * se_beta,
-      check.names   = FALSE # to allow for 2 "std.err." columns
+      std.err.      = se_beta
     )
-    rprintf("----\n")
-    if (getOption("trim_verbose")) str(z$coefficients)
-    rprintf("----\n")
-    row.names(z$coefficients) <- "Slope"
+
+    z$coef$mul <- data.frame(
+      Mutiplicative = exp(beta),
+      std.err.      = exp(beta) * se_beta
+    )
+
+    # For the 'normal' model 2, parameters are labeled within their row.
+    if (!use.changepoints) {
+      row.names(z$coef$add) <- "Slope"
+      row.names(z$coef$mul) <- "Slope"
+    }
   }
 
   if (model==3) {
@@ -876,15 +896,52 @@ trim_estimate <- local({
   #3                                                                   Wald test
 
   if (model==2) {
-    theta = beta[1]
-    var_theta = var_beta[1,1]
-
-    W <- t(theta) %*% solve(var_theta) %*% theta # Compute the Wald statistic
-    W <- as.numeric(W) # Convert from $1\times1$ matrix to proper atomic
+    nbeta <- length(beta)
+    if (nbeta==1) {
+      # Model 2 without changepoints. We have a single $\beta$ and use the Wald
+      # test to see if $\beta\neq0$.
+      # In this case, $$ W = \beta^2/\var(\beta) $$.
+      theta <- as.numeric(beta)
+      var_theta <- as.numeric(var_beta)
+    } else {
+      # Model 2 with changepoints. We now test for \emph{changes} in slope $\beta$.
+      # The Wald test is therefore used to test if $\Delta\beta\neq0$, where
+      # \begin{equation}
+      #   \Delta\beta_i = \beta_{i}-\beta{i-1} \label{dbeta}
+      # \end{equation} with $\Delta\beta_1=\beta_1$.
+      dbeta <- c(beta[1], diff(beta))
+      # The corresponding Wald statistic is given by
+      # $$ W_k = (\Delta\beta_i)^2 / \var(\Delta\beta_i) $$
+      # so we need to compute $\var(\Delta\beta_i)$ from the known $\var(\beta)$.
+      # Note that Eqn~\eqref{dbeta} can be solved for $\beta_i$ as
+      # $$ \beta_i = \sum{k=1}^i \Delta\beta_k $$
+      # or in matrix notation
+      # $$ \beta = H \Delta\beta $$
+      # with $H$ a lower unitriangular matrix.
+      # Applying the standard rules for variance:
+      # $$ \var{\beta} = H \var(\Delta\Beta) H^T $$
+      # from which it follows that
+      # $$ \var(\Delta\beta) = H^{-1} \var(\beta) {H^T}^{-1} $$.
+      #
+      #
+      #
+      Hinv <-diag(nbeta)
+      idx = row(Hinv)==(col(Hinv)+1) # band just below the diagonal
+      Hinv[idx] = -1
+      ## This was faster than:
+      ## H <- matrix(1,nbeta,nbeta)
+      ## H[upper.tri(H)] <- 0
+      ## Hinv <- solve(H)
+      var_dbeta <- Hinv %*% var_beta %*% t(Hinv)
+      theta <- as.numeric(dbeta)
+      var_theta <- diag(var_dbeta) # variance elements
+    }
+    W <- theta^2 / var_theta # Compute the Wald statistic
     df <- 1 # degrees of freedom
     p  <- 1 - pchisq(W, df=df) # $p$-value, based on $W$ being $\chi^2$ distributed.
 
-    z$wald <- list(model=model, W=W, df=df, p=p)}
+    z$wald <- list(model=model, W=W, df=df, p=p, theta=theta, var_theta=var_theta)
+  }
 
   # For Model 3, we use the Wald test to test if the residuals around the overall
   # trend (i.e., the $\gamma_j^\ast$) significantly differ from 0.

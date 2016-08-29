@@ -31,7 +31,10 @@ test_that("skylark-1d model",{
   tgt <- get_overal_imputed_slope(to)
   out <- overall(m,"imputed")
   # std errors are not tested here...
-  expect_true( max( abs(out$coef[2,c(1,3)] - tgt[c(1,3)]) ) < 1e-4)
+  expect_true(abs(out$coef[2,1] - tgt[1]) < 1e-4)
+  expect_true(abs(out$coef[2,3] - tgt[3]) < 1e-4)
+
+  
   # but here, with a somewhat higher tolerance:
   expect_true( max( abs(out$coef[2,c(2,4)] - tgt[c(2,4)]) ) < 1e-3)
 
@@ -55,11 +58,11 @@ test_that("skylark-1d model",{
   
   # coefficients
   tgt <- get_coef(to)
-  out <- coefficients(m)
+  out <- coefficients(m,which="both")
   
   expect_equal(out$model, tgt$model)
-  for ( i in seq_len(ncol(tgt$coef)) ){
-    expect_equal(out$coef[,i], tgt$coef[,i], tol=1e-4
+  for ( i in 3:6 ){
+    expect_equal(out$coef[1,i], tgt$coef[,i-2], tol=1e-4
        , info=sprintf("Coefficients column %d",i)
    )
   }
