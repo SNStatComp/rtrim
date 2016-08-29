@@ -1,0 +1,113 @@
+ TRIM 3.61 :  TRend analysis and Indices for Monitoring data 
+ STATISTICS NETHERLANDS 
+
+ Date/Time: 22-8-2016 14:38:50
+
+ Title :   skylark-1e
+
+ The following  5 variables have been read from file: 
+ Z:\Users\patrick\Work\CBS\TRIM\wine\skylark.dat
+
+ 1. Site             number of values:    55
+ 2. Time             number of values:     8
+ 3. Count            missing =        999
+ 4. HABITAT          number of values:  2
+ 5. COV2             number of values:  4
+
+ Number of sites without positive counts (removed)       0
+
+ Number of observed zero counts           0
+ Number of observed positive counts     202
+ Total number of observed counts        202
+ Number of missing counts               238
+ Total number of counts                 440
+
+ Total count                         2536.0
+
+ Sites containing more than 10% of the total count 
+   Site Number  Observed Total    %   
+         3        431.0         17.0
+        37        266.0         10.5
+        40        624.0         24.6
+
+ Time Point Averages 
+   TimePoint  Observations  Average   Index  
+       1              25       8.52    1.00
+       2              20       8.10    0.95
+       3              30      10.90    1.28
+       4              30      11.27    1.32
+       5              28      12.75    1.50
+       6              29      14.66    1.72
+       7              22      17.00    2.00
+       8              18      18.89    2.22
+
+ RESULTS FOR MODEL: Linear Trend
+ --------------------------------
+  Changes in Slope at Timepoints
+      1     2     3     4     5     6     7 
+
+ ESTIMATION METHOD = Generalised Estimating Equations
+
+
+  Total time used:  3.44 seconds
+
+  Estimated Overdispersion     =  1.367
+  Estimated Serial Correlation =  0.302
+
+ GOODNESS OF FIT
+  Chi-square                191.40, df    140, p 0.0026
+  Likelihood Ratio          194.80, df    140, p 0.0015
+  AIC (up to a constant)    -85.20
+
+ WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE 
+ Changepoint    Wald-Test  df   p  
+      1             9.22    1  0.0024
+      2             6.85    1  0.0089
+      3             1.44    1  0.2298
+      4             1.03    1  0.3107
+      5             0.00    1  0.9735
+      6             0.04    1  0.8358
+      7             0.03    1  0.8519
+
+ PARAMETER ESTIMATES 
+
+ Slope for Time Intervals
+ from upto   Additive  std.err.    Multiplicative   std.err.
+    1    2   -0.3202    0.1055          0.7260       0.0766
+    2    3    0.1515    0.1033          1.1636       0.1202
+    3    4   -0.0210    0.0773          0.9792       0.0757
+    4    5    0.1072    0.0754          1.1132       0.0840
+    5    6    0.1032    0.0721          1.1087       0.0799
+    6    7    0.0789    0.0721          1.0821       0.0780
+    7    8    0.0561    0.0770          1.0577       0.0815
+
+ Time INDICES
+  Time     Model     std.err.     Imputed    std.err.
+     1     1                       1
+     2     0.7260     0.0766       0.7201     0.0766
+     3     0.8448     0.0891       0.8454     0.0893
+     4     0.8272     0.0896       0.8314     0.0901
+     5     0.9209     0.0986       0.9221     0.0989
+     6     1.0210     0.1081       1.0250     0.1086
+     7     1.1048     0.1196       1.1082     0.1201
+     8     1.1686     0.1295       1.1828     0.1308
+
+ TIME TOTALS
+  Time      Model    std.err.     Imputed    std.err.
+     1        509         45          509         45
+     2        370         35          366         35
+     3        430         29          430         29
+     4        421         28          423         28
+     5        469         31          469         31
+     6        520         32          521         32
+     7        563         37          564         37
+     8        595         42          601         42
+
+ OVERALL SLOPE MODEL: Moderate increase (p<0.01) **
+  Additive      std.err.   Multiplicative  std.err.
+    0.0460       0.0142         1.0471      0.0149
+
+ OVERALL SLOPE IMPUTED+(recommended): Moderate increase (p<0.01) **
+  Additive      std.err.   Multiplicative  std.err.
+    0.0478       0.0142         1.0489      0.0149
+
