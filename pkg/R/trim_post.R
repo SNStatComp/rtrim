@@ -412,11 +412,22 @@ wald <- function(x) {
 #' @keywords internal
 print.trim.wald <- function(x,...) {
   if (x$model==2) {
-    printf("Wald test for significance of slope parameter\n")
+    if (length(x$W)==1) {
+      printf("Wald test for significance of slope parameter\n")
+      printf("  Wald = %.2f, df=%d, p=%f\n", x$W, x$df, x$p)
+    } else {
+      printf("Wald test for significance of changes in slope\n")
+      df = data.frame(Changepoint = 1:length(x$W),
+                      Wald_test = x$W,
+                      df = x$df,
+                      p = x$p)
+      print(df, row.names=FALSE)
+    }
   } else if (x$model==3) {
     printf("Wald test for significance of deviations from linear trend\n")
+    printf("  Wald = %.2f, df=%d, p=%f\n", x$W, x$df, x$p)
   } else stop("Can't happen")
-  printf("  Wald = %.2f, df=%d, p=%f\n", x$W, x$df, x$p)
+
 }
 
 #===============================================================================

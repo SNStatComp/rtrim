@@ -145,7 +145,7 @@ get_overal_imputed_slope <- function(x){
 }
 
 get_slope <- function(x,label){
-  re <- paste0("OVERALL SLOPE ",label,".*?\n[[:blank:]]*\n")
+  re <- paste0("OVERALL SLOPE ",label,".*?\n[[:blank:]]*(\n|$)")
   mm <- regexpr(re,x)
   s <- regmatches(x,mm)
   s <- trimws(gsub("\n\n","\n",s)[[1]])
@@ -216,16 +216,24 @@ get_wald <- function(x){
   
   model <- get_model(x)
   
-  # Wald test parameters.
-  # TODO: implement for model=1, model=3
-  L <- switch(as.character(model)
-    , "2" = {
-      re <- "Wald-test[[:blank:]]{5,}.*?\\n[[:blank:]]*\\n"
-      mm <- regexpr(re,x,ignore.case=TRUE)   
-      s <- regmatches(x,mm)
-      num <- sapply(strsplit(s,",")[[1]],get_num,USE.NAMES=FALSE)
-      list(model=model, W = num[1],df=num[2], p=num[3])
-  })
+  re <- "Wald-test[[:blank:]]{5,}.*?\\n[[:blank:]]*\\n"
+  single_wald_value <- grepl(re,x,ignore.case = TRUE) 
+  
+  L <- if (single_wald_value){
+    mm <- regexpr(re,x,ignore.case=TRUE)   
+    s <- regmatches(x,mm)
+    num <- sapply(strsplit(s,",")[[1]],get_num,USE.NAMES=FALSE)
+    list(model=model, W = num[1],df=num[2], p=num[3])
+  } else {
+    re <- "WALD-TEST.*?CHANGES IN SLOPE.*?\\n[[:blank:]]*\\n" 
+    mm <- regexpr(re,x,ignore.case=TRUE)   
+    s <- regmatches(x,mm)
+    # remove first line
+    s <- sub(".*?\\n","",s)
+    num = read.table(text=s,header=TRUE)
+    list(model=model, W=num[,2], df=num[,3], p=num[,4])
+  }
+  
   structure(L,class="trim.wald")
 }
 
@@ -239,9 +247,9 @@ get_wald <- function(x){
 #' @keywords internal
 get_model <- function(x){
   stopifnot(inherits(x,"tof"))
-  if (grep("WALD-TEST FOR SIGNIFICANCE OF SLOPE",x)){ 
+  if (grepl("RESULTS FOR MODEL: Linear Trend",x,ignore.case=TRUE)){ 
     2L
-  } else if(grep("WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE",x)) {
+  } else if(grepl("RESULTS FOR MODEL: Effects for each time point",x,ignore.case=TRUE)) {
     3L
   } else {
     1L
@@ -265,9 +273,17 @@ get_coef <- function(x){
   s <- regmatches(x,mm)
   # remove first two lines
   s <- sub(".*?\\n\\n","",s)
-  coef <- read.table(text=s, header=TRUE)
-  names(coef)[4] <- "std.err"
+  has_changepoints <- grepl("slope for time intervals",s,ignore.case=TRUE)
+  if (has_changepoints){
+    # remove another line
+    s <- sub(".*?\\n","",s)
+    coef <- read.table(text=s,header=TRUE)
+  } else {
+    coef <- read.table(text=s, header=TRUE)
+    names(coef)[4] <- "std.err"
+  }
   structure(list(model=model, coef=coef),class="trim.coef")
+
 }
 
 
