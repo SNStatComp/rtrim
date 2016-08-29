@@ -209,23 +209,23 @@ print.trim.summary <- function(x) {
 #' z <- trim(...)
 #' print(coef(z)) # print all coefficients
 #' mul <- coef(z)$coef[3] # Extract multiplicative coefficients.
-coef.trim <- function(x, which=c("additive","multiplicative","both")) {
-  stopifnot(class(x)=="trim")
+coef.trim <- function(object, which=c("additive","multiplicative","both")) {
+  stopifnot(class(object)=="trim")
 
   # Craft a custom output
   which <- match.arg(which)
   if (which=="additive") {
-    if (x$use.changepoints) out <- cbind(x$coef$int, x$coef$add)
-    else                    out <- x$coef$add
+    if (object$use.changepoints) out <- cbind(object$coef$int, object$coef$add)
+    else                    out <- object$coef$add
   } else if (which=="multiplicative") {
-    if (x$use.changepoints) out <- cbind(x$coef$int, x$coef$mul)
-    else                    out <- x$coef$mul
+    if (object$use.changepoints) out <- cbind(object$coef$int, object$coef$mul)
+    else                    out <- object$coef$mul
   } else if (which=="both") {
-    if (x$use.changepoints) out <- cbind(x$coef$int, x$coef$add, x$coef$mul)
-    else                    out <- cbind(x$coef$add, x$coef$mul)
+    if (object$use.changepoints) out <- cbind(object$coef$int, object$coef$add, object$coef$mul)
+    else                    out <- cbind(object$coef$add, object$coef$mul)
   } else stop(sprintf("Invalid options which=%s", which))
 
-  structure(list(model=x$model, coef=out), class="trim.coef")
+  structure(list(model=object$model, coef=out), class="trim.coef")
 }
 
 #-------------------------------------------------------------------------------
