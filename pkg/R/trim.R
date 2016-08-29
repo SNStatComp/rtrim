@@ -48,7 +48,7 @@ trim.trimcommand <- function(x,...){
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, formula, model = 2, weights
-                            , serialcor=FALSE, overdisp=FALSE, changepoints=1L, ...){
+                            , serialcor=FALSE, overdisp=FALSE, changepoints=NULL, ...){
   
   # argument parsing
   L <- parse_formula(formula,vars=names(x))

@@ -103,6 +103,9 @@ trim_estimate <- local({
   time <- as.vector(col(f)) # Idem for time points.
   nobs <- rowSums(observed) # Number of actual observations per site
 
+  # By default we turn the use of changepoints off.
+  use.changepoints <- FALSE
+  
   # For model 2, we do not allow for changepoints $<1$ or $\geq J$. At the same time,
   # a changepoint $1$ must be present
   if (model==2) {

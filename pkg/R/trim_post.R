@@ -128,6 +128,7 @@ print.trim.summary <- function(x,...) {
 #' Extract TRIM model coefficients.
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
+#' @param which What coefficients to return.
 #' @param ... currently unused
 #'
 #' @return a list containing the model type (element \code{model}, 1,2 or 3), and
@@ -141,7 +142,7 @@ print.trim.summary <- function(x,...) {
 #' summary(z) 
 #' # extract autocorrelation strength
 #' rho <- summary(z)$rho 
-coef.trim <- function(object, which=c("additive","multiplicative","both")) {
+coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
   stopifnot(class(object)=="trim")
 
   # Craft a custom output
