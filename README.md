@@ -11,7 +11,7 @@ A beta version can be installed from my [drat](https://cran.r-project.org/packag
 ```
 if(!require(drat)) install.packages('drat')
 drat::addRepo('markvanderloo')
-install.packages('gower',type='source')
+install.packages('rtrim',type='source')
 ```
 
 
