@@ -3,15 +3,15 @@
 #'
 #'
 #' @section Description:
-#' 
+#'
 #' A \code{trimcommand} object stores a single TRIM model, including the
 #' specification of the data file. Normally, such an object is defined by
 #' reading a legacy TRIM command file.
-#' 
+#'
 #' @param ... Options in the form of \code{key=value}. See below for all options.
-#' 
+#'
 #' @section Options:
-#' 
+#'
 #' \itemize{
 #' \item{ \code{file}    \code{[character]} name of file containing training data.}
 #' \item{ \code{title}   \code{[character]} A string to be printed in the output file.}
@@ -31,7 +31,7 @@
 #' \item{ \code{stepwise} \code{[logical]} Whether stepwise selection of the changepoints is to be used.}
 #' \item{ \code{outputfiles} \code{[character]} Type of outputfile to generate ('F' and/or 'S')}
 #'}
-#' 
+#'
 #' @family modelspec
 #' @seealso \href{../doc/Working_with_tcf.html}{Working with TRIM command files and TRIM data files}.
 #' @export
@@ -52,7 +52,7 @@ trimcommand <- function(...){
     , basetime     = integer(0)
     , model        = integer(0)
     , covariates   = integer(0)
-    , changepoints = 1L
+    , changepoints = integer(0)
     , stepwise     = logical(0)
     , outputfiles  = character(0)
   )
@@ -78,7 +78,7 @@ trimbatch <- function(...){
 # Add a model to a trimbatch object
 #
 # Set up multiple models in a trimbatch object.
-# 
+#
 #
 # @param x a \code{trimbatch} object.
 # @param ... model parameters (see \code{\link{trimbatch}}). Unspecified parameters
@@ -88,7 +88,7 @@ trimbatch <- function(...){
 #  UseMethod("add_model")
 #}
 
-# @export 
+# @export
 # @rdname add_model
 
 
@@ -107,7 +107,7 @@ as_rtrim <- function(value, template){
 #' Read TRIM Command Files, compatible with the Windows TRIM programme.
 #'
 #' @section TRIM Command file format:
-#' 
+#'
 #' TRIM command files are text files that specify a TRIM job, where a job
 #' consists of one or more models to be computed on a single data input file.
 #' TRIM command files are commonly stored with the extension \code{.tcf}, but
@@ -117,27 +117,27 @@ as_rtrim <- function(value, template){
 #' data file to be read, the second part describes the model(s) to be run. A
 #' TRIM command file can only contain a single data specification part, but multiple
 #' models may be specified.
-#' 
+#'
 #' Each command starts on a new line with a keyword, followed by at least
 #' one space and at least one option value, where multiple option values are
 #' separated by spaces. All commands must be written on a single line, except
 #' the \code{LABELS} command (to set labels for covariates). The latter command
 #' starts with \code{LABELS} on a single line, followed by a newline, followed
-#' by a new label on each following line. The keyword \code{END} (at the beginning of a line) 
+#' by a new label on each following line. The keyword \code{END} (at the beginning of a line)
 #' signals the end of the labels command.
-#' 
+#'
 #' The keyword \code{RUN} (at the beginning of a single line) ends the
 #' specification of a single model. After this a new model can be specified.
 #' Parameters not specified in the current model will be copied from the previous
 #' one.
-#' 
+#'
 #' @section TRIM commands:
-#' 
+#'
 #' The commands are identical to those in the original TRIM software. Commands
 #' that represent a simple toggle (on/off, present/absent) are translated to a
 #' \code{logical} upon reading. Below we give commands in upper case, but the
 #' commands are parsed case insensitively.
-#' 
+#'
 #' \tabular{ll}{
 #' \bold{Data}\tab\cr
 #' \code{FILE}   \tab data filename and path.\cr
@@ -159,43 +159,43 @@ as_rtrim <- function(value, template){
 #' \code{CHANGEPOINTS} \tab [integers] indices of changepoints\cr
 #' \code{RUN}\tab Signals end of current model specification.
 #' }
-#' 
-#' 
-#' 
+#'
+#'
+#'
 #' @section Encoding issues:
 #'
 #' To read files containing non-ASCII characters encoded in a format that is not
-#' native to your system, specifiy the \code{encoding} option. This causes R to 
+#' native to your system, specifiy the \code{encoding} option. This causes R to
 #' re-encode to native encoding upon reading. Input encodings supported for your
-#' system can be listed by calling \code{\link[base]{iconvlist}()}. For more 
+#' system can be listed by calling \code{\link[base]{iconvlist}()}. For more
 #' information on Encoding in R, see \code{\link[base]{Encoding}}.
-#' 
+#'
 #' @section Note on filenames:
-#' 
+#'
 #' If the \code{file} is specified using backslashes to separate directories
 #' (Windows style), this will be converted to a filename using forward slashes
 #' (POSIX style, as used by R).
-#' 
-#' 
+#'
+#'
 #'
 #' @param file Location of TRIM command file.
 #' @param encoding The encoding in which the file is stored.
-#' @param simplify Return a single \code{trimcommand} object if only one 
+#' @param simplify Return a single \code{trimcommand} object if only one
 #'   model is specified in the TRIM command file.
-#' 
-#' 
+#'
+#'
 #' @return A trimcommand object, or in the case of multiple models in a single
 #' TRIM command file, a \code{list} of \code{trimcommand} objects. In the
 #' latter case, a useful summary can be printed with \code{\link{summary.trimbatch}}.
-#' 
+#'
 #' @family modelspec
 #' @seealso \href{../doc/Working_with_tcf.html}{Working with TRIM command files and TRIM data files}.
 #' @export
 read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
   con <- file(description = file, encoding=encoding)
-  tcf <- paste(readLines(con), collapse="\n") 
+  tcf <- paste(readLines(con), collapse="\n")
   close(con)
-  
+
   tcflist <- trimws(strsplit(tcf,"(\\n|^)RUN")[[1]])
   L <- vector(mode="list",length=length(tcflist))
   L[[1]] <- tc_from_char(tcflist[[1]])
@@ -203,7 +203,7 @@ read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
     L[[i]] <- tc_from_char(tcflist[[i]], default = L[[i-1]])
   }
   class(L) <- c("trimbatch","list")
-  if (length(L) == 1 && simplify ) L[[1]] else L 
+  if (length(L) == 1 && simplify ) L[[1]] else L
 }
 
 #' summarize a trimbatch object
@@ -220,7 +220,7 @@ summary.trimbatch <- function(object,...){
   cat(sprintf("Weights %s, %s covariates labeled %s\n",pr(y$weight), pr(y$ncovars)
               ,paste0("",paste(y$labels,collapse=", "))))
 
-  cat("\nModel parameter overview:\n") 
+  cat("\nModel parameter overview:\n")
   oneliner(object)
 }
 
@@ -324,7 +324,7 @@ oneliner <- function(x){
       , pr(tc$outputfiles)
       ))
   }
-  
+
 }
 
 
