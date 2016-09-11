@@ -1,0 +1,19 @@
+FILE skylark.dat
+TITLE  skylark-1f
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT Absent
+
+model 2
+weighting off
+overdisp on
+serialcor on
+changepoints 1 2
+run
+
+
