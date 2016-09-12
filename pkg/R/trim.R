@@ -48,7 +48,7 @@ trim.trimcommand <- function(x,...){
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, formula, model = 2, weights
-                            , serialcor=FALSE, overdisp=FALSE, changepoints=NULL, ...){
+                            , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), ...){
   
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
@@ -73,7 +73,7 @@ trim.data.frame <- function(x, formula, model = 2, weights
 #' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
 #' @export
 trim.formula <- function(x, data, model=c(1,2,3), weights
-          , serialcor=FALSE, overdisp=FALSE, changepoints=1L, ...){
+          , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), ...){
   stopifnot(inherits(data,"data.frame"))
   trim.data.frame(x=data, formula=x, model=model, weights=weights
       , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints)

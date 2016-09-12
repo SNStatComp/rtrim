@@ -109,7 +109,7 @@ trim_estimate <- local({
   # For model 2, we do not allow for changepoints $<1$ or $\geq J$. At the same time,
   # a changepoint $1$ must be present
   if (model==2) {
-    if (is.null(changepoints)) {
+    if (length(changepoints)==0) {
       use.changepoints <- FALSE # Pretend we're not using changepoints at all
       changepoints <- 1L        # but internally use them nevertheless
     } else {

@@ -40,7 +40,7 @@ test_that("read_tcf parses tcf files", {
   expect_equal(x$basetime,1L)
   expect_equal(x$model,3L)
   expect_equal(x$covariates,2L)
-  expect_equal(x$changepoints,1L)
+  expect_equal(x$changepoints,integer(0))
   expect_equal(x$stepwise,logical(0))
   expect_equal(x$outputfiles,"F")
 })

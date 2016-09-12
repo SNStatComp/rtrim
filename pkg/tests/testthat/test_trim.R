@@ -59,8 +59,8 @@ trimtest <- function(m, to){
   
   expect_equal(out$model, tgt$model)
   if ( nrow(tgt$coef) == 1){
-    for ( i in 3:6 ){
-      expect_equal(out$coef[1,i], tgt$coef[,i-2], tol=1e-4
+    for ( i in 1:4 ){
+      expect_equal(out$coef[1,i], tgt$coef[1,i], tol=1e-4
          , info=sprintf("Coefficients column %d",i)
      )
     }
