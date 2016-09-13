@@ -95,21 +95,27 @@ print.trim.dom <- function(dom) {
 
 # ================================================================= Summary ====
 
+
 #' Extract summary information for a TRIM job
 #'
-#' @param x TRIM output structure (i.e., output of a call to \code{trim})
+#' @param object TRIM output structure (i.e., output of a call to \code{trim})
+#' @param ... Currently unused
 #'
-#' @return a list of type 'trim.summary' containing elements for estimation method
+#' @return a list of type \code{trim.summary} containing elements for estimation method
 #'   (\code{est.method}), overdispersion (\code{sig2}) and autocorrelation (\code{rho})
 #' @export
 #'
+#' @family analyses 
+#' @seealso \code{\link{trim}}
 #' @examples
-#' z <- trim(...)
-#' summary(z) # prints some summary info
-#' rho <- summary(z)$rho # extract autocorrelation strength
-summary.trim <- function(x) {
-  stopifnot(class(x)=="trim")
-
+#' 
+#' data(skylark)
+#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' summary(z) 
+#' # extract autocorrelation strength
+#' rho <- summary(z)$rho 
+summary.trim <- function(object,...) {
+  x <- object
   if (is.finite(x$sig2) || is.finite(x$rho)) {
     out = list(est.method="Generalised Estimating Equations")
   } else {
@@ -121,12 +127,16 @@ summary.trim <- function(x) {
   out
 }
 
-print.trim.summary <- function(x) {
+#' Print method for \code{trim.summary}
+#'
+#' @export
+#' @param x An object of class \code{trim.summary}
+#' @keywords internal
+print.trim.summary <- function(x,...) {
   printf("\nEstimation method = %s\n", x$est.method)
   if (is.finite(x$sig2)) printf("  Estimated Overdispersion     = %f\n", x$sig2)
   if (is.finite(x$rho))  printf("  Estimated Serial Correlation = %f\n", x$rho)
 }
-
 
 # ============================================================ Coefficients ====
 
