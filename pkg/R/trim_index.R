@@ -47,43 +47,46 @@
 #' Extract time-indices from TRIM output
 #'
 #' @param x TRIM output structure (output of a call to \code{\link{trim}})
-#' @param base Base time point, for which the index is 1
 #' @param which Selector to distinguish between time indices based on the imputed data (default),
 #' the modelled data, or both.
+#' @param base Base time point, for which the index is 1
 #'
 #' @return a data frame containing indices and their uncertainty (expressed as standard error)
 #' @export
 #'
 #' @examples
-#' z <- trim(tcf,dat);
-#' index(z) # prints the indices for the imputed data
-#' print(index(z,which="imputed")) # idem
-#' print(index(z,4)) # using the 4th time point as reference
-#' index(z, which="both") # mimics classic TRIM
-#' SE <- index(z)$se_imp # Extract standard error for the imputed data
-index <- function(trm, base=1, which=c("imputed","model","both")) {
-  stopifnot(class(trm)=="trim")
+#' 
+#' data(skylark)
+#' z <- trim(count ~ time + site, data=skylark, model=2)
+#' index(z) 
+#' # mimic classic TRIM:
+#' index(z, "both") 
+#' # Extract standard error for the imputed data
+#' SE <- index(z)$std.err 
+#'
+index <- function(x, which=c("imputed","model","both"), base=1) {
+  stopifnot(inherits(x,"trim"))
 
   # Computation and output is user-configurable
   which <- match.arg(which)
   if (which=="model") {
     # Call workhorse function to do the actual computation
-    mod <- .index(trm$tt_mod, trm$var_tt_mod, base)
+    mod <- .index(x$tt_mod, x$var_tt_mod, base)
     # Store results in a data frame
-    out = data.frame(time  = 1:trm$ntime,
+    out <- data.frame(time  = 1:x$ntime,
                      model = mod$tau,
                      se_mod = sqrt(mod$var_tau))
   } else if (which=="imputed") {
     # Idem, using the imputed time totals instead
-    imp <- .index(trm$tt_imp, trm$var_tt_imp, base)
-    out = data.frame(time    = 1:trm$ntime,
+    imp <- .index(x$tt_imp, x$var_tt_imp, base)
+    out = data.frame(time    = 1:x$ntime,
                      imputed = imp$tau,
                      se_imp  = sqrt(imp$var_tau))
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
-    mod <- .index(trm$tt_mod, trm$var_tt_mod, base)
-    imp <- .index(trm$tt_imp, trm$var_tt_imp, base)
-    out = data.frame(time    = 1:trm$ntime,
+    mod <- .index(x$tt_mod, x$var_tt_mod, base)
+    imp <- .index(x$tt_imp, x$var_tt_imp, base)
+    out = data.frame(time    = 1:x$ntime,
                      model   = mod$tau,
                      se_mod  = sqrt(mod$var_tau),
                      imputed = imp$tau,

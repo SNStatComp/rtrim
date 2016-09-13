@@ -22,17 +22,22 @@
 #' respectively.
 #' @export
 #'
-#' @examples
-#' z <- trim(tcf)
-#' gof(z) # prints information on the goodness of fit.
-#' LR_p <- gof(z)$LR$p # get p-value for likelihood ratio
+#' @examples 
+#' data(skylark)
+#' z <- trim(skylark, count ~ time + site, model=2)
+#' # prettyprint GOF information
+#' gof(z)
+#' 
+#' # get individual elements, e.g. p-value
+#' L <- gof(z)
+#' LR_p <- L$LR$p # get p-value for likelihood ratio
+#' 
 gof <- function(x) UseMethod("gof")
 
 # Here is a simple wrapper function for TRIM output lists.
 #' @export
 #' @rdname gof
 gof.trim <- function(x) {
-  printf("gof.trim() called\n")
   stopifnot(class(x)=="trim")
   gof.numeric(x$f, x$mu, x$alpha, x$beta)
 }
@@ -40,7 +45,6 @@ gof.trim <- function(x) {
 # Here is the workhorse function
 
 gof.numeric <- function(f, mu, alpha, beta) {
-  printf("gof.numeric() called\n")
   observed <- is.finite(f)
 
   # The $\chi^2$ (Chi-square) statistic is given by
@@ -83,8 +87,7 @@ gof.numeric <- function(f, mu, alpha, beta) {
 #' @export
 #' @param x a \code{trim.gof} object
 #' @keywords internal
-print.trim.gof <- function(x) {
-  stopifnot(class(x)=="trim.gof")
+print.trim.gof <- function(x,...) {
   # print welcome message
   cat(sprintf("Goodness of fit\n"))
 

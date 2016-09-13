@@ -48,26 +48,27 @@ trimtest <- function(m, to){
   # wald test
   tgt <- get_wald(to)
   out <- wald(m)
-  expect_equal(out$W,tgt$W,tol=1e-1, info="Wald test value")
-  expect_true(all(out$df==tgt$df), info="Wald test df")
-  expect_equal(out$model,tgt$model, info="model type")
-  expect_equal(out$p, tgt$p, tol=1e-4, info="Wald test p-value")
-  
+  if ( is.null(out$slope) ){
+    expect_equal(out$dslope$W, tgt$W, tol=1e-2)
+  } else {
+    expect_equal(out$slope$W,tgt$W,tol=1e-1, info="Wald test value")
+    expect_true(all(out$slope$df==tgt$df), info="Wald test df")
+    expect_equal(out$slope$p, tgt$p, tol=1e-4, info="Wald test p-value")
+  }
   # coefficients
   tgt <- get_coef(to)
   out <- coefficients(m,which="both")
   
-  expect_equal(out$model, tgt$model)
   if ( nrow(tgt$coef) == 1){
     for ( i in 1:4 ){
-      expect_equal(out$coef[1,i], tgt$coef[1,i], tol=1e-4
+      expect_equal(out[1,i+2], tgt$coef[1,i], tol=1e-4
          , info=sprintf("Coefficients column %d",i)
      )
     }
-  } else {
+  } else if(nrow(tgt$coef > 0)) {
     for ( i in 1:6 ){
-      expect_equal(out$coef[,i],tgt$coef[,i],tol=1e-4
-         , info=sprintf("Coefficients column %d",i))
+      expect_equal(out[,i],tgt$coef[,i],tol=1e-3
+          , info=sprintf("Coefficients column %d",i))
     }
   }
 }

@@ -63,7 +63,7 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
   stopifnot(length(site.id)==n)
 
   # \verb!covars! should be a list where each element (if any) is a vector
-  stopifnot(class(covars)=="list")
+#  stopifnot(class(covars)=="list")
   ncovar = length(covars)
   use.covars <- ncovar>0
   if (use.covars) {

@@ -20,11 +20,11 @@ overall <- function(x, which=c("imputed","model")) {
   which = match.arg(which)
 
   # extract vars from TRIM output
-  tt_mod <- z$tt_mod
-  tt_imp <- z$tt_imp
-  var_tt_mod <- z$var_tt_mod
-  var_tt_imp <- z$var_tt_imp
-  ntime <- z$ntime
+  tt_mod <- x$tt_mod
+  tt_imp <- x$tt_imp
+  var_tt_mod <- x$var_tt_mod
+  var_tt_imp <- x$var_tt_imp
+  ntime <- x$ntime
 
   # The overall slope is computed for both the modeled and the imputed $\Mu$'s.
   # So we define a function to do the actual work
@@ -67,7 +67,7 @@ overall <- function(x, which=c("imputed","model")) {
       row.names      = c("Intercept","Slope"),
       check.names    = FALSE
     )
-    list(coef=df,p=p, effect=effect, J=J, tt=tt, err=z$time.totals[[3]], SSR=SSR)
+    list(coef=df,p=p, effect=effect, J=J, tt=tt, err=x$time.totals[[3]], SSR=SSR)
   }
 
   if (which=="imputed") {
