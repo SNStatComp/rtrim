@@ -77,8 +77,16 @@ trimtest <- function(m, to){
   }
 }
 
+context("TRIM|skylark-1b: Model 3 with overdispersion (2 covariates)")
 
-context("TRIM|skylark-1c: Model 3 with covariates, no changepoints")
+test_that("model 3",{
+  tc <- read_tcf("outfiles/skylark-1b.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-1b.out")
+  trimtest(m, to)
+})
+
+context("TRIM|skylark-1c: Model 3 with overdispersion and serial correlation (2 covariates)")
 
 test_that("model 3",{
   tc <- read_tcf("outfiles/skylark-1c.tcf")
@@ -86,6 +94,7 @@ test_that("model 3",{
   to <- read_tof("outfiles/skylark-1c.out")
   trimtest(m, to)
 })
+
 
 context("TRIM|skylark-1d: Model 2 without covariates, no changepoints")
 
