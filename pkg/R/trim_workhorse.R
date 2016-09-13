@@ -1,10 +1,8 @@
-# \title{TRIM core}
-# \author{Patrick Bogaart}
-# \date{\today}
-# \section{Introduction}
-# This document describes the core TRIM function.
+# #################################################### Parameter estimation ####
 
+# This Section describes the core TRIM function, which estimates the TRIM parameters.
 
+# First intriduce some helper functions.
 #' Set verbosity of trim model functions
 #'
 #' @param verbose \code{[logical]} toggle verbosity.
@@ -15,15 +13,14 @@ set_trim_verbose <- function(verbose=FALSE){
   options(trim_verbose=verbose)
 }
 
+
 # Convenience function for console output during runs
 rprintf <- function(fmt,...) { if(getOption("trim_verbose")) cat(sprintf(fmt,...)) }
 
 # Similar, but for object/summary printing
 printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 
-
-#-------------------------------------------------------------------------------
-#2                                                                     Interface
+# Let's het started with the main workhorse function.
 
 #' TRIM workhorse function
 #'
@@ -32,25 +29,21 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #' @param site.id a numerical vector time points for each count data point.
 #' @param covars an optional list of covariates
 #' @param model a model type selector
-#' @param serialcor a flag indication of autoorrelation has to be taken into account.
+#' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
 #' @param changepoints a numerical vector change points (only for Model 2)
-#
+#'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #'
 #' @keywords internal
-trim_estimate <- local({
-
-  # variables used to store information during iterations.
-  new_par <- new_cnt <- new_lik <- old_par <- old_cnt <- old_lik <- NULL
-
-  # the actual function
-  function(count, time.id, site.id, covars=list(),
+trim_estimate <- function(count, time.id, site.id, covars=list(),
             model=2, serialcor=FALSE, overdisp=FALSE,
-            changepoints=NULL) {
-  #2 Preparation
+            changepoints=integer(0)) {
+
+  # =========================================================== Preparation ====
+
   # Check the arguments. \verb!count! should be a vector of numerics.
   stopifnot(class(count) %in% c("integer","numeric"))
   n = length(count)
@@ -69,8 +62,22 @@ trim_estimate <- local({
   stopifnot(class(site.id) %in% c("integer","character","factor"))
   stopifnot(length(site.id)==n)
 
-  if (length(covars)>0){
-    message("Covariates are not implemented net and wil currently be ignored")
+  # \verb!covars! should be a list where each element (if any) is a vector
+  stopifnot(class(covars)=="list")
+  ncovar = length(covars)
+  use.covars <- ncovar>0
+  if (use.covars) {
+    for (i in 1:ncovar) stopifnot(class(covars[[i]]) %in% c("integer","numeric"))
+
+    # Also, each covariate $i$ should be a number (ID) ranging $1\ldots nclass_i$
+    nclass <- numeric(ncovar)
+    for (i in 1:ncovar) {
+      cv <- covars[[i]] # The vector of covariate class ID's
+      stopifnot(min(cv)==1) # Assert lower end of range
+      nclass[i] = max(cv)  # Upper end of range
+      stopifnot(nclass[i]>1) # Assert upper end
+      stopifnot(length(unique(cv))==nclass[i]) # Assert the range is contiguous
+    }
   }
 
   # \verb!model! should be in the range 1 to 3
@@ -90,22 +97,30 @@ trim_estimate <- local({
   # Convert the data from a vector representation to a matrix representation.
   # It's OK to have missing site/time combinations; these will automatically
   # translate to NA values.
-  f <- matrix(0, nsite, ntime)
+  f <- matrix(0, nsite, ntime) # ??? check if we shoud not use NA instead of 0!!!
   rows <- as.integer(site.id) # `site.id' is a factor, thus this results in $1\ldots I$.
   cols <- as.integer(time.id) # idem, $1 \ldots J$.
   idx <- (cols-1)*nsite+rows   # Create column-major linear index from row/column subscripts.
   f[idx] <- count    # ... such that we can paste all data into the right positions
 
+  # Create similar matrices for all covariates
+  if (use.covars) {
+    cvmat <- list()
+    for (i in 1:ncovar) {
+      cv = covars[[i]]
+      m <- matrix(NA, nsite, ntime)
+      m[idx] <- cv
+      cvmat[[i]] <- m
+    }
+  }
+
   # We often need some specific subset of the data, e.g.\ all observations for site 3.
   # These are conveniently found by combining the following indices:
-  observed <- is.finite(f)  # Flags observed (TRUE) / missing (FALSe) data
+  observed <- is.finite(f)  # Flags observed (TRUE) / missing (FALSE) data
   site <- as.vector(row(f)) # Internal site identifiers are the row numbers of the original matrix.
   time <- as.vector(col(f)) # Idem for time points.
   nobs <- rowSums(observed) # Number of actual observations per site
 
-  # By default we turn the use of changepoints off.
-  use.changepoints <- FALSE
-  
   # For model 2, we do not allow for changepoints $<1$ or $\geq J$. At the same time,
   # a changepoint $1$ must be present
   if (model==2) {
@@ -121,6 +136,10 @@ trim_estimate <- local({
     }
   }
 
+  # For model 3, changepoints are not allowed
+  # TODO: proper error msg "No Changepoints allowed with model 3"
+  if (model==3) stopifnot(length(changepoints)==0)
+
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
   # where design matrices $A$ and $B$ both have $IJ$ rows.
@@ -132,7 +151,7 @@ trim_estimate <- local({
   if (model==2) {
     ncp  <-  length(changepoints)
     J <- ntime
-    B = matrix(0, J, ncp)
+    B <- matrix(0, J, ncp)
     for (i in 1:ncp) {
       cp1  <-  changepoints[i]
       cp2  <-  ifelse(i<ncp, changepoints[i+1], J)
@@ -146,10 +165,60 @@ trim_estimate <- local({
     # Note, hoewever, that by definition $\gamma_1=0$, so effectively there are $J-1$ $\gamma$-values to consider.
     # As a consequence, the first column is deleted.
     B <- diag(ntime) # Construct $J\times$J identity matrix
-    B <- B[ ,-1]     # Remove first column3fff
+    B <- B[ ,-1]     # Remove first column
   }
 
-  #3 Setup parameters and state variables
+  # optionally add covariates. Each covar class (except class 1) adds an extra copy of $B$,
+  # where rows are cleared if that site/time combi does not participate in
+  if (use.covars) {
+    cvmask <- list()
+    for (cv in 1:ncovar) {
+      cvmask[[cv]] = list()
+      for (cls in 2:nclass[cv]) {
+        cvmask[[cv]][[cls]] <- list()
+        for (i in 1:nsite) {
+          cvmask[[cv]][[cls]][[i]] <- which(cvmat[[cv]][i, ]!=cls)
+        }
+      }
+    }
+    # The amount of extra parameter sets is the total amount of covarariate classes
+    # minus the number of covariates (because class 1 does not add extra params)
+    num.extra.beta.sets <- sum(nclass-1)
+  }
+
+  # When we use covariates, $B$ is site-specific. We thus define a function to make
+  # the proper $B$ for each site $i$
+
+  B0 <- B # The "standard" B
+  rm(B)
+  make.B <- function(i, debug=FALSE) {
+    if (debug) { printf("make.B(%i): B0:", i); str(B0) }
+    if (model==2 || model==3) {
+      if (use.covars) {
+        # Model 2 with covariates. Add a copy of B for each covar class
+        Bfinal <- B0
+        for (cv in ncovar) {
+          if (debug) printf("adding covar %d\n", cv)
+          for (cls in 2:nclass[cv]) {
+            if (debug) printf("adding class %d\n", cls)
+            Btmp <- B0
+            mask <- cvmask[[cv]][[cls]][[i]]
+            if (length(mask)>0) Btmp[mask, ] = 0
+            Bfinal <- cbind(Bfinal, Btmp)
+          }
+        }
+      } else {
+        # Model 2 without covariates. Just the normal B
+        Bfinal = B0
+      }
+    } else if (model==3) {
+      Bfinal = B0
+    }
+    if (debug) { printf("make.B(%i): Bfinal:", i); str(Bfinal)}
+    Bfinal
+  }
+
+  # ================================== Setup parameters and state variables ====
 
   # Parameter $\alpha$ has a unique value for each site.
   alpha <- matrix(0, nsite,1) # Store as column vector
@@ -157,18 +226,25 @@ trim_estimate <- local({
   # Parameter $\beta$ is model dependent.
   if (model==2) {
     # For model 2 we have one $\beta$ per change points
-    beta = matrix(0, length(changepoints), 1)
+    nbeta <- length(changepoints)
   } else if (model==3) {
-    # For model 3, we have one $\beta$ per time $j>1$; all are initialized to 0 (no time effects)
-    beta <- matrix(0, ntime-1,1) # Store as column vector
+    # For model 3, we have one $\beta$ per time $j>1$
+    nbeta = ntime-1
   }
+  # If we have covariates, $\beta$'s are repeated for each covariate class $>1$.
+  nbeta0 <- nbeta # Number of `baseline' (i.e., without covariates) $\beta$'s.
+  if (use.covars) {
+    nbeta <- nbeta0 * (sum(nclass-1)+1)
+  }
+
+  # All $\beta_j$ are initialized at 0, to reflect no trend (model 2) or no time effects (model 3)
+  beta <- matrix(0, nbeta,1) # Store as column vector
 
   # Variable $\mu$ holds the estimated counts.
   mu <- matrix(0, nsite, ntime)
 
 
-
-  #2 Model estimation.
+  # ====================================================== Model estimation ====
 
   # TRIM estimates the model parameters $\alpha$ and $\beta$ in an iterative fashion,
   # so separate functions are defined for the updates of these and other variables needed.
@@ -185,6 +261,7 @@ trim_estimate <- local({
   # with $V$ a covariance matrix (see Section~\ref{covariance}).
   update_alpha <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
+      B = make.B(i)
       f_i <- f[site==i & observed==TRUE] # vector
       B_i <- B[observed[site==i], , drop=FALSE]
       if (method=="ML") { # no covariance; $V_i = \diag{mu}$
@@ -197,7 +274,8 @@ trim_estimate <- local({
     }
   }
 
-  #3 Time parameters $\beta$.
+  # ----------------------------------------------- Time parameters $\beta$ ----
+
   # Estimates for parameters $\beta$ are improved by computing a change in $\beta$ and
   # adding that to the previous values:
   # $$ \beta^t = \beta^{t-1} - (i_b)^{-1} U_b^\ast \label{beta}$$
@@ -232,7 +310,8 @@ trim_estimate <- local({
     subiter
   }
 
-  #3 Covariance and autocorrelation \label{covariance}
+  # --------------------- Covariance and autocorrelation \label{covariance} ----
+
   # Covariance matrix $V_i$ is defined by
   # \begin{equation}
   #   V_i = \sigma^2 \sqrt{\diag{\mu}} R \sqrt{\diag{\mu}} \label{V1}
@@ -307,7 +386,8 @@ trim_estimate <- local({
     rho <<- rho / (count * sig2) # compute and store in outer environment
   }
 
-  #3 Overdispersion. \label{sig2}
+  # ------------------------------------------ Overdispersion. \label{sig2} ----
+
   # Dispersion parameter $\sigma^2$ is estimated as
   # \begin{equation}
   #   \hat{\sigma}^2 = \frac{1}{n_f - n_\alpha - n_\beta} \sum_{i,j} r_{ij}^2
@@ -321,7 +401,8 @@ trim_estimate <- local({
     sig2 <<- sum(r^2, na.rm=TRUE) / df
   }
 
-  #3 Pearson residuals\label{r}
+  # -------------------------------------------- Pearson residuals\label{r} ----
+
   # Deviations between measured and estimated counts are quantified by the
   # Pearson residuals $r_{ij}$, given by
   # \begin{equation}
@@ -332,7 +413,8 @@ trim_estimate <- local({
     r[observed] <<- (f[observed]-mu[observed]) / sqrt(mu[observed])
   }
 
-  #3 Derivatives and GEE scores
+  # -------------------------------------------- Derivatives and GEE scores ----
+
   # \label{Hessian}\label{Scoring}
   # Derivative matrix $i_b$ is defined as
   # \begin{equation}
@@ -352,6 +434,7 @@ trim_estimate <- local({
     i_b <<- 0 # Also store in outer environment for later retrieval
     U_b <<- 0
     for (i in 1:nsite) {
+      B = make.B(i)
       mu_i <- mu[site==i & observed]
       f_i  <- f[site==i & observed]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
@@ -363,7 +446,8 @@ trim_estimate <- local({
     }
   }
 
-  #3 Count estimates.
+  # ------------------------------------------------------- Count estimates ----
+
   # Let's not forget to provide a function to update the modelled counts $\mu_{ij}$:
   # $$ \mu^t = \exp(A\alpha^t + B\beta^{t-1} - \log w) $$
   # where it is noted that we do not use matrix $A$. Instead, the site-specific
@@ -371,22 +455,27 @@ trim_estimate <- local({
   # $$ \mu_i^t = \exp(\alpha_i^t + B\beta^{t-1} - \log w) $$
   update_mu <- function(fill) {
     for (i in 1:nsite) {
+      B = make.B(i)
       mu[i, ] <<- exp(alpha[i] + B %*% beta)
     }
     # clear estimates for non-observed cases, if required.
     if (!fill) mu[!observed] <<- 0.0
   }
 
-  #3 Likelihood
+  # ------------------------------------------------------------ Likelihood ----
+
   likelihood <- function() {
     lik <- 2*sum(f*log(f/mu), na.rm=TRUE)
     lik
   }
 
-  #3 Convergence.
+  # ----------------------------------------------------------- Convergence ----
+
   # The parameter estimation algorithm iterated until convergence is reached.
   # `convergence' here is defined in a multivariate way: we demand convergence in
   # model paramaters $\alpha$ and $\beta$, model estimates $\mu$ and likelihood measure $L$.
+  new_par <- new_cnt <- new_lik <- NULL
+  old_par <- old_cnt <- old_lik <- NULL
   check_convergence <- function(iter, crit=1e-5) {
 
     # Collect new data for convergence test
@@ -416,7 +505,8 @@ trim_estimate <- local({
     convergence
   }
 
-  #3 Main estimation procedure.
+  # --------------------------------------------- Main estimation procedure ----
+
   # Now we have all the building blocks ready to start the iteration procedure.
   # We start `smooth', with a couple of Maximum Likelihood iterations
   # (i.e., not considering $\sigma^2\neq1$ or $\rho>0$), after which we move to on
@@ -434,8 +524,8 @@ trim_estimate <- local({
     update_mu(fill=FALSE)
     if (method=="GEE") {
       update_r()
-      update_sig2()
-      update_rho()
+      if (overdisp)  update_sig2()
+      if (serialcor) update_rho()
       update_R()
     }
     update_V(method)
@@ -458,6 +548,7 @@ trim_estimate <- local({
     }
   }
 
+
   # If we reach the preset maximum number of iterations, we clearly have not reached
   # convergence.
   if (iter==max_iter) stop("No convergence reached.")
@@ -465,66 +556,72 @@ trim_estimate <- local({
   # Run the final model
   update_mu(fill=TRUE)
 
-  #2 Imputation
+  # Covariance matrix
+  var_beta <- -solve(i_b)
+
+  # ============================================================ Imputation ====
+
   # The imputation process itself is trivial: just replace all missing observations
   # $f_{i,j}$ by the model-based estimates $\mu_{i,j}$.
   imputed <- ifelse(observed, f, mu)
 
 
-  #=============================================================================
-  #2                                                   Output and postprocessing
-  #=============================================================================
+  # ============================================= Output and postprocessing ====
 
   # Measured, modelled and imputed count data are stored in a TRIM output object,
   # together with parameter values and other usefull information.
 
-  z <- list(title=title, data=f, nsite=nsite, ntime=ntime,
-            model=model, use.changepoints=use.changepoints, changepoints=changepoints,
-            mu=mu, imputed=imputed, alpha=alpha, beta=beta)
+  z <- list(title=title, f=f, nsite=nsite, ntime=ntime, nbeta0=nbeta0,
+            covars=covars, ncovar=ncovar,
+            model=model, changepoints=changepoints,
+            mu=mu, imputed=imputed, alpha=alpha, beta=beta, var_beta=var_beta)
+  if (use.covars) {
+    z$ncovar <- ncovar # todo: eliminate?
+    z$nclass <- nclass
+  }
   class(z) <- "trim"
 
   # Several kinds of statistics can now be computed, and added to this output object.
 
-  #-----------------------------------------------------------------------------
-  #3                                          Overdispersion and Autocorrelation
+  # ------------------------------------- Overdispersion and Autocorrelation ---
 
   z$sig2 <- ifelse(overdisp, sig2, NA)
   z$rho  <- ifelse(serialcor, rho,  NA)
 
-  #-----------------------------------------------------------------------------
-  #3                                                Coefficients and uncertainty
+  #-------------------------------------------- Coefficients and uncertainty ---
 
   if (model==2) {
-    beta     <- as.vector(beta)
-    var_beta <- -solve(i_b)
     se_beta  <- sqrt(diag(var_beta))
 
-    z$coef = list()
-
-    if (use.changepoints) {
-      ncp = length(changepoints)
-      z$coef$int <- data.frame(
-        from = changepoints,
-        upto = c(changepoints[2:ncp], ntime)
-      )
-    }
-
-    z$coef$add <- data.frame(
-      Additive      = beta,
-      std.err.      = se_beta
+    ncp = length(changepoints)
+    coefs = data.frame(
+      from   = changepoints,
+      upto   = if (ncp==1) ntime else c(changepoints[2:ncp], ntime),
+      add    = beta,
+      se_add = se_beta,
+      mul    = exp(beta),
+      se_mul = exp(beta) * se_beta
     )
 
-    z$coef$mul <- data.frame(
-      Mutiplicative = exp(beta),
-      std.err.      = exp(beta) * se_beta
-    )
-
-    # For the 'normal' model 2, parameters are labeled within their row.
-    if (!use.changepoints) {
-      row.names(z$coef$add) <- "Slope"
-      row.names(z$coef$mul) <- "Slope"
+    if (use.covars) {
+      # Add some prefix columns with covariate and factor ID
+      # Note that we have to specify all covariate levels here, to prevent them
+      # from being to converted to NA later
+      prefix <- data.frame(covar = factor("baseline",levels=c("baseline", names(covars))),
+                           cat   = 0)
+      coefs <- cbind(prefix, coefs)
+      idx = 1:nbeta0
+      for (i in 1:ncovar) {
+        for (j in 2:nclass[i]) {
+          idx <- idx + nbeta0
+          coefs$covar[idx]  <- names(covars)[i]
+          coefs$cat[idx]    <- j
+        }
+      }
     }
-  }
+
+    z$coefficients <- coefs
+  } # if model==2
 
   if (model==3) {
     # Model coefficients are output in two types; as additive parameters:
@@ -532,17 +629,19 @@ trim_estimate <- local({
     # and as multiplicative parameters:
     # $$ \mu_{ij} = a_i g_j $$
     # where $a_i=e^{\alpha_i}$ and $g_j = e^{\gamma_j}$.
-    gamma     <-  matrix(c(0, as.vector(beta))) # Add $\gamma_1\equiv1$, and cast as column vector
-    g         <- exp(gamma)
+
+    # For the first time point, $\gamma_1=0$ by definition.
+    # So we have to add values of 0 for the baseline case and each covariate category $>1$, if any.
+    #gamma <- matrix(beta, nrow=nbeta0) # Each covariate category in a column
+    #gamma <- rbind(0, gamma) # Add row of 0's for first time point
+    #gamma <- matrix(gamma, ncol=1) # Cast back into a column vector
+    gamma <- beta
+    g     <- exp(gamma)
 
     # Parameter uncertainty is expressed as standard errors.
     # For the additive parameters $\gamma$, the variance is estimated as
     # $$ \var{\gamma} = (-i_b)^{-1} $$
     var_gamma <-  -solve(i_b)
-    # Because $\gamma_1\equiv1$, it was not estimated, and as a results $j=1$ was not
-    # incuded in $i_b$, nor in $\var{gamma}$ as computed above.
-    # We correct this by adding the `missing' rows and columns.
-    var_gamma <- cbind(0, rbind(0, var_gamma))
     # Finally, we compute the standard error as $\se{\gamma} = \sqrt{\diag{\var{\gamma}}}$
     se_gamma  <-  sqrt(diag(var_gamma))
 
@@ -557,58 +656,50 @@ trim_estimate <- local({
     # $$ \se{g} = e^{\gamma} \se{\gamma} = g \se{\gamma} $$
     se_g <- g * se_gamma
 
-    # Again, results are stored in the TRIM object
-    z$coefficients <- data.frame(
-      Time          = 1:ntime,
-      Additive      = gamma,
-      std.err.      = se_gamma,
-      Mutiplicative = g,
-      std.err.      = g * se_gamma,
-      check.names   = FALSE # to allow for 2 "std.err." columns
+    # Baseline coefficients.
+    # Note that, because $\gamma_1\equiv0$, it was not estimated,
+    # and as a results $j=1$ was not incuded in $i_b$, nor in $\var{gamma}$ as computed above.
+    # We correct this by adding the `missing' 0 (or 1 for multiplicative parameters) during output
+    idx = 1:nbeta0
+    coefs <- data.frame(
+      time   = 1:ntime,
+      add    = c(0, gamma[idx]),
+      se_add = c(0, se_gamma[idx]),
+      mul    = c(1, g[idx]),
+      se_mul = c(0, g[idx] * se_gamma[idx])
     )
-  }
 
-  #-----------------------------------------------------------------------------
-  #3                                                             Goodness-of-fit
+    # Covariate categories ($>1$)
+    if (use.covars) {
+      prefix = data.frame(covar="baseline", cat=0)
+      coefs <- cbind(prefix, coefs)
+      for (i in 1:ncovar) {
+        for (j in 2:nclass[i]) {
+          idx <- idx + nbeta0
+          df <- data.frame(
+            covar  = names(covars)[i],
+            cat    = j,
+            time   = 1:ntime,
+            add    = c(0, gamma[idx]),
+            se_add = c(0, se_gamma[idx]),
+            mul    = c(1, g[idx]),
+            se_mul = c(0, g[idx] * se_gamma[idx])
+          )
+          coefs <- rbind(coefs, df)
+        }
+      }
+    }
 
-  # The goodness-of-fit of the model is assessed using three statistics:
-  # Chi-squared, Likelihood Ratio and Aikaike Information Content.
+    z$coefficients <- coefs
+  } # if model==3
 
-  # The $\chi^2$ (Chi-square) statistic is given by
-  # \begin{equation}
-  #   \chi^2 = \sum_{ij}\frac{f_{i,j}-\mu_{i,j}}{\mu_{i,j}}
-  # \end{equation}
-  # where the summation is over the observed $i,j$'s only.
-  # Significance is assessed by comparing against a $\chi^2$ distribution with
-  # $df$ degrees of freedom, equal to the number of observations
-  # minus the total number of parameters involved, i.e.\
-  # $df = n_f - n_\alpha - n_\beta$.
-  chi2 <- sum((f-mu)^2/mu, na.rm=TRUE)
-  df   <- sum(observed) - length(alpha) - length(beta)
-  p    <-  1 - pchisq(chi2, df=df)
-  # Results are stored in the TRIM output object.
-  z$chi2 <- list(chi2=chi2, df=df, p=p)
 
-  # Similarly, the \emph{Likelihood ratio} (LR) is computed as
-  # \begin{equation}
-  #   \operatorname{LR} = 2\sum_{ij}f_{ij} \log\frac{f_{i,j}}{\mu_{i,j}} \label{LR}
-  # \end{equation}
-  # and again compared against a $\chi^2$ distribution.
-  LR <- 2 * sum(f * log(f / mu), na.rm=TRUE)
-  df <- sum(observed) - length(alpha) - length(beta)
-  p  <- 1 - pchisq(LR, df=df)
-  z$LR <- list(LR=LR, df=df, p=p)
+  # ----------------------------------------------------------- Time totals ----
 
-  # The Akaike Information Content (AIC) is related to the LR as:
-  AIC <- LR - 2*df
-  z$AIC <- AIC
-
-  #-----------------------------------------------------------------------------
-  #3                                                                  Time Totals
-
-  # Recompute $i_b$ with final $\mu$'s
+  # Recompute Score matrix $i_b$ with final $\mu$'s
   ib <- 0
   for (i in 1:nsite) {
+    B <- make.B(i)
     mu_i <- mu[site==i & observed]
     n_i <- length(mu_i)
     d_mu_i <- diag(mu_i, n_i) # Length argument guarantees diag creation
@@ -621,6 +712,8 @@ trim_estimate <- local({
     ib <- ib - term
   }
 
+
+
   # Matrices E and F take missings into account
   E <- -ib
 
@@ -628,6 +721,7 @@ trim_estimate <- local({
   F <- matrix(0, nsite, nbeta)
   d <- numeric(nsite)
   for (i in 1:nsite) {
+    B <- make.B(i)
     d[i] <- sum(Omega[[i]])
     w_i <- colSums(Omega[[i]])
     B_i <- B[observed[site==i], ,drop=FALSE]
@@ -653,6 +747,7 @@ trim_estimate <- local({
 
   H <- matrix(0, ntime, nbeta)
   for (i in 1:nsite) {
+    B <- make.B(i)
     for (k in 1:nbeta) for (j in 1:ntime) {
       H[j,k]  <- H[j,k] + B[j,k] * mu[i,j]
     }
@@ -661,7 +756,7 @@ trim_estimate <- local({
   GFminH <- GF - H
 
   # All building blocks are ready. Use them to compute the variance
-  var_tau_mod <- GddG + GFminH %*% solve(E) %*% t(GFminH)
+  var_tt_mod <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
   # To compute the variance of the time totals of the imputed data, we first
   # substract the contribution due tp te observations, as computed by above scheme,
@@ -686,6 +781,7 @@ trim_estimate <- local({
 
   H <- matrix(0, ntime, nbeta)
   for (i in 1:nsite) if (nobs[i]>0) {
+    B <- make.B(i)
     for (k in 1:nbeta) for (j in 1:ntime) {
       H[j,k]  <- H[j,k] + B[j,k] * muo[i,j]
     }
@@ -693,10 +789,10 @@ trim_estimate <- local({
 
   GFminH <- GF - H
 
-  var_tau_obs_old <- GddG + GFminH %*% solve(E) %*% t(GFminH)
+  var_tt_obs_old <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
   # Now compute the variance due to observations
-  var_tau_obs_new = matrix(0, ntime, ntime)
+  var_tt_obs_new = matrix(0, ntime, ntime)
   for (i in 1:nsite) {
     if (serialcor) {
       srdu = sqrt(diag(muo[i, ]))
@@ -704,87 +800,39 @@ trim_estimate <- local({
     } else {
       V = sig2 * diag(muo[i, ])
     }
-    var_tau_obs_new = var_tau_obs_new + V
+    var_tt_obs_new = var_tt_obs_new + V
   }
 
   # Combine
-  var_tau_imp = var_tau_mod - var_tau_obs_old + var_tau_obs_new
+  var_tt_imp = var_tt_mod - var_tt_obs_old + var_tt_obs_new
 
   # Time totals of the model, and it's standard error
-  tau_mod    <- colSums(mu)
-  se_tau_mod <- round(sqrt(diag(var_tau_mod)))
+  tt_mod    <- colSums(mu)
+  se_tt_mod <- round(sqrt(diag(var_tt_mod)))
 
-  tau_imp     <- colSums(imputed)
-  se_tau_imp <- round(sqrt(diag(var_tau_imp)))
+  tt_imp     <- colSums(imputed)
+  se_tt_imp <- round(sqrt(diag(var_tt_imp)))
+
+  # Store in TRIM output
+  z$tt_mod <- tt_mod
+  z$tt_imp <- tt_imp
+  z$var_tt_mod <- var_tt_mod
+  z$var_tt_imp <- var_tt_imp
 
   z$time.totals <- data.frame(
-    Time       = 1:ntime,
-    Model      = round(tau_mod),
-    std.err.   = se_tau_mod,
-    Imputed    = round(tau_imp),
-    std.err.   = se_tau_imp,
-    check.names = FALSE
+    time    = 1:ntime,
+    model   = round(tt_mod),
+    se_mod  = se_tt_mod,
+    imputed = round(tt_imp),
+    se_imp  = se_tt_imp
   )
 
 
-  #-----------------------------------------------------------------------------
-  #3                                                                Time indices
 
-  # Time index $\tau_j$ is defined as time totals, normalized by the time total for the base
-  # year, i.e.\,
-  # $$ \tau_j = \Mu_j / \Mu_1 $$.
-  # Indices are computed for both the modelled and the imputed counts.
-  ti_mod <- tau_mod / tau_mod[1]
-  ti_imp <- tau_imp / tau_imp[1]
+  #------------------------------------------ Reparameterisation of Model 3 ----
 
-  # Uncertainty is again quantified as a standard error $\sqrt{var{\cdot}}$,
-  # approximated using the delta method, now extended for the multivariate case:
-  # \begin{equation}
-  #   \var{\tau_j} = \var{f(\Mu_1,\Mu_j)} = d^T V(\Mu_1,\Mu_j) d \label{var_tau}
-  # \end{equation}
-  # where $d$ is a vector containing the partial derivatives of $f(\Mu_1,\Mu_j)$
-  # \begin{equation}
-  #   d = \begin{pmatrix} -\Mu_j \Mu_1^{-2} \\ \Mu_1^{-1} \end{pmatrix}
-  # \end{equation}
-  # and $V$ the covariance matrix of $\Mu_1$ and $\Mu_j$:
-  # \begin{equation}
-  #   V(\Mu_1,\Mu_j) = \begin{pmatrix}
-  #     \var{\Mu_1} & \cov{\Mu_1, \Mu_j} \\
-  #     \cov{\Mu_1, \Mu_j} & \var{\Mu_j}
-  #   \end{pmatrix}
-  # \end{equation}
-  # Note that for the base year, where $\tau_1\equiv1$, Eqn~\eqref{var_tau} results in
-  # $\var{\tau_1}=0$, which is also expected conceptually because $\tau_1$ is not an estimate but an exact and fixed result.
-  var_ti_mod <- numeric(ntime)
-  for (j in 1:ntime) {
-    d <- matrix(c(-tau_mod[j] / tau_mod[1]^2, 1/tau_mod[1]))
-    V <- var_tau_mod[c(1,j), c(1,j)]
-    var_ti_mod[j] <- t(d) %*% V %*% d
-  }
-  se_ti_mod <- sqrt(var_ti_mod)
-
-  # Similarly for the Indices based on the imputed counts
-  se_ti_imp <- numeric(ntime)
-  for (j in 1:ntime) {
-    d <- matrix(c(-tau_imp[j]/tau_imp[1]^2, 1/tau_imp[1]))
-    V <- var_tau_imp[c(1,j), c(1,j)]
-    se_ti_imp[j] <- sqrt(t(d) %*% V %*% d)
-  }
-
-  # Store in TRIM output object
-  z$time.index <- data.frame(
-    Time     = 1:ntime,
-    Model    = ti_mod,
-    std.err. = se_ti_mod,
-    Imputed  = ti_imp,
-    std.err. = se_ti_imp,
-    check.names = FALSE
-  )
-
-  #-----------------------------------------------------------------------------
-  #3                                               Reparameterisation of Model 3
-
-  # Here we consider the reparameterization of the time-effects model in terms of a model with a linear trend and deviations from this linear trend for each time point.
+  # Here we consider the reparameterization of the time-effects model in terms of
+  # a model with a linear trend and deviations from this linear trend for each time point.
   # The time-effects model is given by
   # \begin{equation}
   #   \log\mu_{ij}=\alpha_i+\gamma_j,
@@ -846,7 +894,7 @@ trim_estimate <- local({
   #   &\mathbf{T}_{(i,j)}=-\frac{1}{J}-\frac{1}{D}d_{i-1}d_j &\quad(i=2,\ldots,J+1,j=1,\ldots,J,i-1 \neq j)
   # \end{align}
 
-  if (model==3) {
+  if (model==3 && !use.covars) {
 
     TT <- matrix(0, ntime+1, ntime)
     J <- ntime
@@ -861,7 +909,7 @@ trim_estimate <- local({
       }
     }
 
-    gstar <- TT %*% gamma
+    gstar <- TT %*% c(0, gamma) # Add the implicit $\gamma_1=0$
     bstar <- gstar[1]
     gstar <- gstar[2:(J+1)]
 
@@ -872,9 +920,12 @@ trim_estimate <- local({
     #   = \mathbf{T}V(\boldsymbol{\gamma})\mathbf{T}^T
     # \end{equation}
 
-    var_gstar <- TT %*% var_gamma %*% t(TT)
+    var_gstar <- TT %*% rbind(0,cbind(0,var_gamma)) %*% t(TT) # Again, $\gamma_1=0$
     se_bstar  <- sqrt(diag(var_gstar))[1]
     se_gstar  <- sqrt(diag(var_gstar))[2:(ntime+1)]
+
+    z$gstar <- gstar
+    z$var_gstar <- var_gstar
 
     z$linear.trend <- data.frame(
       Additive       = bstar,
@@ -895,155 +946,12 @@ trim_estimate <- local({
     )
 
   }
-  #-----------------------------------------------------------------------------
-  #3                                                                   Wald test
 
-  if (model==2) {
-    nbeta <- length(beta)
-    if (nbeta==1) {
-      # Model 2 without changepoints. We have a single $\beta$ and use the Wald
-      # test to see if $\beta\neq0$.
-      # In this case, $$ W = \beta^2/\var(\beta) $$.
-      theta <- as.numeric(beta)
-      var_theta <- as.numeric(var_beta)
-    } else {
-      # Model 2 with changepoints. We now test for \emph{changes} in slope $\beta$.
-      # The Wald test is therefore used to test if $\Delta\beta\neq0$, where
-      # \begin{equation}
-      #   \Delta\beta_i = \beta_{i}-\beta{i-1} \label{dbeta}
-      # \end{equation} with $\Delta\beta_1=\beta_1$.
-      dbeta <- c(beta[1], diff(beta))
-      # The corresponding Wald statistic is given by
-      # $$ W_k = (\Delta\beta_i)^2 / \var(\Delta\beta_i) $$
-      # so we need to compute $\var(\Delta\beta_i)$ from the known $\var(\beta)$.
-      # Note that Eqn~\eqref{dbeta} can be solved for $\beta_i$ as
-      # $$ \beta_i = \sum{k=1}^i \Delta\beta_k $$
-      # or in matrix notation
-      # $$ \beta = H \Delta\beta $$
-      # with $H$ a lower unitriangular matrix.
-      # Applying the standard rules for variance:
-      # $$ \var{\beta} = H \var(\Delta\Beta) H^T $$
-      # from which it follows that
-      # $$ \var(\Delta\beta) = H^{-1} \var(\beta) {H^T}^{-1} $$.
-      #
-      #
-      #
-      Hinv <-diag(nbeta)
-      idx = row(Hinv)==(col(Hinv)+1) # band just below the diagonal
-      Hinv[idx] = -1
-      ## This was faster than:
-      ## H <- matrix(1,nbeta,nbeta)
-      ## H[upper.tri(H)] <- 0
-      ## Hinv <- solve(H)
-      var_dbeta <- Hinv %*% var_beta %*% t(Hinv)
-      theta <- as.numeric(dbeta)
-      var_theta <- diag(var_dbeta) # variance elements
-    }
-    W <- theta^2 / var_theta # Compute the Wald statistic
-    df <- 1 # degrees of freedom
-    p  <- 1 - pchisq(W, df=df) # $p$-value, based on $W$ being $\chi^2$ distributed.
 
-    z$wald <- list(model=model, W=W, df=df, p=p, theta=theta, var_theta=var_theta)
-  }
-
-  # For Model 3, we use the Wald test to test if the residuals around the overall
-  # trend (i.e., the $\gamma_j^\ast$) significantly differ from 0.
-  # The Wald statistic used for this is defined as
-  # \begin{equation}
-  #   W = \theta^T \left(\var{\theta}\right)^{-1} \theta
-  # \end{equation}
-
-  if (model==3) {
-    theta <- matrix(gstar) # Column vector of all $J$ $\gamma^\ast$.
-    var_theta <- var_gstar[-1,-1] # Covariance matrix; drop the $\beta^\ast$ terms.
-
-    # We now have $J$ equations, but due to the double contraints 2 of them are linear
-    # dependent on the others. Let's confirm this:.
-    eig <- eigen(var_theta)$values
-    stopifnot(sum(eig<1e-7)==2)
-
-    # Shrink $\theta$ and it's covariance matrix to remove the dependent equations.
-    theta <- theta[3:J]
-    var_theta <- var_theta[3:J, 3:J]
-
-    W <- t(theta) %*% solve(var_theta) %*% theta # Compute the Wald statistic
-    W <- as.numeric(W) # Convert from $1\times1$ matrix to proper atomic
-    df <- J-2 # degrees of freedom
-    p  <- 1 - pchisq(W, df=df) # $p$-value, based on $W$ being $\chi^2$ distributed.
-
-    z$wald <- list(model=model, W=W, df=df, p=p)
-
-  }
-  #-----------------------------------------------------------------------------
-  #3                                                               Overall slope
-
-  # The overall slope is computed for both the modeled and the imputed $\Mu$'s.
-  # So we define a function to do the actual work
-  .compute.overall.slope <- function(tt, var_tt) {
-    # Use Ordinary Least Squares (OLS) to estimate slope parameter $\beta$
-    X <- cbind(1, seq_len(ntime)) # design matrix
-    y <- matrix(log(tt))
-    bhat <- solve(t(X) %*% X) %*% t(X) %*% y # OLS estimate of $b = (\alpha,\beta)^T$
-    yhat <- X %*% bhat
-
-    # Apply the sandwich method to take heteroskedasticity into account
-    dvtt <- 1/tau_mod # derivative of $\log{\Mu}$
-    Om <- diag(dvtt) %*% var_tt %*% diag(dvtt) # $\var{log{\Mu}}$
-    var_beta <- solve(t(X) %*% X) %*% t(X) %*% Om %*% X %*% solve(t(X) %*% X)
-    b_err <- sqrt(diag(var_beta))
-
-    # Compute the $p$-value, using the $t$-distribution
-    df <- ntime - 2
-    t_val <- bhat[2] / b_err[2]
-    p <- 2 * pt(abs(t_val), df, lower.tail=FALSE)
-
-    ##   rprintf("se_b = %f %f\n", b_err_tt, b_err)x
-    ##   rprintf("p    = %f %f\n", p_tt, p)
-
-    # Also compute effect size as relative change during the monitoring period.
-    effect <- abs(yhat[J] - yhat[1]) / yhat[1]
-
-    ##
-    ##   # Just for fun, compute se(b) also from OLS
-    ##     res = y - yhat
-    ##     df = ntime - 2
-    ##     sig2 = sum(res^2) / df
-    ##     SSR = sum(res^2) # faster than t(res) %*% res
-    ##   vcov_b = sig2 * solve(t(X) %*% X)
-    ##   b_err_tt = sqrt(diag(vcov_b))[2]
-    ##   t_val = bhat[2] / b_err_tt
-    ##   p_tt = 2 * pt(abs(t_val), df, lower.tail=FALSE)
-    ##   expect_equal(b_est, 0.0485, tolerance=5e-5)
-    ##   expect_equal(b_err, 0.0107, tolerance=5e-5)
-
-    # Reverse-engineer the SSR (sum of squared residuals) from the standard error
-    j <- 1:J
-    D <- sum((j-mean(j))^2)
-    SSR <- b_err[2]^2 * D * (J-2)
-
-    # Export the results
-    df <- data.frame(
-      Additive       = bhat,
-      std.err.       = b_err,
-      Multiplicative = exp(bhat),
-      std.err.       = exp(bhat) * b_err,
-      row.names      = c("Intercept","Slope"),
-      check.names    = FALSE
-    )
-    list(coef=df,p=p, effect=effect, J=J, tt=tt, err=z$time.totals[[3]], SSR=SSR)
-  }
-
-  # Compute the overall trends for both the modelled and the imputed counts, and
-  # store the results in the TRIM output
-  z$overall <- list()
-  z$overall$mod  <- .compute.overall.slope(tau_mod, var_tau_mod)
-  z$overall$imp  <- .compute.overall.slope(tau_imp, var_tau_imp)
-
-  #-----------------------------------------------------------------------------
-  #2                                                              Return results
+  # ======================================================== Return results ====
 
   # The TRIM result is returned to the user\ldots
+  rprintf("(Exiting workhorse function)\n")
   z
-} # end function
-}) # end local
+}
 # \ldots which ends the main TRIM function.
