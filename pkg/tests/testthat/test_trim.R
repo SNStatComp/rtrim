@@ -81,7 +81,7 @@ trimtest <- function(m, to){
   }
 }
 
-context("TRIM : Model 3 (2 covariates)")
+context("TRIM Model 3 (2 covariates)")
 
 test_that("skylark-1a",{
   tc <- read_tcf("outfiles/skylark-1a.tcf")
@@ -109,9 +109,9 @@ test_that("skylark 1c",{
 })
 
 
-context("TRIM: Model 2 without covariates, no changepoints")
+context("TRIM Model 2 without covariates, no changepoints")
 
-test_that("skylark 1e",{
+test_that("skylark 1d",{
   tc <- read_tcf("outfiles/skylark-1d.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1d.out")
@@ -128,6 +128,24 @@ test_that("skylark-1e",{
   trimtest(m,to)
 })
 
+
+context("TRIM Model 2 without covariates, less changepoints")
+
+test_that("skylark-1f",{
+  tc <- read_tcf("outfiles/skylark-1f.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-1f.out")
+  trimtest(m,to)
+})
+
+context("TRIM Model 2 without covariates, less changepoints")
+
+test_that("skylark-2a",{
+  tc <- read_tcf("outfiles/skylark-2a.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-2a.out")
+  trimtest(m,to)
+})
 
 
 
