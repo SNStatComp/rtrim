@@ -1,0 +1,16 @@
+FILE outfiles/skylark.dat
+TITLE  skylark-1a
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT Absent
+
+comment Example 1; without overdispersion or autocorrelation"
+weighting off
+overdisp off
+serialcor off
+model 3
