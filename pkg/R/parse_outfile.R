@@ -268,19 +268,31 @@ get_coef <- function(x){
   model <- get_model(x)
   
   # find parameter estimates block
-  re <- "PARAMETER ESTIMATES[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
-  mm <- regexpr(re,x)
-  s <- regmatches(x,mm)
-  # remove first two lines
-  s <- sub(".*?\\n\\n","",s)
-  has_changepoints <- grepl("slope for time intervals",s,ignore.case=TRUE)
-  if (has_changepoints){
-    # remove another line
-    s <- sub(".*?\\n","",s)
-    coef <- read.table(text=s,header=TRUE)
-  } else {
-    coef <- read.table(text=s, header=TRUE)
-    names(coef)[4] <- "std.err"
+  if (model==2){
+    re <- "PARAMETER ESTIMATES[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
+    mm <- regexpr(re,x)
+    s <- regmatches(x,mm)
+    # remove first two lines
+    s <- sub(".*?\\n\\n","",s)
+    has_changepoints <- grepl("slope for time intervals",s,ignore.case=TRUE)
+    if (has_changepoints){
+      # remove another line
+      s <- sub(".*?\\n","",s)
+      coef <- read.table(text=s,header=TRUE)
+    } else {
+      coef <- read.table(text=s, header=TRUE)
+      names(coef)[4] <- "std.err"
+    }
+  } else if (model == 3){
+    re <- "Parameters for each time point[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
+    mm <- regexpr(re,x,ignore.case = TRUE)
+    s <- regmatches(x,mm)
+    # remove first two lines
+    s <- sub(".*?\\n\\n","",s)
+    coef <- read.table(text=s, header=TRUE, strip.white=TRUE, fill=TRUE)
+    coef[1,c(3,5)] <- 0
+    coef[1,4] <- 1
+    names(coef)[5] <- "std.err"
   }
   structure(list(model=model, coef=coef),class="trim.coef")
 

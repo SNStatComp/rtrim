@@ -48,12 +48,16 @@ trimtest <- function(m, to){
   # wald test
   tgt <- get_wald(to)
   out <- wald(m)
-  if ( is.null(out$slope) ){
+  if ( !is.null(out$dslope) ){
     expect_equal(out$dslope$W, tgt$W, tol=1e-2)
-  } else {
+  } else if(!is.null(out$slope)){
     expect_equal(out$slope$W,tgt$W,tol=1e-1, info="Wald test value")
     expect_true(all(out$slope$df==tgt$df), info="Wald test df")
     expect_equal(out$slope$p, tgt$p, tol=1e-4, info="Wald test p-value")
+  } else if (!is.null(out$deviations)){
+    expect_equal(out$deviations$W,tgt$W,1e-2)
+    expect_equal(out$deviations$df,tgt$df)
+    expect_equal(out$deviations$p,tgt$p,1e-4)
   }
   # coefficients
   tgt <- get_coef(to)
@@ -66,7 +70,7 @@ trimtest <- function(m, to){
      )
     }
   } else if(nrow(tgt$coef > 0)) {
-    for ( i in 1:6 ){
+    for ( i in seq_len(ncol(tgt$coef))){
       expect_equal(out[,i],tgt$coef[,i],tol=1e-3
           , info=sprintf("Coefficients column %d",i))
     }
@@ -74,7 +78,16 @@ trimtest <- function(m, to){
 }
 
 
-context("TRIM: no covariates, no changepoints")
+context("TRIM|skylark-1c: Model 3 with covariates, no changepoints")
+
+test_that("model 3",{
+  tc <- read_tcf("outfiles/skylark-1c.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-1c.out")
+  trimtest(m, to)
+})
+
+context("TRIM|skylark-1d: Model 2 without covariates, no changepoints")
 
 test_that("model 2",{
   tc <- read_tcf("outfiles/skylark-1d.tcf")
@@ -84,7 +97,7 @@ test_that("model 2",{
 })
 
 
-context("TRIM: no covariates, with changepoints")
+context("TRIM|skylark-1e: Model 2 without covariates, with changepoints")
 
 test_that("model 2",{
   tc <- read_tcf("outfiles/skylark-1e.tcf")
