@@ -26,10 +26,11 @@ trim <- function(x,...){
 #' @export
 trim.trimcommand <- function(x,...){
   dat <- read_tdf(x)
+  covars <- x$labels[x$covariates]
   trim_estimate(count=dat$count
       , time.id = dat$time
       , site.id = dat$site
-      , covars = dat[x$covars]
+      , covars = dat[covars]
       , model = x$model
       , serialcor = x$serialcor
       , overdisp = x$overdisp

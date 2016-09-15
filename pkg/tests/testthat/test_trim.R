@@ -1,6 +1,6 @@
 
 # compare TRIM model m against trim output string to.
-trimtest <- function(m, to){
+trimtest <- function(m, to, tc){
   
   # data basics
   expect_equal(m$nsite, get_n_site(to))
@@ -48,40 +48,40 @@ trimtest <- function(m, to){
   # wald test
   tgt <- get_wald(to)
   out <- wald(m)
-  if ( !is.null(out$dslope) ){
-    expect_equal(out$dslope$W, tgt$W, tol=1e-2)
-  } else if(!is.null(out$slope)){
-    expect_equal(out$slope$W,tgt$W,tol=1e-1, info="Wald test value")
-    expect_true(all(out$slope$df==tgt$df), info="Wald test df")
-    expect_equal(out$slope$p, tgt$p, tol=1e-4, info="Wald test p-value")
-  } else if (!is.null(out$deviations)){
-    expect_equal(out$deviations$W,tgt$W,1e-2)
-    expect_equal(out$deviations$df,tgt$df)
-    expect_equal(out$deviations$p,tgt$p,1e-4)
-  } else {
-    stop("Wald statistic not tested")
+  if ( !is.null(tgt$dslope) ){
+    expect_equal(out$dslope$W, tgt$dslope$W, tol=1e-2)
+  } 
+  if(!is.null(tgt$slope)){
+    expect_equal(out$slope$W,tgt$slope$W,tol=1e-2, info="Wald test value")
+    expect_true(all(out$slope$df==tgt$slope$df), info="Wald test df")
+    expect_equal(out$slope$p, tgt$slope$p, tol=1e-4, info="Wald test p-value")
+  } 
+  if (!is.null(tgt$deviations)){
+    expect_equal(out$deviations$W,tgt$deviations$W,1e-2)
+    expect_equal(out$deviations$df,tgt$deviations$df)
+    expect_equal(out$deviations$p,tgt$deviations$p,1e-4)
+  }
+  if (!is.null(tgt$covar)){
+    expect_equal(out$covar$W,tgt$covar$W,1e-2)
+    expect_equal(out$covar$df,tgt$covar$df)
+    expect_equal(out$covar$p,tgt$covar$p,1e-4)
   }
   # coefficients
-  tgt <- get_coef(to)
+  tgt <- get_coef(to,tc$labels)
   out <- coefficients(m,which="both")
-  
-  if ( nrow(tgt$coef) == 1){
-    for ( i in 1:4 ){
-      expect_equal(out[1,i+2], tgt$coef[1,i], tol=1e-4
-         , info=sprintf("Coefficients column %d",i)
-     )
-    }
-  } else if(nrow(tgt$coef > 0)) {
-    for ( i in seq_len(ncol(tgt$coef))){
-      expect_equal(out[,i],tgt$coef[,i],tol=1e-3
-          , info=sprintf("Coefficients column %d",i))
-    }
-  } else {
-    stop("coefficients not tested")
-  }
+  v <- c("add","se_add","mul","se_mul")
+  expect_equal(tgt$add,out$add,tol=1e-4)
+  expect_equal(tgt$mul,out$mul,tol=1e-4)
+  expect_equal(tgt$se_add,out$se_add,tol=1e-4)
+  expect_equal(tgt$se_mul,out$se_mul,tol=1e-4)
+  if(!is.null(tgt$from)) expect_equal(tgt$from,out$from)
+  if(!is.null(tgt$from)) expect_equal(tgt$upto,out$upto)
+  if(!is.null(tgt$time)) expect_equal(tgt$time,out$time)
+  if(!is.null(tgt$cat)) expect_equal(tgt$cat,out$cat)
+  if(!is.null(tgt$covar)) expect_equal(tgt$covar, as.character(out$covar))
 }
 
-context("TRIM Model 3 (2 covariates)")
+context("TRIM Model 3 [vanilla]")
 
 test_that("skylark-1a",{
   tc <- read_tcf("outfiles/skylark-1a.tcf")
@@ -90,61 +90,70 @@ test_that("skylark-1a",{
   trimtest(m, to)
 })
 
-context("TRIM Model 3 with overdispersion (2 covariates)")
+context("TRIM Model 3 [overdisp]")
 
 test_that("skylark-1b",{
   tc <- read_tcf("outfiles/skylark-1b.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1b.out")
-  trimtest(m, to)
+  trimtest(m, to,tc)
 })
 
-context("TRIM Model 3 with overdispersion and serial correlation (2 covariates)")
+context("TRIM Model 3 [overdisp, ser.corr]")
 
 test_that("skylark 1c",{
   tc <- read_tcf("outfiles/skylark-1c.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1c.out")
-  trimtest(m, to)
+  trimtest(m, to,tc)
 })
 
 
-context("TRIM Model 2 without covariates, no changepoints")
+context("TRIM Model 2 [overdisp, ser.cor]")
 
 test_that("skylark 1d",{
   tc <- read_tcf("outfiles/skylark-1d.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1d.out")
-  trimtest(m, to)
+  trimtest(m, to,tc)
 })
 
 
-context("TRIM Model 2 without covariates, with changepoints")
+context("TRIM Model 2 [overdisp, ser.cor, all ch.points]")
 
 test_that("skylark-1e",{
   tc <- read_tcf("outfiles/skylark-1e.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1e.out")
-  trimtest(m,to)
+  trimtest(m,to,tc)
 })
 
 
-context("TRIM Model 2 without covariates, less changepoints")
+context("TRIM Model 2 [overdisp, ser.cor, 2 ch.points]")
 
 test_that("skylark-1f",{
   tc <- read_tcf("outfiles/skylark-1f.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1f.out")
-  trimtest(m,to)
+  trimtest(m,to,tc)
 })
 
-context("TRIM Model 2 without covariates, less changepoints")
+context("TRIM Model 2 [overdisp, ser.cor, covar, ch.points]")
 
 test_that("skylark-2a",{
   tc <- read_tcf("outfiles/skylark-2a.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-2a.out")
-  trimtest(m,to)
+  trimtest(m,to,tc)
+})
+
+context("TRIM Model 3 [overdisp, ser.cor, covar]")
+
+test_that("skylark-2b",{
+  tc <- read_tcf("outfiles/skylark-2b.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-2b.out")
+  trimtest(m,to,tc)
 })
 
 

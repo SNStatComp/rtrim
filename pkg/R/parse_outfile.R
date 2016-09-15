@@ -71,7 +71,7 @@ get_time_indices <- function(x){
   tab <- get_indextab(x,"TIME INDICES")
   # in the first row, absence of std error is misread.
   tab[1,4] <- tab[1,3]
-  tab[1,3] <- NA  
+  tab[1,c(3,5)] <- 0  
   tab
 }
 
@@ -212,30 +212,56 @@ get_gof <- function(x){
 #' @family parse_output
 #' @keywords internal
 get_wald <- function(x){
-  stopifnot(inherits(x,"tof"))
+  re <- "WALD-TEST FOR SIGNIFICANCE OF DEVIATIONS FROM LINEAR TREND.*?\\n\\n"
+  s <- get_str(re,x)
+  deviations <- if(length(s)>0){
+    s <- strip_line(s)
+    u <- as.list(get_num(strsplit(s,",")[[1]]))
+    setNames(u,c("W","df","p"))
+  } else {NULL}
   
-  model <- get_model(x)
+  re <- "WALD-TEST FOR SIGNIFICANCE OF SLOPE PARAMETER.*?\\n\\n"
+  s <- get_str(re,x)
+  slope <- if (length(s)>0){
+    s <- strip_line(s)
+    u <- as.list(get_num(strsplit(s,",")[[1]]))
+    setNames(u,c("W","df","p"))
+  } else {NULL}  
   
-  re <- "Wald-test[[:blank:]]{5,}.*?\\n[[:blank:]]*\\n"
-  single_wald_value <- grepl(re,x,ignore.case = TRUE) 
+  re <- "WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE.*?\\n\\n"
+  s <- get_str(re,x)
+  dslope <- if (length(s)>0){
+    s <- strip_line(s)
+    u <- read.table(text=s,header=TRUE)
+    list(W=u[,2],df=u[1,3],p=u[,4])
+  } else {NULL}
   
-  L <- if (single_wald_value){
-    mm <- regexpr(re,x,ignore.case=TRUE)   
-    s <- regmatches(x,mm)
-    num <- sapply(strsplit(s,",")[[1]],get_num,USE.NAMES=FALSE)
-    list(model=model, W = num[1],df=num[2], p=num[3])
-  } else {
-    re <- "WALD-TEST.*?CHANGES IN SLOPE.*?\\n[[:blank:]]*\\n" 
-    mm <- regexpr(re,x,ignore.case=TRUE)   
-    s <- regmatches(x,mm)
-    # remove first line
-    s <- sub(".*?\\n","",s)
-    num = read.table(text=s,header=TRUE)
-    list(model=model, W=num[,2], df=num[,3], p=num[,4])
-  }
+  re <- "WALD-TEST FOR SIGNIFICANCE OF COVARIATES.*?\\n\\n"
+  s <- get_str(re,x)
+  covar <- if (length(s)>0){
+    s <- strip_line(s)
+    u <- read.table(text=s,header=TRUE)
+    setNames(u,c("Covariate","W","df","p"))
+  } else {NULL}
   
-  structure(L,class="trim.wald")
+  structure(
+    list(deviations=deviations, slope=slope, dslope=dslope, covar=covar )
+    ,class="trim.wald")
+  
 }
+
+
+get_str<-function(re,x,...){
+  mm <- regexpr(re,x,...)
+  regmatches(x,mm)
+}
+
+strip_line<-function(x,n=1){
+  x <- sub(".*?\\n","",x)
+  if (n>1) strip_line(x,n=n-1) else x
+}
+
+
 
 
 #' Extract model type from \code{tof} object
@@ -259,43 +285,169 @@ get_model <- function(x){
 #' Extract model coefficients from \code{tof} object
 #'
 #' @inheritParams get_time_indices
-#'
+#' @param covars \code{[character]} names of covariates.
 #' @return list of class \code{trim.coef}
 #' @family parse_output
 #' @keywords internal
-get_coef <- function(x){
+get_coef <- function(x,covars){
   stopifnot(inherits(x,"tof"))
   model <- get_model(x)
+  hascov <- has_covariates(x)
+  hascp <- has_changepoints(x)
   
-  # find parameter estimates block
-  if (model==2){
+  if (model==2 & !hascp & !hascov ){ # e.g. skylark-1d
     re <- "PARAMETER ESTIMATES[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
-    mm <- regexpr(re,x)
-    s <- regmatches(x,mm)
-    # remove first two lines
-    s <- sub(".*?\\n\\n","",s)
-    has_changepoints <- grepl("slope for time intervals",s,ignore.case=TRUE)
-    if (has_changepoints){
-      # remove another line
-      s <- sub(".*?\\n","",s)
-      coef <- read.table(text=s,header=TRUE)
-    } else {
-      coef <- read.table(text=s, header=TRUE)
-      names(coef)[4] <- "std.err"
-    }
-  } else if (model == 3){
-    re <- "Parameters for each time point[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
-    mm <- regexpr(re,x,ignore.case = TRUE)
-    s <- regmatches(x,mm)
-    # remove first two lines
-    s <- sub(".*?\\n\\n","",s)
-    coef <- read.table(text=s, header=TRUE, strip.white=TRUE, fill=TRUE)
-    coef[1,c(3,5)] <- 0
-    coef[1,4] <- 1
-    names(coef)[5] <- "std.err"
+    s <- get_str(re,x)
+    s <- strip_line(s,2)
+    s <- replace_with_space("Slope",s)
+    out <- read.table(text=s,header=TRUE)
+    names(out) <- c("add","se_add","mul","se_mul")
+    fromto <- range(get_time_indices(x)$Time)
+    out$from <- fromto[1]
+    out$upto <- fromto[2]
+    out <- out[c("from","upto","add","se_add","mul","se_mul")]
   }
-  structure(list(model=model, coef=coef),class="trim.coef")
+  
+  if (model==2 & hascp & !hascov){ # e.g. skylark-1e, 1f
+    re <- "PARAMETER ESTIMATES[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
+    s <- get_str(re,x)
+    s <- strip_line(s,3)
+    out <- read.table(text=s,header=TRUE)
+    names(out)[3:6] <- c("add","se_add","mul","se_mul")
+  }
+  
+  if (model==2 & hascp & hascov){ # e.g. skylark-2a
+    re <- "PARAMETER ESTIMATES.*?\\n\\n\\n"
+    s <- get_str(re,x)
+    s <- strip_line(s,3)
+    s <- sub("\\n\\n\\n","",s)
+    u <- strsplit(s,"\\n\\n")[[1]]
+    out <- do.call(rbind,lapply(u,coef_m2_covars))
+    out$from <- shd(out$from)
+    out$upto <- shd(out$upto)
+    out <- out[with(out,order(covar,cat)),,drop=FALSE]
+    out$covar <- sub("Constant","baseline",out$covar)
+    i <- grepl("Covariate",out$covar)
+    covnum <- get_num(out$covar[i])
+    out$covar[i] <- covars[covnum]
+    out
+  }
+  
+  
+  
+  if (model == 3 & !hascov){ # e.g. skylark-1a,b,c
+    re <- "Parameters for each time point[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
+    s <-get_str(re,x,ignore.case=TRUE)
+    # remove first two lines
+    s <- sub(".*?\\n\\n","",s)
+    out <- read.table(text=s, header=TRUE, strip.white=TRUE, fill=TRUE)
+    out[1,c(3,5)] <- 0
+    out[1,4] <- 1
+    names(out) <- c("time","add","se_add","mul","se_mul")
+  }
 
+  if (model==3 & hascov){ # e.g. skylark-2b
+    re <- "PARAMETER ESTIMATES.*?\\n\\n\\n"
+    s <- get_str(re,x)
+    s <- strip_line(s,3)
+    s <- sub("\\n\\n\\n","",s)
+    u <- strsplit(s,"\\n\\n")[[1]]
+    out <- do.call(rbind,lapply(u,coef_m3_covars))
+    out$covar <- sub("Constant","baseline",out$covar)  
+    i <- grepl("Covariate",out$covar)
+    covnum <- get_num(out$covar[i])
+    out$covar[i] <- covars[covnum]
+    out
+  }
+  out 
+  
+}
+
+
+# get_covariates <- function(x){
+#   lines <- strsplit(x,"\n")[[1]]
+#   lines <- lines[grepl("number of values",lines)]
+#   lines <- lines[!grepl("(Site)|(Time)|(Count)",lines)]
+#   lines <- trimws(sub("number of values.*","",lines))
+#   trimws(sub("[0-9]+\\.","",lines))
+# }
+
+has_covariates <- function(x){
+  grepl("Covariate",x)
+}
+
+
+has_changepoints <- function(x){
+  grepl("from +upto",x)
+}
+
+replace_with_space <- function(pattern,x){
+  str <- get_str(pattern,x)
+  replace <- paste0(rep(" ", nchar(str)),collapse="")
+  sub(str,replace,x)
+}
+
+## Helper functions for parsing coefficients/model 3
+# sequential hotdeck imputor
+shd <- function(x){
+  if (length(x)==1) return(x)
+  val <- x[1]
+  for ( i in 2:length(x)){
+    if (is.na(x[i])){ 
+      x[i] <- val
+    } else {
+      val <- x[i]
+    }
+  }
+  x
+}
+
+# model 2, with covariates
+coef_m2_covars <- function(x){
+  if (grepl("from upto",x)){
+    x <- strip_line(x)
+    y <- get_str("[0-9].*?\\n",x)  
+    fromto <- sapply(trimws(strsplit(y," +")[[1]]), get_num, USE.NAMES=FALSE)
+    x <- strip_line(x,2)
+    beta_i <- "Constant"
+    x <- sub("Constant","        ",x)
+    cat <- 0
+  } else { # Covariate
+    fromto <- c(NA,NA)
+    beta_i <- trimws(get_str(".*?\\n",x))
+    x <- strip_line(x,2)
+    st <- get_str("Category.*?[0-9]+?",x)
+    cat <- get_num(st)
+    replace <- paste(rep(" ",nchar(st)),collapse="")
+    x <- sub(st,replace,x)
+  }
+   out <- read.table(text=x)
+   names(out) <- c("add","se_add","mul","se_mul")
+   out$from <- fromto[1]
+   out$upto <- fromto[2]
+   out$covar <- beta_i
+   out$cat <- cat
+   out[c("covar","cat","from","upto","add","se_add","mul","se_mul")]
+}
+
+# model 3 with covariates
+coef_m3_covars <- function(x){
+  beta_i <- trimws(get_str(".*?\\n",x))
+  x <- strip_line(x,2)
+  
+  if (grepl("Category",x)){
+    cat <- get_num(get_str("Category.*?\n",x))
+    x <- strip_line(x,1)
+  } else {
+    cat <- 0
+  }
+  
+  x <- gsub("Time","    ",x)
+  out <- read.table(text=x,header=FALSE)
+  names(out) <- c("time","add","se_add","mul","se_mul")
+  out$cat <- cat
+  out$covar <- beta_i
+  out[c("covar","cat","time","add","se_add","mul","se_mul")]
 }
 
 

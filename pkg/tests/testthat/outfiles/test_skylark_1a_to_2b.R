@@ -17,8 +17,7 @@ source("trim_overall.R")
 
 source("out2test.R")
 
-#jobs = c("1a","1b","1c","1d","1e","2a","2b")
-jobs = "2a"
+jobs = c("1a","1b","1c","1d","1e","2a","2b")
 for (j in jobs) {
 
   job = sprintf("skylark-%s", j)
@@ -166,7 +165,6 @@ for (j in jobs) {
   xx = index(z, which="both")
   print(xx)
   yy = target$time.idx
-print(yy)
   for (i in 1:ncol(xx)) {
     xcol = xx[[i]]
     ycol = yy[[i]]
