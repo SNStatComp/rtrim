@@ -49,7 +49,7 @@ trim.trimcommand <- function(x,...){
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, formula, model = 2, weights
-                            , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), ...){
+  , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), ...){
   
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
@@ -62,7 +62,7 @@ trim.data.frame <- function(x, formula, model = 2, weights
     count = x[[L$count]]
     , time.id = x[[L$time]]
     , site.id = x[[L$site]]
-    , covars = x[L$covars]
+    , covars = x[L$cov]
     , model = model
     , serialcor=serialcor
     , overdisp=overdisp
