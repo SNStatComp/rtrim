@@ -39,12 +39,14 @@ read_tdf <- function(x,...){
 }
 
 #' @rdname read_tdf
-read_tdf.character <- function(x, missing = -1, weight = FALSE, ncovars=0, labels=character(0)){
+#' @export
+read_tdf.character <- function(x, missing = -1, weight = FALSE, ncovars=0, labels=character(0),...){
   tdfread(file=x, missing=missing, weight=weight,ncovars=ncovars, labels=labels) 
 }
 
 
 #' @rdname read_tdf
+#' @export
 read_tdf.trimcommand <- function(x,...){
   tdfread(x$file, missing = x$missing, weight = x$weight, ncovars = x$ncovars, labels=x$labels)
 }
