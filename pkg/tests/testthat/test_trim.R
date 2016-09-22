@@ -1,11 +1,15 @@
 
 # compare TRIM model m against trim output string to.
 trimtest <- function(m, to, tc){
-  
+
   # data basics
   expect_equal(m$nsite, get_n_site(to))
   expect_equal(m$ntime, get_n_time(to))
-    
+
+  # Overdispersion and serial correlation
+  if (tc$overdisp) expect_true(abs(m$sig2 - get_overdispersion(to)) < 1e3)
+  if (tc$serialcor) expect_true(abs(m$rho - get_serial_correlation(to)) < 1e-3)
+
   # time index check
   tgt <- get_time_indices(to)
   out <- index(m,"both")
@@ -14,7 +18,7 @@ trimtest <- function(m, to, tc){
       , info=sprintf("Time index column %d",i)
     )
   }
-  
+
   # time totals check
   tgt <- get_time_totals(to)
   out <- totals(m,"both")
@@ -23,7 +27,7 @@ trimtest <- function(m, to, tc){
       , info=sprintf("Time totals column %d",i)
     )
   }
-  
+
   # overall slope
   tgt <- get_overal_imputed_slope(to)
   out <- overall(m,"imputed")
@@ -31,7 +35,7 @@ trimtest <- function(m, to, tc){
   expect_true(abs(out$coef[2,1] - tgt[1]) < 1e-4)
   expect_true(abs(out$coef[2,3] - tgt[3]) < 1e-4)
 
-  
+
   # but here, with a somewhat higher tolerance:
   expect_true( max( abs(out$coef[2,c(2,4)] - tgt[c(2,4)]) ) < 1e-3)
 
@@ -40,22 +44,22 @@ trimtest <- function(m, to, tc){
   out <- gof(m)
   expect_equal(out$chi2$chi2, tgt$chi2$chi2, tol = 1e-3, info="chi2 value")
   expect_equal(out$chi2$df, tgt$chi2$df, info="chi2 df")
-  expect_equal(out$chi2$p, tgt$chi2$p, tol= 1e-4, info="chi2 p-value") 
+  expect_equal(out$chi2$p, tgt$chi2$p, tol= 1e-4, info="chi2 p-value")
   expect_equal(out$LR$LR, tgt$LR$LR, tol=1e-3, info="Likelihood ratio")
-  expect_equal(out$LR$df, tgt$LR$df,info="Likelihood ratio df")  
-  expect_equal(abs(out$AIC), abs(tgt$AIC), tol=1e-4, info="AIC value") 
-  
+  expect_equal(out$LR$df, tgt$LR$df,info="Likelihood ratio df")
+  expect_equal(abs(out$AIC), abs(tgt$AIC), tol=1e-4, info="AIC value")
+
   # wald test
   tgt <- get_wald(to)
   out <- wald(m)
   if ( !is.null(tgt$dslope) ){
     expect_equal(out$dslope$W, tgt$dslope$W, tol=1e-2)
-  } 
+  }
   if(!is.null(tgt$slope)){
     expect_equal(out$slope$W,tgt$slope$W,tol=1e-2, info="Wald test value")
     expect_true(all(out$slope$df==tgt$slope$df), info="Wald test df")
     expect_equal(out$slope$p, tgt$slope$p, tol=1e-4, info="Wald test p-value")
-  } 
+  }
   if (!is.null(tgt$deviations)){
     expect_equal(out$deviations$W,tgt$deviations$W,1e-2)
     expect_equal(out$deviations$df,tgt$deviations$df)
@@ -87,7 +91,7 @@ test_that("skylark-1a",{
   tc <- read_tcf("outfiles/skylark-1a.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-1a.out")
-  trimtest(m, to)
+  trimtest(m, to, tc)
 })
 
 context("TRIM Model 3 [overdisp]")
