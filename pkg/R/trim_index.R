@@ -37,7 +37,8 @@
     var_tau[j] <- t(d) %*% V %*% d
   }
 
-  out = list(tau=tau, var_tau=var_tau)
+  out <- list(tau=tau, var_tau=var_tau)
+  out
 }
 
 
