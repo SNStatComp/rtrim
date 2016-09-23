@@ -1,0 +1,157 @@
+ TRIM 3.61 :  TRend analysis and Indices for Monitoring data 
+ STATISTICS NETHERLANDS 
+
+ Date/Time: 12-9-2016 11:41:51
+
+ Title :  skylark-3: 
+
+ The following  5 variables have been read from file: 
+ Z:\Users\patrick\Work\CBS\TRIM\wine\skylark.dat
+
+ 1. Site             number of values:    55
+ 2. Time             number of values:     8
+ 3. Count            missing =        999
+ 4. HABITAT          number of values:  2
+ 5. COV2             number of values:  4
+
+ Number of sites without positive counts (removed)       0
+
+ Number of observed zero counts           0
+ Number of observed positive counts     202
+ Total number of observed counts        202
+ Number of missing counts               238
+ Total number of counts                 440
+
+ Total count                         2536.0
+
+ Sites containing more than 10% of the total count 
+   Site Number  Observed Total    %   
+         3        431.0         17.0
+        37        266.0         10.5
+        40        624.0         24.6
+
+ Time Point Averages 
+   TimePoint  Observations  Average   Index  
+       1              25       8.52    1.00
+       2              20       8.10    0.95
+       3              30      10.90    1.28
+       4              30      11.27    1.32
+       5              28      12.75    1.50
+       6              29      14.66    1.72
+       7              22      17.00    2.00
+       8              18      18.89    2.22
+
+ RESULTS FOR MODEL: Linear Trend
+ --------------------------------
+   Effects of covariate(s)
+    HABITAT
+   Changes in Slope at Timepoints
+      1     2     3     4     5     6     7 
+
+ ESTIMATION METHOD = Generalised Estimating Equations
+
+
+  Estimated Overdispersion     =  1.162
+  Estimated Serial Correlation =  0.227
+
+ GOODNESS OF FIT
+  Chi-square                154.50, df    133, p 0.0979
+  Likelihood Ratio          159.64, df    133, p 0.0575
+  AIC (up to a constant)   -106.36
+
+ WALD-TEST FOR SIGNIFICANCE OF COVARIATES 
+ Covariate      Wald-Test  df   p  
+  HABITAT          21.55    7  0.0030
+
+ WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE 
+ Changepoint    Wald-Test  df   p  
+      1            10.27    2  0.0059
+      2             9.18    2  0.0102
+      3             3.08    2  0.2143
+      4             1.54    2  0.4637
+      5             1.64    2  0.4413
+      6             0.89    2  0.6419
+      7             0.01    2  0.9927
+
+ STEPWISE SELECTION OF CHANGEPOINTS 
+   Deleted ChangePoint     7  Significance to delete 0.9927
+   Deleted ChangePoint     6  Significance to delete 0.5368
+   Deleted ChangePoint     5  Significance to delete 0.6867
+   Deleted ChangePoint     4  Significance to delete 0.4639
+   Deleted ChangePoint     3  Significance to delete 0.3822
+
+   Remaining Changepoints at time:
+      1     2 
+
+  Total time used: 10.73 seconds
+
+  Estimated Overdispersion     =  1.126
+  Estimated Serial Correlation =  0.228
+
+ GOODNESS OF FIT
+  Chi-square                161.09, df    143, p 0.1431
+  Likelihood Ratio          160.76, df    143, p 0.1471
+  AIC (up to a constant)   -125.24
+
+ WALD-TEST FOR SIGNIFICANCE OF COVARIATES 
+ Covariate      Wald-Test  df   p  
+  HABITAT          18.51    2  0.0001
+
+ WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE 
+ Changepoint    Wald-Test  df   p  
+      1            10.99    2  0.0041
+      2            14.65    2  0.0007
+
+ PARAMETER ESTIMATES 
+
+ Effects of Covariates on Slope for Time Intervals
+ from upto
+    1    2
+               Additive      std.err.   Multiplicative  std.err.
+ Constant       -0.2691       0.1823         0.7641      0.1393
+
+ Covariate  1
+ ------------
+ Category   2   -0.0204       0.2068         0.9798      0.2026
+
+ from upto
+    2    8
+               Additive      std.err.   Multiplicative  std.err.
+ Constant       -0.0776       0.0411         0.9254      0.0380
+
+ Covariate  1
+ ------------
+ Category   2    0.1749       0.0437         1.1911      0.0521
+
+
+ Time INDICES
+  Time     Model     std.err.     Imputed    std.err.
+     1     1                       1
+     2     0.7531     0.0655       0.7373     0.0666
+     3     0.7916     0.0648       0.8304     0.0729
+     4     0.8369     0.0670       0.8179     0.0731
+     5     0.8895     0.0720       0.8859     0.0798
+     6     0.9500     0.0800       0.9628     0.0881
+     7     1.0189     0.0910       1.0269     0.0964
+     8     1.0969     0.1053       1.1098     0.1088
+
+ TIME TOTALS
+  Time      Model    std.err.     Imputed    std.err.
+     1        532          43          530          43
+     2        401          24          391          26
+     3        421          20          440          24
+     4        446          16          433          23
+     5        474          15          470          23
+     6        506          17          510          24
+     7        542          22          544          27
+     8        584          29          588          32
+
+ OVERALL SLOPE MODEL: Moderate increase (p<0.05) *
+  Additive      std.err.   Multiplicative  std.err.
+    0.0329       0.0127         1.0335      0.0131
+
+ OVERALL SLOPE IMPUTED+(recommended): Moderate increase (p<0.01) **
+  Additive      std.err.   Multiplicative  std.err.
+    0.0346       0.0127         1.0352      0.0132
+
+
