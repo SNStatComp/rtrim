@@ -14,7 +14,7 @@
 #' @family modelspec
 #' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \code{\link{summary.trim}}
 #'
-#' @examples 
+#' @examples
 #' data(skylark)
 #' m <- trim(count ~ time + site, data=skylark, model=2)
 #' gof(m)
@@ -27,38 +27,43 @@ trim <- function(x,...){
 trim.trimcommand <- function(x,...){
   dat <- read_tdf(x)
   covars <- x$labels[x$covariates]
+
   trim_estimate(count=dat$count
-      , time.id = dat$time
-      , site.id = dat$site
-      , covars = dat[covars]
-      , model = x$model
-      , serialcor = x$serialcor
-      , overdisp = x$overdisp
-      , changepoints = x$changepoints)
+                , time.id = dat$time
+                , site.id = dat$site
+                , covars = dat[covars]
+                , model = x$model
+                , serialcor = x$serialcor
+                , overdisp = x$overdisp
+                , changepoints = x$changepoints
+                , stepwise = x$stepwise)
 }
 
 #' @param formula \code{[formula]} The dependent variable (left-hand-side)
 #'  is treated as the 'counts' variable. The first and second independent variable
 #'  are treated as the 'time' and 'site' variable, in that specific order. All
-#'  other variables are treated as covariates. 
+#'  other variables are treated as covariates.
 #' @param model TRIM model type.
 #' @param weights \code{[numeric]} Optional vector of weights.
 #' @param serialcor \code{[logical]} Take serial correlation into account.
 #' @param overdisp \code{[logical]} Take overdispersion into account.
 #' @param changepoints \code{[numeric]} Indices for changepoints.
+#' @param stepwise \code{[logical]} Perform stepwise refinement of changepoints.
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, formula, model = 2, weights
-  , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), ...){
-  
+  , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
+
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
   if (missing(weights)) weights <- rep(1,nrow(x))
   stopifnot(is.numeric(model),model %in% 1:3)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
-  stopifnot(isTRUE(overdisp)||!isTRUE(serialcor))
-  #estimate the model and return
-  trim_estimate(
+  stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
+  stopifnot(isTRUE(stepwise)||!isTRUE(stepwise))
+
+  # estimate the model and return
+  m <- trim_estimate(
     count = x[[L$count]]
     , time.id = x[[L$time]]
     , site.id = x[[L$site]]
@@ -67,6 +72,7 @@ trim.data.frame <- function(x, formula, model = 2, weights
     , serialcor=serialcor
     , overdisp=overdisp
     , changepoints = changepoints
+    , stepwise = stepwise
   )
 }
 
@@ -74,15 +80,16 @@ trim.data.frame <- function(x, formula, model = 2, weights
 #' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
 #' @export
 trim.formula <- function(x, data, model=c(1,2,3), weights
-          , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), ...){
+          , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
   stopifnot(inherits(data,"data.frame"))
   trim.data.frame(x=data, formula=x, model=model, weights=weights
-      , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints)
+      , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints
+      , stepwise=stepwise)
 }
 
 
 parse_formula <- function(x, vars){
-  lhs <- all.vars(x[[2]]) 
+  lhs <- all.vars(x[[2]])
   if ( length(lhs) != 1)
     stop(sprintf("Expected precisely one dependent variable, got %s",pr(lhs)))
   rhs <- all.vars(x[[3]])

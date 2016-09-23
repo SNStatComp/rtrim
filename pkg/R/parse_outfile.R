@@ -3,7 +3,7 @@
 # data(skylark)
 # set_trim_verbose(FALSE)
 # m <- trim(count ~ time + site, data=skylark, model=2)
-# 
+#
 # r <- readLines("pkg/tests/testthat/outfiles/skylark-1d.out")
 # r <- paste(r,collapse="\n")
 # cat(r)
@@ -11,11 +11,11 @@
 #' Read a TRIM3 output file
 #'
 #' @param file \code{[character]} filename
-#' 
+#'
 #' @return A character string of class \code{tof}
-#' 
+#'
 #' @family parse_output
-#' 
+#'
 #' @keywords internal
 read_tof <- function(file){
   r <- readLines(file)
@@ -32,7 +32,7 @@ print.tof <- function(x,...){
 #' Extract nr of times from \code{tof} object
 #'
 #' @param x An object of class \code{tof}
-#' 
+#'
 #' @return \code{numeric}
 #' @family parse_output
 #' @keywords internal
@@ -46,7 +46,7 @@ get_n_site <- function(x){
 #' Extract nr of sites from \code{tof} object
 #'
 #' @param x An object of class \code{tof}
-#' 
+#'
 #' @return \code{numeric}
 #' @family parse_output
 #' @keywords internal
@@ -62,7 +62,7 @@ get_n_time <- function(x){
 #' Extract time indices from \code{tof} object
 #'
 #' @param x An object of class \code{tof}
-#' 
+#'
 #' @return A \code{data.frame}
 #' @family parse_output
 #' @keywords internal
@@ -71,14 +71,14 @@ get_time_indices <- function(x){
   tab <- get_indextab(x,"TIME INDICES")
   # in the first row, absence of std error is misread.
   tab[1,4] <- tab[1,3]
-  tab[1,c(3,5)] <- 0  
+  tab[1,c(3,5)] <- 0
   tab
 }
 
 #' Extract time totals from \code{tof} object
 #'
 #' @inheritParams get_time_indices
-#' 
+#'
 #' @return A \code{data.frame}
 #' @family parse_output
 #' @keywords internal
@@ -167,11 +167,19 @@ get_oneliner <- function(x,label){
 
 get_overdispersion <- function(x){
   stopifnot(inherits(x,"tof"))
+  # Read to second block if necessary
+  m <- regexpr("STEPWISE SELECTION OF CHANGEPOINTS.*",x)
+  if (m[1] != -1) x <- regmatches(x, m)
+  # OK, proceed with target
   get_oneliner(x,"OVERDISPERSION")
 }
 
 get_serial_correlation <- function(x){
   stopifnot(inherits(x,"tof"))
+  # Read to second block if necessary
+  m <- regexpr("STEPWISE SELECTION OF CHANGEPOINTS.*",x)
+  if (m[1] != -1) x <- regmatches(x, m)
+  # OK, proceed with target
   get_oneliner(x,"SERIAL CORRELATION")
 }
 
@@ -190,6 +198,10 @@ get_num <- function(x){
 #' @family parse_output
 #' @keywords internal
 get_gof <- function(x){
+  # Read to second block if necessary
+  m <- regexpr("STEPWISE SELECTION OF CHANGEPOINTS.*",x)
+  if (m[1] != -1) x <- regmatches(x, m)
+  # OK, proceed with target
   re <- "GOODNESS OF FIT.*?\\n[[:blank:]]*\\n"
   mm <- regexpr(re,x,ignore.case=TRUE)
   s <- regmatches(x,mm)
@@ -212,6 +224,10 @@ get_gof <- function(x){
 #' @family parse_output
 #' @keywords internal
 get_wald <- function(x){
+  # Read to second block if necessary
+  m <- regexpr("STEPWISE SELECTION OF CHANGEPOINTS.*",x)
+  if (m[1] != -1) x <- regmatches(x, m)
+
   re <- "WALD-TEST FOR SIGNIFICANCE OF DEVIATIONS FROM LINEAR TREND.*?\\n\\n"
   s <- get_str(re,x)
   deviations <- if(length(s)>0){
@@ -219,15 +235,15 @@ get_wald <- function(x){
     u <- as.list(get_num(strsplit(s,",")[[1]]))
     setNames(u,c("W","df","p"))
   } else {NULL}
-  
+
   re <- "WALD-TEST FOR SIGNIFICANCE OF SLOPE PARAMETER.*?\\n\\n"
   s <- get_str(re,x)
   slope <- if (length(s)>0){
     s <- strip_line(s)
     u <- as.list(get_num(strsplit(s,",")[[1]]))
     setNames(u,c("W","df","p"))
-  } else {NULL}  
-  
+  } else {NULL}
+
   re <- "WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE.*?\\n\\n"
   s <- get_str(re,x)
   dslope <- if (length(s)>0){
@@ -235,7 +251,7 @@ get_wald <- function(x){
     u <- read.table(text=s,header=TRUE)
     list(W=u[,2],df=u[1,3],p=u[,4])
   } else {NULL}
-  
+
   re <- "WALD-TEST FOR SIGNIFICANCE OF COVARIATES.*?\\n\\n"
   s <- get_str(re,x)
   covar <- if (length(s)>0){
@@ -243,11 +259,11 @@ get_wald <- function(x){
     u <- read.table(text=s,header=TRUE)
     setNames(u,c("Covariate","W","df","p"))
   } else {NULL}
-  
+
   structure(
     list(deviations=deviations, slope=slope, dslope=dslope, covar=covar )
     ,class="trim.wald")
-  
+
 }
 
 
@@ -273,7 +289,7 @@ strip_line<-function(x,n=1){
 #' @keywords internal
 get_model <- function(x){
   stopifnot(inherits(x,"tof"))
-  if (grepl("RESULTS FOR MODEL: Linear Trend",x,ignore.case=TRUE)){ 
+  if (grepl("RESULTS FOR MODEL: Linear Trend",x,ignore.case=TRUE)){
     2L
   } else if(grepl("RESULTS FOR MODEL: Effects for each time point",x,ignore.case=TRUE)) {
     3L
@@ -294,7 +310,7 @@ get_coef <- function(x,covars){
   model <- get_model(x)
   hascov <- has_covariates(x)
   hascp <- has_changepoints(x)
-  
+
   if (model==2 & !hascp & !hascov ){ # e.g. skylark-1d
     re <- "PARAMETER ESTIMATES[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
     s <- get_str(re,x)
@@ -307,7 +323,7 @@ get_coef <- function(x,covars){
     out$upto <- fromto[2]
     out <- out[c("from","upto","add","se_add","mul","se_mul")]
   }
-  
+
   if (model==2 & hascp & !hascov){ # e.g. skylark-1e, 1f
     re <- "PARAMETER ESTIMATES[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
     s <- get_str(re,x)
@@ -315,7 +331,7 @@ get_coef <- function(x,covars){
     out <- read.table(text=s,header=TRUE)
     names(out)[3:6] <- c("add","se_add","mul","se_mul")
   }
-  
+
   if (model==2 & hascp & hascov){ # e.g. skylark-2a
     re <- "PARAMETER ESTIMATES.*?\\n\\n\\n"
     s <- get_str(re,x)
@@ -332,9 +348,9 @@ get_coef <- function(x,covars){
     out$covar[i] <- covars[covnum]
     out
   }
-  
-  
-  
+
+
+
   if (model == 3 & !hascov){ # e.g. skylark-1a,b,c
     re <- "Parameters for each time point[[:blank:]]*\\n[[:blank:]]*\\n.*?\\n[[:blank:]]*\\n"
     s <-get_str(re,x,ignore.case=TRUE)
@@ -353,14 +369,14 @@ get_coef <- function(x,covars){
     s <- sub("\\n\\n\\n","",s)
     u <- strsplit(s,"\\n\\n")[[1]]
     out <- do.call(rbind,lapply(u,coef_m3_covars))
-    out$covar <- sub("Constant","baseline",out$covar)  
+    out$covar <- sub("Constant","baseline",out$covar)
     i <- grepl("Covariate",out$covar)
     covnum <- get_num(out$covar[i])
     out$covar[i] <- covars[covnum]
     out
   }
-  out 
-  
+  out
+
 }
 
 
@@ -393,7 +409,7 @@ shd <- function(x){
   if (length(x)==1) return(x)
   val <- x[1]
   for ( i in 2:length(x)){
-    if (is.na(x[i])){ 
+    if (is.na(x[i])){
       x[i] <- val
     } else {
       val <- x[i]
@@ -406,7 +422,7 @@ shd <- function(x){
 coef_m2_covars <- function(x){
   if (grepl("from upto",x)){
     x <- strip_line(x)
-    y <- get_str("[0-9].*?\\n",x)  
+    y <- get_str("[0-9].*?\\n",x)
     fromto <- sapply(trimws(strsplit(y," +")[[1]]), get_num, USE.NAMES=FALSE)
     x <- strip_line(x,2)
     beta_i <- "Constant"
@@ -434,14 +450,14 @@ coef_m2_covars <- function(x){
 coef_m3_covars <- function(x){
   beta_i <- trimws(get_str(".*?\\n",x))
   x <- strip_line(x,2)
-  
+
   if (grepl("Category",x)){
     cat <- get_num(get_str("Category.*?\n",x))
     x <- strip_line(x,1)
   } else {
     cat <- 0
   }
-  
+
   x <- gsub("Time","    ",x)
   out <- read.table(text=x,header=FALSE)
   names(out) <- c("time","add","se_add","mul","se_mul")

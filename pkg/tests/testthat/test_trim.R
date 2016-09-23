@@ -160,8 +160,14 @@ test_that("skylark-2b",{
   trimtest(m,to,tc)
 })
 
+context("TRIM Model 2 [overdisp, ser.cor, covar, stepwise]")
 
-
+test_that("skylark-3a",{
+  tc <- read_tcf("outfiles/skylark-3a.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-3a.out")
+  trimtest(m,to,tc)
+})
 
 
 context("Output printers")

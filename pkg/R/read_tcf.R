@@ -157,6 +157,7 @@ as_rtrim <- function(value, template){
 #' \code{MODEL}\tab [\code{1}, \code{2}, \code{3}] Choose the current model\cr
 #' \code{COVARIATES}\tab [integers] indices of covariates to use (1st covariate has index 1)\cr
 #' \code{CHANGEPOINTS} \tab [integers] indices of changepoints\cr
+#' \code{STEPWISE} \tab [\code{on},\code{off}] Switch stepwise selection of changepoints [translated to \code{logical}].\cr
 #' \code{RUN}\tab Signals end of current model specification.
 #' }
 #'
@@ -324,7 +325,6 @@ oneliner <- function(x){
       , pr(tc$outputfiles)
       ))
   }
-
 }
 
 

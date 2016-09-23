@@ -12,7 +12,7 @@ set_trim_verbose <- function(verbose=FALSE){
   stopifnot(isTRUE(verbose)|!isTRUE(verbose))
   options(trim_verbose=verbose)
 }
-
+set_trim_verbose(TRUE)
 
 # Convenience function for console output during runs
 rprintf <- function(fmt,...) { if(getOption("trim_verbose")) cat(sprintf(fmt,...)) }
@@ -20,14 +20,45 @@ rprintf <- function(fmt,...) { if(getOption("trim_verbose")) cat(sprintf(fmt,...
 # Similar, but for object/summary printing
 printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 
-# Let's het started with the main workhorse function.
+# ##################################################### Estimation function ####
+
+#' TRIM estimation function
+#'
+#' @param count a numerical vector of count data.
+#' @param time.id a numerical vector time points for each count data point.
+#' @param site.id a numerical vector time points for each count data point.
+#' @param covars an optional data frame withcovariates
+#' @param model a model type selector
+#' @param serialcor a flag indication of autocorrelation has to be taken into account.
+#' @param overdisp a flag indicating of overdispersion has to be taken into account.
+#' @param changepoints a numerical vector change points (only for Model 2)
+#' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
+#'
+#' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
+#'   Usually this information is retrieved by a set of postprocessing functions
+#'
+#' @keywords internal
+trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
+                          model=2, serialcor=FALSE, overdisp=FALSE,
+                          changepoints=integer(0), stepwise=FALSE)
+{
+  if (isTRUE(stepwise)) {
+    m <- trim_refine(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints)
+  } else {
+    m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints)
+  }
+  m
+}
+
+
+# ###################################################### Workhorse function ####
 
 #' TRIM workhorse function
 #'
 #' @param count a numerical vector of count data.
 #' @param time.id a numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
-#' @param covars an optional list of covariates
+#' @param covars an optional data frame with covariates
 #' @param model a model type selector
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
@@ -38,9 +69,10 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #'
 #'
 #' @keywords internal
-trim_estimate <- function(count, time.id, site.id, covars=list(),
-            model=2, serialcor=FALSE, overdisp=FALSE,
-            changepoints=integer(0)) {
+trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
+                         model=2, serialcor=FALSE, overdisp=FALSE,
+                         changepoints=integer(0))
+{
 
   # =========================================================== Preparation ====
 
@@ -63,7 +95,7 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
   stopifnot(length(site.id)==n)
 
   # \verb!covars! should be a list where each element (if any) is a vector
-#  stopifnot(class(covars)=="list")
+  stopifnot(class(covars)=="data.frame")
   ncovar = length(covars)
   use.covars <- ncovar>0
   if (use.covars) {
@@ -78,6 +110,8 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
       stopifnot(nclass[i]>1) # Assert upper end
       stopifnot(length(unique(cv))==nclass[i]) # Assert the range is contiguous
     }
+  } else {
+    nlass <- 0
   }
 
   # \verb!model! should be in the range 1 to 3
@@ -86,6 +120,7 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
     message("Alas, Model 1 is not implemented yet. Returning zippedidooda (NULL)")
     return(NULL)
   }
+
   # Convert time and site to factors, if they're not yet
   if (any(class(time.id) %in% c("integer","numeric"))) time.id <- ordered(time.id)
   ntime = length(levels(time.id))
@@ -112,6 +147,8 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
       m[idx] <- cv
       cvmat[[i]] <- m
     }
+  } else {
+    cvmat <- NULL
   }
 
   # We often need some specific subset of the data, e.g.\ all observations for site 3.
@@ -181,7 +218,7 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
         }
       }
     }
-    # The amount of extra parameter sets is the total amount of covarariate classes
+    # The amount of extra parameter sets is the total amount of covariate classes
     # minus the number of covariates (because class 1 does not add extra params)
     num.extra.beta.sets <- sum(nclass-1)
   }
@@ -268,7 +305,7 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
         z_t <- matrix(1, 1, nobs[i])
       } else if (method=="GEE") { # Use covariance
         mu_i = mu[site==i & observed==TRUE]
-        z_t <- mu_i %*% V_inv[[i]] #define correlation weights
+        z_t <- mu_i %*% V_inv[[i]] # define correlation weights
       } else stop("Can't happen")
       alpha[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta))
     }
@@ -440,7 +477,7 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
       ones <- matrix(1, nobs[i], 1)
       d_i <- as.numeric(t(ones) %*% Omega[[i]] %*% ones) # Could use sum(Omega) as well...
-      B_i <- B[observed[site==i], ,drop=FALSE]
+      B_i <- B[observed[site==i], ,drop=FALSE] # recyle index for e.g. covariates in $B$
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
@@ -572,7 +609,7 @@ trim_estimate <- function(count, time.id, site.id, covars=list(),
   # together with parameter values and other usefull information.
 
   z <- list(title=title, f=f, nsite=nsite, ntime=ntime, nbeta0=nbeta0,
-            covars=covars, ncovar=ncovar,
+            covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints,
             mu=mu, imputed=imputed, alpha=alpha, beta=beta, var_beta=var_beta)
   if (use.covars) {

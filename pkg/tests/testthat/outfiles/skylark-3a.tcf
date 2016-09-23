@@ -1,5 +1,5 @@
-FILE skylark.dat
-TITLE  skylark-3: model 2 with covariates and stepwise refinement
+FILE outfiles/skylark.dat
+TITLE  skylark-3a
 NTIMES 8
 NCOVARS 2
 LABELS
@@ -9,6 +9,7 @@ End
 MISSING 999
 WEIGHT Absent
 
+comment skylark-3a: Model 2 with covariates and stepwise refinement
 model 2
 covariates 1
 weighting off
