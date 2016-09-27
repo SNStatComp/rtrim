@@ -5,6 +5,7 @@
 #' \href{https://www.cbs.nl/NR/rdonlyres/2E9912EB-534B-4A32-AD22-17A73402C083/0/trim3man.pdf}{TRIM3 manual}.
 #'
 #'
+#'
 #' @param x a \code{\link{trimcommand}}, a \code{data.frame}, or a \code{formula}
 #' @param ... Currently unused
 #'
