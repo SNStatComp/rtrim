@@ -42,9 +42,21 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
                           model=2, serialcor=FALSE, overdisp=FALSE,
                           changepoints=integer(0), stepwise=FALSE)
 {
+  
   if (isTRUE(stepwise)) {
     m <- trim_refine(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints)
   } else {
+    # data input checks: throw error if not enough counts available.
+    switch(as.character(model)
+      , "2" = {
+        assert_plt_model(count, time.id,changepoints=changepoints)
+      }
+      , "3" = {
+        assert_sufficient_counts(count, time.id)
+        assert_covariate_counts(count, time.id, covars)
+      }
+    )
+    # compute actual model
     m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints)
   }
   m
