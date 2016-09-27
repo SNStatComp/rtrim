@@ -3,7 +3,7 @@
 #' @name rtrim-package
 #' @docType package
 #' @import methods
-#' @importFrom utils read.table head tail str
+#' @importFrom utils read.table head tail str capture.output
 #' @importFrom grDevices  gray rgb
 #' @importFrom graphics lines plot points polygon segments title
 #' @importFrom stats pchisq pt qt time setNames
