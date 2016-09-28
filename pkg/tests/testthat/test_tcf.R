@@ -20,6 +20,7 @@ OVERDISP on
 BASETIME 1
 MODEL 3
 COVARIATES 2
+AUTODELETE off
 OUTPUTFILES F
 RUN", con=f)
 
@@ -43,6 +44,7 @@ test_that("read_tcf parses tcf files", {
   expect_equal(x$changepoints,integer(0))
   expect_equal(x$stepwise,logical(0))
   expect_equal(x$outputfiles,"F")
+  expect_equal(x$autodelete,FALSE)
 })
 
 tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))

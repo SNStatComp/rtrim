@@ -74,3 +74,11 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 
 
 
+
+
+
+
+
+
+
+
