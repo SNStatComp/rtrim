@@ -61,3 +61,53 @@ test_that("Sufficient data for model 3 with covariates",{
   
   
 })
+
+
+context("Autodelete")
+
+test_that("autodelete w/o covariates",{
+  d <- data.frame(count = rep(1,10),time=1:10)
+  # case nothing to delete.
+  expect_equal(
+    autodelete(count=d$count, time=d$time, changepoints=c(4,7),covars=list())
+    , c(4,7)    
+  )
+  # case something to delete
+  d[5:7,1] <- 0
+  expect_equal(
+    autodelete(count = d$count, time = d$time
+               , changepoints = c(4,7), covars=list())
+    , 7
+    )
+})
+
+test_that("autodelete with covariates",{
+  d <- data.frame(
+    time = 1:10
+    , covar = rep(letters[1:2], times=5)
+    , count = rep(1,10)
+  )
+  # case all fine
+  expect_equal(
+    autodelete(count = d$count, time = d$time, changepoints=c(4,7),covars=list(cov=d$covar))
+  , c(4,7)  
+  )  
+  # case delete 7
+  d$count[9] <- 0  
+  expect_equal(
+    autodelete(count = d$count, time = d$time, changepoints=c(4,7),covars=list(cov=d$covar))
+    , 4  
+  )  
+  # changepoints with explicit 1 at the beginning.
+  expect_equal(
+    autodelete(count = d$count, time = d$time, changepoints=c(1,4,7),covars=list(cov=d$covar))
+    ,c(1, 4)  
+  )  
+  
+})
+
+
+
+
+
+

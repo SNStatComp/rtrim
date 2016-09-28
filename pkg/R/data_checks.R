@@ -1,10 +1,11 @@
 # Some basic assertions to test whether models can be run.
 
+# capture how an object is printed in a string.
 print_and_capture <- function(x){
   paste(capture.output(print(x)),collapse="\n")
 }
 
-
+# all x positive or an error
 assert_positive <- function(x, varname){
   if (any(x <= 0)){
     i <- which(x<=0)
@@ -13,6 +14,7 @@ assert_positive <- function(x, varname){
   invisible(TRUE)
 }
 
+# x strictly increasting or an error
 assert_increasing <- function(x, varname){
   if( !all(diff(x)>0) ){
     stop(sprintf(
@@ -23,17 +25,15 @@ assert_increasing <- function(x, varname){
 }
 
 
-# sufficient data per index (index=time for model 3)
+# sufficient data per index (index=time for model 3, pieces for model 2)
 assert_sufficient_counts <- function(count, index){
   time_totals <- tapply(X = count, INDEX = index, FUN = sum, na.rm=TRUE)  
   assert_positive(time_totals, names(index))
 }
 
-# sufficient data for piecewise linear trend model
-assert_plt_model <- function(count, time, changepoints, covars){
-  assert_increasing(changepoints, "change points")
-  if (length(changepoints)==0) changepoints <- 1
-  # label the pieces in piecewise linear regression
+# Get an indicator for the pieces in 'piecewise linear model'
+# that are encoded in changepoints.
+pieces_from_changepoints <- function(time, changepoints){
   pieces <- integer(length(time)) + 1
   C <- changepoints
   if (C[length(C)] != max(time)) C <- append(C,max(time))
@@ -42,18 +42,29 @@ assert_plt_model <- function(count, time, changepoints, covars){
     j <- seq(C[i] + 1, C[i+1])
     pieces[time %in% j] <- C[i]
   }
+  pieces  
+}
+
+# sufficient data for piecewise linear trend model
+assert_plt_model <- function(count, time, changepoints, covars){
+  assert_increasing(changepoints, "change points")
+  if (length(changepoints)==0) changepoints <- 1
+  # label the pieces in piecewise linear regression
+  pieces <- pieces_from_changepoints(time, changepoints)
   if (length(covars)==0){
     assert_sufficient_counts(count, list(changepoint=pieces))
   } else {
-    assert_covariate_counts(count, pieces, covars,timename="changepoint")
+    assert_covariate_counts(count, pieces, covars, timename="changepoint")
   }
 }
 
-# count: vector of counts
-# time: vector of time points
-# covar: list of covariate vectors
-assert_covariate_counts <- function(count, time, covars, timename="time"){
+
+# get a list of errors: for which time (pieces) and covariate values
+# are there zero counts? Result is an empty list or a named list 
+# of matrices with columns 'timename', value (of the covariate)
+get_cov_count_errlist <- function(count, time, covars, timename="time"){
   ERR <- list()
+  
   for ( i in seq_along(covars) ){
     covname <- names(covars)[i]
     cov <- covars[[i]]
@@ -67,18 +78,55 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
       ERR[[covname]] <- err
     }
   }
-  if (length(ERR)>0) 
-    stop("Zero observations for the following cases:\n",gsub("\\$.*?\n","",print_and_capture(ERR)),call.=FALSE)
+  
+  ERR
+}
+
+# count: vector of counts
+# time: vector of time points
+# covar: list of covariate vectors
+assert_covariate_counts <- function(count, time, covars, timename="time"){
+  err <- get_cov_count_errlist(count, time, covars, timename=timename)
+  if ( length(err)>0 ) 
+    stop("Zero observations for the following cases:\n"
+         , gsub("\\$.*?\n","",print_and_capture(err))
+         , call.=FALSE)
   invisible(TRUE)
 }
 
 
+# Return the first changepoint to delete (if any).
+# returns the value of the CP, or -1 when nothing
+# needs to be deleted.
+get_deletion <- function(count, time, changepoints, covars){
+  if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
+  pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
+  out <- -1
+  if ( length(covars)> 0){
+    err <- get_cov_count_errlist(count, pieces, covars)
+    if ( length(err)>0){
+      e <- err[[1]]
+      out <- changepoints[as.numeric(e[1,1])]
+    }
+  } else {
+    tab <- tapply(count, list(pieces=pieces), sum,na.rm=TRUE)
+    j <- tab <= 0
+    if (any(j)){
+      out <- as.numeric(names(tab)[which(j)[1]])
+    }
+  }
+  out
+}
 
+autodelete <- function(count, time, changepoints, covars){
 
-
-
-
-
-
-
+  out <- get_deletion(count, time, changepoints, covars)
+  while ( out > 0){
+    rprintf("Auto-deleting change point %d\n",as.integer(out))
+    # delete changepoint
+    changepoints <- changepoints[changepoints != out]
+    out <- get_deletion(count, time, changepoints, covars)
+  }
+  changepoints
+}
 
