@@ -4,7 +4,14 @@
 #' Compute TRIM model parameters as specified in the
 #' \href{https://www.cbs.nl/NR/rdonlyres/2E9912EB-534B-4A32-AD22-17A73402C083/0/trim3man.pdf}{TRIM3 manual}.
 #'
-#'
+#' @section Demands on data:
+#' The data set must contain sufficient counts to be able to estimate the model. In particular
+#' \itemize{
+#' \item{For model 2 there must be at least one observation for each time segment defined by the change points.}
+#' \item{For model 3 (without covariates) there must be at least one observation for each time point.}
+#' \item{For model 3 with covariates, there must be at least one observation for every value of each covariate.}
+#' }
+#' 
 #'
 #' @param x a \code{\link{trimcommand}}, a \code{data.frame}, or a \code{formula}
 #' @param ... Currently unused
