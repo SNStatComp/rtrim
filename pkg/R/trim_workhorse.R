@@ -49,15 +49,17 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
     # data input checks: throw error if not enough counts available.
     switch(as.character(model)
       , "2" = {
-        assert_plt_model(count, time.id,changepoints=changepoints)
+        assert_plt_model(count = count, time = time.id
+          , changepoints = changepoints, covars = covars)
       }
       , "3" = {
-        assert_sufficient_counts(count, time.id)
-        assert_covariate_counts(count, time.id, covars)
+        assert_sufficient_counts(count = count, index = time.id)
+        assert_covariate_counts(count = count, time = time.id, covars=covars)
       }
     )
     # compute actual model
-    m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints)
+    m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor
+      , overdisp, changepoints)
   }
   m
 }

@@ -30,7 +30,7 @@ assert_sufficient_counts <- function(count, index){
 }
 
 # sufficient data for piecewise linear trend model
-assert_plt_model <- function(count, time, changepoints){
+assert_plt_model <- function(count, time, changepoints, covars){
   assert_increasing(changepoints, "change points")
   if (length(changepoints)==0) changepoints <- 1
   # label the pieces in piecewise linear regression
@@ -42,22 +42,28 @@ assert_plt_model <- function(count, time, changepoints){
     j <- seq(C[i] + 1, C[i+1])
     pieces[time %in% j] <- C[i]
   }
-  assert_sufficient_counts(count, list(changepoint=pieces))
+  if (length(covars)==0){
+    assert_sufficient_counts(count, list(changepoint=pieces))
+  } else {
+    assert_covariate_counts(count, pieces, covars,timename="changepoint")
+  }
 }
 
 # count: vector of counts
 # time: vector of time points
 # covar: list of covariate vectors
-assert_covariate_counts <- function(count, time, covars){
+assert_covariate_counts <- function(count, time, covars, timename="time"){
   ERR <- list()
   for ( i in seq_along(covars) ){
     covname <- names(covars)[i]
     cov <- covars[[i]]
     index <- list(time=time,value = cov)
+    names(index)[1] <- timename
     tab <- tapply(count, INDEX=index, FUN=sum, na.rm=TRUE)
     err <- which(tab <= 0,arr.ind=TRUE)
     dimnames(err) <- setNames(list(NULL,colnames(err)),c("",covname))
     if (length(err) > 0){
+      err[,2] <- colnames(tab)[err[,2]]
       ERR[[covname]] <- err
     }
   }
