@@ -64,10 +64,13 @@ trim.trimcommand <- function(x,...){
 #' @param overdisp \code{[logical]} Take overdispersion into account.
 #' @param changepoints \code{[numeric]} Indices for changepoints.
 #' @param stepwise \code{[logical]} Perform stepwise refinement of changepoints.
+#' @param autodelete \code{[logical]} Auto-delete changepoints when number of observations is too small.
+#' 
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, formula, model = 2, weights
-  , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
+  , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
+  , autodelete=FALSE, ...){
 
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
@@ -88,6 +91,7 @@ trim.data.frame <- function(x, formula, model = 2, weights
     , overdisp=overdisp
     , changepoints = changepoints
     , stepwise = stepwise
+    , autodelete = autodelete
   )
 }
 
@@ -95,11 +99,12 @@ trim.data.frame <- function(x, formula, model = 2, weights
 #' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
 #' @export
 trim.formula <- function(x, data, model=c(1,2,3), weights
-          , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
+          , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
+          , autodelete=FALSE, ...){
   stopifnot(inherits(data,"data.frame"))
   trim.data.frame(x=data, formula=x, model=model, weights=weights
       , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints
-      , stepwise=stepwise)
+      , stepwise=stepwise, autodelete=autodelete)
 }
 
 

@@ -33,6 +33,7 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
 #' @param changepoints a numerical vector change points (only for Model 2)
 #' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
+#' @param autodelete a flag indicating auto-deletion of changepoints with too little observations.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -40,23 +41,26 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #' @keywords internal
 trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
                           model=2, serialcor=FALSE, overdisp=FALSE,
-                          changepoints=integer(0), stepwise=FALSE)
+                          changepoints=integer(0), stepwise=FALSE, 
+                          autodelete=FALSE)
 {
   
   if (isTRUE(stepwise)) {
     m <- trim_refine(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints)
   } else {
     # data input checks: throw error if not enough counts available.
-    switch(as.character(model)
-      , "2" = {
-        assert_plt_model(count = count, time = time.id
-          , changepoints = changepoints, covars = covars)
-      }
-      , "3" = {
-        assert_sufficient_counts(count = count, index = time.id)
-        assert_covariate_counts(count = count, time = time.id, covars=covars)
-      }
-    )
+    if (model == 2 && autodelete){
+      changepoints <- autodelete(count=count, time=time.id, changepoints = changepoints, covars=covars)
+    } else if (model == 2){
+      assert_plt_model(count = count, time = time.id
+                       , changepoints = changepoints, covars = covars)
+    
+    } else if (model == 3){
+      assert_sufficient_counts(count = count, index = time.id)
+      assert_covariate_counts(count = count, time = time.id, covars=covars)
+    }
+    
+    
     # compute actual model
     m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor
       , overdisp, changepoints)
