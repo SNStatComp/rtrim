@@ -1,0 +1,12 @@
+FILE outfiles/skylark.dat
+TITLE  skylark-1a
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT Absent
+
+model 3

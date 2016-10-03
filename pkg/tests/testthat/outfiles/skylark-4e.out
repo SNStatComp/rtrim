@@ -1,0 +1,115 @@
+ TRIM 3.70 :  TRend analysis and Indices for Monitoring data 
+ STATISTICS NETHERLANDS 
+
+ Date/Time: 3-10-2016 11:54:59
+
+ Title :   skylark-4e
+
+ Comment: Now with both overdispersion and serial correlation
+
+ The following  6 variables have been read from file: 
+ Z:\Users\patrick\Work\CBS\TRIM\wine\skylark_wt.dat
+
+ 1. Site             number of values:    55
+ 2. Time             number of values:     8
+ 3. Count            missing =        999
+ 4. weight 
+ 5. HABITAT          number of values:  2
+ 6. COV2             number of values:  4
+
+ Number of observed zero counts           0
+ Number of observed positive counts     202
+ Total number of observed counts        202
+ Number of missing counts               238
+ Total number of counts                 440
+
+ Total count                         2536.0
+
+ Sites containing more than 10% of the total count 
+   Site Number  Observed Total    %   
+         3        431.0         17.0
+        37        266.0         10.5
+        40        624.0         24.6
+
+ Time Point Averages 
+                                              Weighted  Weighted
+   TimePoint  Observations  Average   Index   Average   Index  
+       1              25       8.52    1.00     30.12    1.00
+       2              20       8.10    0.95     27.00    0.90
+       3              30      10.90    1.28     24.10    0.80
+       4              30      11.27    1.32     23.87    0.79
+       5              28      12.75    1.50     23.36    0.78
+       6              29      14.66    1.72     36.38    1.21
+       7              22      17.00    2.00     31.73    1.05
+       8              18      18.89    2.22     35.39    1.17
+
+ RESULTS FOR MODEL: Linear Trend
+ --------------------------------
+  Changes in Slope at Timepoints
+      1     2 
+
+ WEIGHTING = On
+
+ ESTIMATION METHOD = Generalised Estimating Equations
+
+
+  Total time used:  1.29 seconds
+
+  Estimated Overdispersion     =  1.334
+  Estimated Serial Correlation =  0.305
+
+ GOODNESS OF FIT
+  Chi-square                193.36, df    145, p 0.0000
+  Likelihood Ratio          191.81, df    145, p 0.0000
+  AIC (up to a constant)    -98.19
+
+ WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE 
+ Changepoint    Wald-Test  df   p  
+      1            11.08    1  0.0009
+      2            14.90    1  0.0001
+
+ PARAMETER ESTIMATES 
+
+ Slope for Time Intervals
+ from upto   Additive  std.err.    Multiplicative   std.err.
+    1    2   -0.3029    0.0910          0.7387       0.0672
+    2    8    0.0757    0.0157          1.0787       0.0169
+
+ Time INDICES
+  Time     Model     std.err.     Imputed    std.err.
+     1     1                       1
+     2     0.7387     0.0672       0.7567     0.0743
+     3     0.7968     0.0687       0.7971     0.0797
+     4     0.8595     0.0723       0.8100     0.0816
+     5     0.9272     0.0787       0.8038     0.0844
+     6     1.0001     0.0885       0.9194     0.0963
+     7     1.0788     0.1020       0.9631     0.1027
+     8     1.1637     0.1195       0.9939     0.1149
+
+ TIME TOTALS
+  Time     Model     std.err.    Imputed     std.err.
+     1      1424         137        1536         145
+     2      1052          87        1162         100
+     3      1134          84        1224         101
+     4      1224          83        1244         103
+     5      1320          86        1234         108
+     6      1424          95        1412         118
+     7      1536         109        1479         126
+     8      1657         130        1526         144
+
+ OVERALL SLOPE MODEL (with intercept)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0442       0.0134         1.0452      0.0140
+
+ OVERALL SLOPE IMPUTED (with intercept, recommended)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0188       0.0150         1.0190      0.0152
+
+ OVERALL SLOPE MODEL (through base time point)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0000       0.0177         1.0000      0.0177
+
+ OVERALL SLOPE IMPUTED (through base time point)
+  Additive      std.err.   Multiplicative  std.err.
+   -0.0209       0.0186         0.9793      0.0182
+

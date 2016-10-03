@@ -60,12 +60,11 @@ overall <- function(x, which=c("imputed","model")) {
 
     # Export the results
     df <- data.frame(
-      Additive       = bhat,
-      std.err.       = b_err,
-      Multiplicative = exp(bhat),
-      std.err.       = exp(bhat) * b_err,
-      row.names      = c("Intercept","Slope"),
-      check.names    = FALSE
+      add       = bhat,
+      se_add    = b_err,
+      mul       = exp(bhat),
+      se_mul    = exp(bhat) * b_err,
+      row.names = c("intercept","slope")
     )
     list(coef=df,p=p, effect=effect, J=J, tt=tt, err=x$time.totals[[3]], SSR=SSR)
   }
@@ -76,7 +75,7 @@ overall <- function(x, which=c("imputed","model")) {
   } else if (which=="model") {
     out = .compute.overall.slope(tt_mod, var_tt_mod)
     out$src = "model"
-  } 
+  }
   structure(out, class="trim.overall")
 }
 
@@ -84,9 +83,9 @@ overall <- function(x, which=c("imputed","model")) {
 # ------------------------------------------------------------------- Print ----
 
 #' Print an object of class trim.overall
-#' 
+#'
 #' @param x An object of class \code{trim.overall}
-#' 
+#'
 #' @export
 #' @keywords internal
 print.trim.overall <- function(x,...) {
@@ -102,7 +101,7 @@ print.trim.overall <- function(x,...) {
   # Compute effect size
   change <- bhat ^ (x$J-1) - 1
   # Build an informative string
-  info <- sprintf("p=%f, conf.int (mul)=[%.f, %f], change=%.2f%%", x$p, blo, bhi, 100*change)
+  info <- sprintf("p=%f, conf.int (mul)=[%f, %f], change=%.2f%%", x$p, blo, bhi, 100*change)
   printf("Overall slope (%s): %s\n", x$src, info)
   print(x$coef, row.names=TRUE)
 }
@@ -112,7 +111,7 @@ print.trim.overall <- function(x,...) {
 #' Plot overall slope
 #'
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
-#' @param imputed Toggle to show imputed counts 
+#' @param imputed Toggle to show imputed counts
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @family analyses

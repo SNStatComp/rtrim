@@ -1,0 +1,114 @@
+ TRIM 3.70 :  TRend analysis and Indices for Monitoring data 
+ STATISTICS NETHERLANDS 
+
+ Date/Time: 3-10-2016 11:54:35
+
+ Title :   skylark-4d
+
+ Comment: Now with serial correlation
+
+ The following  6 variables have been read from file: 
+ Z:\Users\patrick\Work\CBS\TRIM\wine\skylark_wt.dat
+
+ 1. Site             number of values:    55
+ 2. Time             number of values:     8
+ 3. Count            missing =        999
+ 4. weight 
+ 5. HABITAT          number of values:  2
+ 6. COV2             number of values:  4
+
+ Number of observed zero counts           0
+ Number of observed positive counts     202
+ Total number of observed counts        202
+ Number of missing counts               238
+ Total number of counts                 440
+
+ Total count                         2536.0
+
+ Sites containing more than 10% of the total count 
+   Site Number  Observed Total    %   
+         3        431.0         17.0
+        37        266.0         10.5
+        40        624.0         24.6
+
+ Time Point Averages 
+                                              Weighted  Weighted
+   TimePoint  Observations  Average   Index   Average   Index  
+       1              25       8.52    1.00     30.12    1.00
+       2              20       8.10    0.95     27.00    0.90
+       3              30      10.90    1.28     24.10    0.80
+       4              30      11.27    1.32     23.87    0.79
+       5              28      12.75    1.50     23.36    0.78
+       6              29      14.66    1.72     36.38    1.21
+       7              22      17.00    2.00     31.73    1.05
+       8              18      18.89    2.22     35.39    1.17
+
+ RESULTS FOR MODEL: Linear Trend
+ --------------------------------
+  Changes in Slope at Timepoints
+      1     2 
+
+ WEIGHTING = On
+
+ ESTIMATION METHOD = Generalised Estimating Equations
+
+
+  Total time used:  1.21 seconds
+
+  Estimated Serial Correlation =  0.305
+
+ GOODNESS OF FIT
+  Chi-square                193.36, df    145, p 0.0000
+  Likelihood Ratio          191.81, df    145, p 0.0000
+  AIC (up to a constant)    -98.19
+
+ WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE 
+ Changepoint    Wald-Test  df   p  
+      1            14.77    1  0.0001
+      2            19.87    1  0.0000
+
+ PARAMETER ESTIMATES 
+
+ Slope for Time Intervals
+ from upto   Additive  std.err.    Multiplicative   std.err.
+    1    2   -0.3029    0.0788          0.7387       0.0582
+    2    8    0.0757    0.0136          1.0787       0.0146
+
+ Time INDICES
+  Time     Model     std.err.     Imputed    std.err.
+     1     1                       1
+     2     0.7387     0.0582       0.7567     0.0643
+     3     0.7968     0.0595       0.7971     0.0690
+     4     0.8595     0.0626       0.8100     0.0707
+     5     0.9272     0.0682       0.8038     0.0731
+     6     1.0001     0.0766       0.9194     0.0834
+     7     1.0788     0.0883       0.9631     0.0889
+     8     1.1637     0.1035       0.9939     0.0995
+
+ TIME TOTALS
+  Time     Model     std.err.    Imputed     std.err.
+     1      1424         119        1536         126
+     2      1052          75        1162          87
+     3      1134          73        1224          88
+     4      1224          72        1244          89
+     5      1320          75        1234          94
+     6      1424          82        1412         102
+     7      1536          95        1479         109
+     8      1657         113        1526         125
+
+ OVERALL SLOPE MODEL (with intercept)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0442       0.0116         1.0452      0.0121
+
+ OVERALL SLOPE IMPUTED (with intercept, recommended)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0188       0.0129         1.0190      0.0132
+
+ OVERALL SLOPE MODEL (through base time point)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0000       0.0153         1.0000      0.0153
+
+ OVERALL SLOPE IMPUTED (through base time point)
+  Additive      std.err.   Multiplicative  std.err.
+   -0.0209       0.0161         0.9793      0.0158
+

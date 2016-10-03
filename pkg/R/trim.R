@@ -18,7 +18,7 @@
 #' \item{For model 3 with covariates there must be at least one observation for
 #'   every value of each covariate, at each time point.}
 #' }
-#' 
+#'
 #'
 #' @param x a \code{\link{trimcommand}}, a \code{data.frame}, or a \code{formula}
 #' @param ... Currently unused
@@ -43,7 +43,10 @@ trim.trimcommand <- function(x,...){
   dat <- read_tdf(x)
   covars <- x$labels[x$covariates]
 
-  trim_estimate(count=dat$count
+  if (x$weighting) wgt <- dat$weight
+  else             wgt <- numeric(0)
+
+    trim_estimate(count=dat$count
                 , time.id = dat$time
                 , site.id = dat$site
                 , covars = dat[covars]
@@ -51,7 +54,8 @@ trim.trimcommand <- function(x,...){
                 , serialcor = x$serialcor
                 , overdisp = x$overdisp
                 , changepoints = x$changepoints
-                , stepwise = x$stepwise)
+                , stepwise = x$stepwise
+                , weights = wgt)
 }
 
 #' @param formula \code{[formula]} The dependent variable (left-hand-side)
@@ -66,13 +70,13 @@ trim.trimcommand <- function(x,...){
 #' @param stepwise \code{[logical]} Perform stepwise refinement of changepoints.
 #' @rdname trim
 #' @export
-trim.data.frame <- function(x, formula, model = 2, weights
+trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
   , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
 
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
-  if (missing(weights)) weights <- rep(1,nrow(x))
-  stopifnot(is.numeric(model),model %in% 1:3)
+  #if (missing(weights)) weights <- rep(1,nrow(x))
+  stopifnot(is.numeric(model),model %in% 2:3)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
   stopifnot(isTRUE(stepwise)||!isTRUE(stepwise))
@@ -88,13 +92,14 @@ trim.data.frame <- function(x, formula, model = 2, weights
     , overdisp=overdisp
     , changepoints = changepoints
     , stepwise = stepwise
+    , weights = weights
   )
 }
 
 #' @rdname trim
 #' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
 #' @export
-trim.formula <- function(x, data, model=c(1,2,3), weights
+trim.formula <- function(x, data, model=c(2,3), weights=numeric(0)
           , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
   stopifnot(inherits(data,"data.frame"))
   trim.data.frame(x=data, formula=x, model=model, weights=weights

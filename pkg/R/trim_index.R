@@ -56,14 +56,14 @@
 #' @export
 #'
 #' @examples
-#' 
+#'
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
-#' index(z) 
+#' index(z)
 #' # mimic classic TRIM:
-#' index(z, "both") 
+#' index(z, "both")
 #' # Extract standard error for the imputed data
-#' SE <- index(z)$std.err 
+#' SE <- index(z)$std.err
 #'
 index <- function(x, which=c("imputed","model","both"), base=1) {
   stopifnot(inherits(x,"trim"))

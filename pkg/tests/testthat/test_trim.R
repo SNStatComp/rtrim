@@ -2,6 +2,8 @@
 # compare TRIM model m against trim output string to.
 trimtest <- function(m, to, tc){
 
+  version <- get_version(to)
+
   # data basics
   expect_equal(m$nsite, get_n_site(to))
   expect_equal(m$ntime, get_n_time(to))
@@ -44,9 +46,10 @@ trimtest <- function(m, to, tc){
   out <- gof(m)
   expect_equal(out$chi2$chi2, tgt$chi2$chi2, tol = 1e-3, info="chi2 value")
   expect_equal(out$chi2$df, tgt$chi2$df, info="chi2 df")
-  expect_equal(out$chi2$p, tgt$chi2$p, tol= 1e-4, info="chi2 p-value")
+  if (version=="3.61") expect_equal(out$chi2$p, tgt$chi2$p, tol= 1e-4, info="chi2 p-value")
   expect_equal(out$LR$LR, tgt$LR$LR, tol=1e-3, info="Likelihood ratio")
   expect_equal(out$LR$df, tgt$LR$df,info="Likelihood ratio df")
+  if (version=="3.61") expect_equal(out$LR$p, tgt$LR$p, tol= 1e-4, info="Likelihood ratio p-value")
   expect_equal(abs(out$AIC), abs(tgt$AIC), tol=1e-4, info="AIC value")
 
   # wald test
@@ -86,7 +89,7 @@ trimtest <- function(m, to, tc){
 }
 
 context("TRIM Model 3 [vanilla]")
-
+#
 test_that("skylark-1a",{
   tc <- read_tcf("outfiles/skylark-1a.tcf")
   m <- trim(tc)
@@ -169,6 +172,43 @@ test_that("skylark-3a",{
   trimtest(m,to,tc)
 })
 
+context("TRIM skylark-4 [weights]")
+test_that("skylark-4a",{
+  tc <- read_tcf("outfiles/skylark-4a.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4a.out")
+  trimtest(m,to,tc)
+})
+test_that("skylark-4b",{
+  tc <- read_tcf("outfiles/skylark-4b.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4b.out")
+  trimtest(m,to,tc)
+})
+test_that("skylark-4c",{
+  tc <- read_tcf("outfiles/skylark-4c.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4c.out")
+  trimtest(m,to,tc)
+})
+test_that("skylark-4d",{
+  tc <- read_tcf("outfiles/skylark-4d.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4d.out")
+  trimtest(m,to,tc)
+})
+test_that("skylark-4e",{
+  tc <- read_tcf("outfiles/skylark-4e.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4e.out")
+  trimtest(m,to,tc)
+})
+test_that("skylark-4f",{
+  tc <- read_tcf("outfiles/skylark-4f.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4f.out")
+  trimtest(m,to,tc)
+})
 
 context("Output printers")
 test_that("S3 output printers", {

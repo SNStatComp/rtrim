@@ -19,7 +19,7 @@
 #' @keywords internal
 trim_refine <- function(count, time.id, site.id, covars=list(),
                         model=2, serialcor=FALSE, overdisp=FALSE,
-                        changepoints=integer(0))
+                        changepoints=integer(0),weights=numeric(0))
 {
   org_cp = changepoints
   ncp <- length(org_cp)
@@ -27,7 +27,7 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
 
   # Always start with an estimation using all proposed changepoints
   cur_cp <- org_cp
-  z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp)
+  z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp, weights)
 
   # # Hack: remove all except the first changepoints
   # n <- length(org_cp)
@@ -56,7 +56,7 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
     # If a changepoint has been removed, we'll need to re-estimate the model
     if (removed) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp)
+      z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Phase 2: try to re-insert previously removed changepoints
@@ -103,7 +103,7 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
     # If a changepoint has been re-inserted, we'll need to re-estimate the model
     if (added) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp)
+      z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Finished refinement?
@@ -121,13 +121,18 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
 
 Score <- function(z, alpha, beta, changepoints, index) {
   # Unpack TRIM variables
-  f <- z$f
+  f  <- z$f
   rho <- z$rho
   sig2 <- z$sig2
   covars <- z$covars
   cvmat <- z$cvmat
   nsite <- z$nsite
   ntime <- z$ntime
+  if (is.null(z$wt)) {
+    wt <- matrix(1.0, nsite, ntime)
+  } else {
+    wt <- z$wt
+  }
 
   ncp    <- length(changepoints)
   ncovar <- length(covars)
@@ -194,7 +199,7 @@ Score <- function(z, alpha, beta, changepoints, index) {
       }
     }
     # Compute mu
-    mu = exp(alpha[i] + B %*% beta)
+    mu = exp(alpha[i] + B %*% beta) / wt[i, ]
     mu_i = mu[observed]
 
     d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
