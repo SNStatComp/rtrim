@@ -115,7 +115,6 @@ coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 #' #SE <- totals(z)$totals$std.err
 totals <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
-  which <- match.arg(which)
 
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
@@ -158,6 +157,39 @@ print.trim.totals <- function(tt,...) {
   printf("Time totals\n")
   print.data.frame(tt, row.names=FALSE)
 }
+
+
+# ============================================== Variance-Covariance matrix ====
+
+# ----------------------------------------------------------------- extract ----
+
+#' Extract variance-covariance matrix from TRIM output
+#'
+#' @param x TRIM output structure (i.e., output of a call to \code{trim})
+#' @param which Selector to distinguish between variance-covariance based on the
+#' imputed data (default), or the modelled data.
+#'
+#' @return a JxJ matrix, where J is the number or time points.
+#' @export
+#'
+#' @family analyses
+#' @examples
+#' data(skylark)
+#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' totals(z)
+#' vcv1 <- varcovar(z)       # Use imputed data
+#' vcv2 <- varcovar(z,"mod") # Use modelled data
+varcovar <- function(x, which=c("imputed","model")) {
+  stopifnot(inherits(x,"trim"))
+
+  which <- match.arg(which)
+  vcv <- switch(which
+    , model   = x$var_tt_mod
+    , imputed = x$var_tt_imp
+  )
+  vcv
+}
+
 
 
 # =========================================== Reparameterisation of Model 3 ====

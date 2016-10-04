@@ -43,19 +43,20 @@ trim.trimcommand <- function(x,...){
   dat <- read_tdf(x)
   covars <- x$labels[x$covariates]
 
-  if (x$weighting) wgt <- dat$weight
-  else             wgt <- numeric(0)
+  if (isTRUE(x$weighting)) { wgt <- dat$weight }
+  else             { wgt <- numeric(0) }
 
-    trim_estimate(count=dat$count
-                , time.id = dat$time
-                , site.id = dat$site
-                , covars = dat[covars]
-                , model = x$model
-                , serialcor = x$serialcor
-                , overdisp = x$overdisp
-                , changepoints = x$changepoints
-                , stepwise = x$stepwise
-                , weights = wgt)
+  out = trim_estimate(count=dat$count
+                      , time.id = dat$time
+                      , site.id = dat$site
+                      , covars = dat[covars]
+                      , model = x$model
+                      , serialcor = x$serialcor
+                      , overdisp = x$overdisp
+                      , changepoints = x$changepoints
+                      , stepwise = x$stepwise
+                      , weights = wgt)
+  out
 }
 
 #' @param formula \code{[formula]} The dependent variable (left-hand-side)

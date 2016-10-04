@@ -1,6 +1,6 @@
 
 # compare TRIM model m against trim output string to.
-trimtest <- function(m, to, tc){
+trimtest <- function(m, to, tc, vcv=NULL){
 
   version <- get_version(to)
 
@@ -86,10 +86,15 @@ trimtest <- function(m, to, tc){
   if(!is.null(tgt$time)) expect_equal(tgt$time,out$time)
   if(!is.null(tgt$cat)) expect_equal(tgt$cat,out$cat)
   if(!is.null(tgt$covar)) expect_equal(tgt$covar, as.character(out$covar))
+
+  # Variance-covariance
+  if (!is.null(vcv)) {
+    src = varcovar(m,"imputed")
+    expect_equal(src, vcv, tol=1e-3, info="Variance-covariance")
+  }
 }
 
 context("TRIM Model 3 [vanilla]")
-#
 test_that("skylark-1a",{
   tc <- read_tcf("outfiles/skylark-1a.tcf")
   m <- trim(tc)
@@ -98,7 +103,6 @@ test_that("skylark-1a",{
 })
 
 context("TRIM Model 3 [overdisp]")
-
 test_that("skylark-1b",{
   tc <- read_tcf("outfiles/skylark-1b.tcf")
   m <- trim(tc)
@@ -107,7 +111,6 @@ test_that("skylark-1b",{
 })
 
 context("TRIM Model 3 [overdisp, ser.corr]")
-
 test_that("skylark 1c",{
   tc <- read_tcf("outfiles/skylark-1c.tcf")
   m <- trim(tc)
@@ -117,7 +120,6 @@ test_that("skylark 1c",{
 
 
 context("TRIM Model 2 [overdisp, ser.cor]")
-
 test_that("skylark 1d",{
   tc <- read_tcf("outfiles/skylark-1d.tcf")
   m <- trim(tc)
@@ -127,7 +129,6 @@ test_that("skylark 1d",{
 
 
 context("TRIM Model 2 [overdisp, ser.cor, all ch.points]")
-
 test_that("skylark-1e",{
   tc <- read_tcf("outfiles/skylark-1e.tcf")
   m <- trim(tc)
@@ -137,7 +138,6 @@ test_that("skylark-1e",{
 
 
 context("TRIM Model 2 [overdisp, ser.cor, 2 ch.points]")
-
 test_that("skylark-1f",{
   tc <- read_tcf("outfiles/skylark-1f.tcf")
   m <- trim(tc)
@@ -146,7 +146,6 @@ test_that("skylark-1f",{
 })
 
 context("TRIM Model 2 [overdisp, ser.cor, covar, ch.points]")
-
 test_that("skylark-2a",{
   tc <- read_tcf("outfiles/skylark-2a.tcf")
   m <- trim(tc)
@@ -155,7 +154,6 @@ test_that("skylark-2a",{
 })
 
 context("TRIM Model 3 [overdisp, ser.cor, covar]")
-
 test_that("skylark-2b",{
   tc <- read_tcf("outfiles/skylark-2b.tcf")
   m <- trim(tc)
@@ -164,7 +162,6 @@ test_that("skylark-2b",{
 })
 
 context("TRIM Model 2 [overdisp, ser.cor, covar, stepwise]")
-
 test_that("skylark-3a",{
   tc <- read_tcf("outfiles/skylark-3a.tcf")
   m <- trim(tc)
@@ -172,42 +169,66 @@ test_that("skylark-3a",{
   trimtest(m,to,tc)
 })
 
-context("TRIM skylark-4 [weights]")
+context("TRIM skylark-4 [weights, no changepoints, poison]")
 test_that("skylark-4a",{
   tc <- read_tcf("outfiles/skylark-4a.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-4a.out")
   trimtest(m,to,tc)
 })
+
+context("TRIM skylark-4 [weights, cp 1+2, poison]")
 test_that("skylark-4b",{
   tc <- read_tcf("outfiles/skylark-4b.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-4b.out")
   trimtest(m,to,tc)
 })
+
+context("TRIM skylark-4 [weights, cp 1+2, overdisp]")
 test_that("skylark-4c",{
   tc <- read_tcf("outfiles/skylark-4c.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-4c.out")
   trimtest(m,to,tc)
 })
+
+context("TRIM skylark-4 [weights, cp 1+2, serialcor]")
 test_that("skylark-4d",{
   tc <- read_tcf("outfiles/skylark-4d.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-4d.out")
   trimtest(m,to,tc)
 })
+
+context("TRIM skylark-4 [weights, cp 1+2, overdisp+serialcor]")
 test_that("skylark-4e",{
   tc <- read_tcf("outfiles/skylark-4e.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-4e.out")
   trimtest(m,to,tc)
 })
+
+context("TRIM skylark-4 [weights, overdisp+serialcor, stepwise refinement]")
 test_that("skylark-4f",{
   tc <- read_tcf("outfiles/skylark-4f.tcf")
   m <- trim(tc)
   to <- read_tof("outfiles/skylark-4f.out")
   trimtest(m,to,tc)
+})
+
+context("TRIM skylark-x [output of variance-covariance matrix]")
+test_that("skylark-x1",{
+  tc <- read_tcf("outfiles/skylark-x1.tcf")
+  # cat("***\n")
+  # str(tc)
+  # set_trim_verbose(TRUE)
+  m <- trim(tc)
+  # str(m)
+  # cat("***\n")
+  to <- read_tof("outfiles/skylark-x1.out")
+  vcv <- read_vcv("outfiles/skylark-x1.ocv")
+  trimtest(m,to,tc,vcv)
 })
 
 context("Output printers")

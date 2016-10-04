@@ -28,6 +28,21 @@ print.tof <- function(x,...){
   cat(x)
 }
 
+#' Read a TRIM3 variance-covariance output file
+#'
+#' @param file \\code{[character]} filename
+#'
+#' @return A matrix of class \code{[numeric]}
+#'
+#' @family parse_output
+#'
+#' @keywords internal
+read_vcv <- function(file) {
+  df <- read.table(file) # Read as data.frame
+  m  <- as.matrix(df)    # Convert to matrix...
+  out <- unname(m)       # ... and remove dimname attributes to prevent test_equal problem
+}
+
 #' Extract TRIM version used for output
 #'
 #' @return \code{character}
