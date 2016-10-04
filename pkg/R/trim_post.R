@@ -116,7 +116,6 @@ coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 totals <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
   which <- match.arg(which)
-  str(x$time.totals)
 
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
