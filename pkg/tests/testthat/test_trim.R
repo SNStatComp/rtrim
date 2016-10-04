@@ -220,17 +220,19 @@ test_that("skylark-4f",{
 context("TRIM skylark-x [output of variance-covariance matrix]")
 test_that("skylark-x1",{
   tc <- read_tcf("outfiles/skylark-x1.tcf")
-  # cat("***\n")
-  # str(tc)
-  # set_trim_verbose(TRUE)
   m <- trim(tc)
-  # str(m)
-  # cat("***\n")
   to <- read_tof("outfiles/skylark-x1.out")
   vcv <- read_vcv("outfiles/skylark-x1.ocv")
   trimtest(m,to,tc,vcv)
 })
 
+context("TRIM skylark-x [actual years 1984--1991 instead 1--8]")
+test_that("skylark-x2",{
+  tc <- read_tcf("outfiles/skylark-x2.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-x2.out")
+  trimtest(m,to,tc)
+})
 context("Output printers")
 test_that("S3 output printers", {
   data(skylark)

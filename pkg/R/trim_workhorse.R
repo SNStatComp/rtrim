@@ -34,6 +34,7 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #' @param changepoints a numerical vector change points (only for Model 2)
 #' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
 #' @param weights a numerical vector of weights.
+
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -43,11 +44,15 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
                           model=2, serialcor=FALSE, overdisp=FALSE,
                           changepoints=integer(0), stepwise=FALSE, weights=numeric(0))
 {
+  # t1 <- Sys.time()
   if (isTRUE(stepwise)) {
     m <- trim_refine(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints, weights)
   } else {
     m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints, weights)
   }
+  # t2 <- Sys.time()
+  # dt <- difftime(t2,t1)
+  # print(dt)
   m
 }
 
@@ -57,7 +62,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
 #' TRIM workhorse function
 #'
 #' @param count a numerical vector of count data.
-#' @param time.id a numerical vector time points for each count data point.
+#' @param time.id an numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
 #' @param covars an optional data frame with covariates
 #' @param model a model type selector
@@ -65,6 +70,8 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
 #' @param changepoints a numerical vector change points (only for Model 2)
 #' @param weights a numerical vector of weights.
+#' @param conv_crit convergence criterion.
+#' @param max_iter maximum number of iterations allowed.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -73,7 +80,8 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
 #' @keywords internal
 trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
                          model=2, serialcor=FALSE, overdisp=FALSE,
-                         changepoints=integer(0), weights=numeric(0))
+                         changepoints=integer(0), weights=numeric(0),
+                         conv_crit=1e-5, max_iter=200)
 {
 
   # =========================================================== Preparation ====
@@ -375,8 +383,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       update_mu(fill=FALSE)
 
       lik <- likelihood()
-      #printf("( lik = %f\n", lik)
-      if (lik < lik0) break else stepsize <- stepsize / 2 # Stop or try again
+      likc <- (1+conv_crit) * lik0 # threshold value
+      if (lik < likc) break else stepsize <- stepsize / 2 # Stop or try again
     }
     subiter
   }
@@ -552,7 +560,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # model paramaters $\alpha$ and $\beta$, model estimates $\mu$ and likelihood measure $L$.
   new_par <- new_cnt <- new_lik <- NULL
   old_par <- old_cnt <- old_lik <- NULL
-  check_convergence <- function(iter, crit=1e-5) {
+  check_convergence <- function(iter) {
 
     # Collect new data for convergence test
     # (Store in outer environment to make them persistent)
@@ -564,9 +572,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       max_par_change <- max(abs(new_par - old_par))
       max_cnt_change <- max(abs(new_cnt - old_cnt))
       max_lik_change <- max(abs(new_lik - old_lik))
-      conv_par <- max_par_change < crit
-      conv_cnt <- max_cnt_change < crit
-      conv_lik <- max_lik_change < crit
+      conv_par <- max_par_change < conv_crit
+      conv_cnt <- max_cnt_change < conv_crit
+      conv_lik <- max_lik_change < conv_crit
       convergence <- conv_par && conv_cnt && conv_lik
       rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
     } else {
@@ -595,9 +603,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # print(alpha[1:10])
   # print(mu[1:10,]); stop("intended")
 
-  max_iter  <- 100 # Maximum number of iterations allowed
-  conv_crit <- 1e-7
   for (iter in 1:max_iter) {
+    #if (iter==4) method <- final_method
     rprintf("Iteration %d (%s)", iter, method)
 
     update_alpha(method)
@@ -613,8 +620,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     subiters <- update_beta(method)
     rprintf(", %d subiters", subiters)
     rprintf(", lik=%.3f", likelihood())
-    if (overdisp)  rprintf(", sig^2=%.5f", sig2)
-    if (serialcor) rprintf(", rho=%.5f;", rho)
+    if (overdisp)  rprintf(", sig^2=%.3f", sig2)
+    if (serialcor) rprintf(", rho=%.3f;", rho)
 
     convergence <- check_convergence(iter)
 
@@ -652,8 +659,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # Measured, modelled and imputed count data are stored in a TRIM output object,
   # together with parameter values and other usefull information.
 
-  z <- list(title=title, f=f, nsite=nsite, ntime=ntime, nbeta0=nbeta0,
-            covars=covars, ncovar=ncovar, cvmat=cvmat,
+  z <- list(title=title, f=f, nsite=nsite, ntime=ntime, time.id=time.id,
+            nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints,
             mu=mu, imputed=imputed, alpha=alpha, beta=beta, var_beta=var_beta)
   if (use.covars) {
@@ -680,10 +687,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   if (model==2) {
     se_beta  <- sqrt(diag(var_beta))
 
-    ncp = length(changepoints)
+    ncp <- length(changepoints)
+    from_cp <- changepoints
+    upto_cp <- if (ncp==1) ntime else c(changepoints[2:ncp], ntime)
     coefs = data.frame(
-      from   = changepoints,
-      upto   = if (ncp==1) ntime else c(changepoints[2:ncp], ntime),
+      from   = as.numeric(levels(time.id)[from_cp]),
+      upto   = as.numeric(levels(time.id)[upto_cp]),
       add    = beta,
       se_add = se_beta,
       mul    = exp(beta),
@@ -922,7 +931,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   z$var_tt_imp <- var_tt_imp
 
   z$time.totals <- data.frame(
-    time    = 1:ntime,
+    time    = as.numeric(levels(time.id)),
     model   = round(tt_mod),
     se_mod  = se_tt_mod,
     imputed = round(tt_imp),

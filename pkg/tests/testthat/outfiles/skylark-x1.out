@@ -1,14 +1,14 @@
  TRIM 3.61 :  TRend analysis and Indices for Monitoring data 
  STATISTICS NETHERLANDS 
 
- Date/Time: 4-7-2016 15:08:28
+ Date/Time: 4-10-2016 11:57:42
 
- Title :   skylark-1d
+ Title :   skylark-x1
 
- Comment: Example 1; using linear trend model
+ Comment: Variance-Covariance output test
 
  The following  5 variables have been read from file: 
- F:\TRIM\TRIM_manual_demo\skylark.dat
+ Z:\Users\patrick\Work\CBS\TRIM\wine\skylark.dat
 
  1. Site             number of values:    55
  2. Time             number of values:     8
@@ -44,58 +44,62 @@
        8              18      18.89    2.22
 
  RESULTS FOR MODEL: Linear Trend
- ---------------------------------
-
+ --------------------------------
+  Changes in Slope at Timepoints
+      1     2 
 
  ESTIMATION METHOD = Generalised Estimating Equations
 
 
-  Total time used:  3.23 seconds
+  Total time used:  1.02 seconds
 
-  Estimated Overdispersion     =  1.439
-  Estimated Serial Correlation =  0.281
+  Estimated Overdispersion     =  1.334
+  Estimated Serial Correlation =  0.305
 
  GOODNESS OF FIT
-  Chi-square                210.09, df    146, p 0.0004
-  Likelihood Ratio          175.28, df    146, p 0.0495
-  AIC (up to a constant)   -116.72
+  Chi-square                193.36, df    145, p 0.0045
+  Likelihood Ratio          191.81, df    145, p 0.0056
+  AIC (up to a constant)    -98.19
 
- WALD-TEST FOR SIGNIFICANCE OF SLOPE PARAMETER 
-  Wald-Test             11.69, df     1, p  0.0006
+ WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE 
+ Changepoint    Wald-Test  df   p  
+      1            11.08    1  0.0009
+      2            14.90    1  0.0001
 
  PARAMETER ESTIMATES 
 
-         Additive    std.err.   Multiplicative  std.err.
- Slope    0.0484       0.0142       1.0496      0.0149
+ Slope for Time Intervals
+ from upto   Additive  std.err.    Multiplicative   std.err.
+    1    2   -0.3029    0.0910          0.7387       0.0672
+    2    8    0.0757    0.0157          1.0787       0.0169
 
  Time INDICES
   Time     Model     std.err.     Imputed    std.err.
      1     1                       1
-     2     1.0496     0.0149       0.8948     0.0410
-     3     1.1017     0.0312       0.9777     0.0601
-     4     1.1563     0.0491       0.9790     0.0678
-     5     1.2137     0.0687       1.0698     0.0800
-     6     1.2738     0.0902       1.1727     0.0945
-     7     1.3370     0.1136       1.2527     0.1094
-     8     1.4033     0.1391       1.3226     0.1283
+     2     0.7387     0.0672       0.7276     0.0686
+     3     0.7968     0.0687       0.8295     0.0774
+     4     0.8595     0.0723       0.8353     0.0794
+     5     0.9272     0.0787       0.9193     0.0875
+     6     1.0001     0.0885       1.0150     0.0977
+     7     1.0788     0.1020       1.0945     0.1084
+     8     1.1637     0.1195       1.1776     0.1230
 
  TIME TOTALS
   Time      Model    std.err.     Imputed    std.err.
-     1        404         26          443         28
-     2        424         23          396         26
-     3        445         19          433         26
-     4        468         17          434         26
-     5        491         17          474         26
-     6        515         20          519         28
-     7        541         25          555         30
-     8        567         32          586         35
+     1        513         43          511         43
+     2        379         23          372         25
+     3        409         20          424         24
+     4        441         18          427         24
+     5        476         17          470         25
+     6        513         19          519         27
+     7        553         25          559         30
+     8        597         34          602         36
 
  OVERALL SLOPE MODEL: Moderate increase (p<0.01) **
   Additive      std.err.   Multiplicative  std.err.
-    0.0484       0.0142         1.0496      0.0149
+    0.0442       0.0134         1.0452      0.0140
 
  OVERALL SLOPE IMPUTED+(recommended): Moderate increase (p<0.01) **
   Additive      std.err.   Multiplicative  std.err.
-    0.0509       0.0139         1.0522      0.0146
-
+    0.0463       0.0135         1.0474      0.0141
 
