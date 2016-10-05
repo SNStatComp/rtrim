@@ -47,7 +47,6 @@ test_that("read_tcf parses tcf files", {
   expect_equal(x$autodelete,FALSE)
 })
 
-tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlinke temporary file %s",f)))
 
 
 
@@ -84,10 +83,63 @@ test_that("parsing multi-model files",{
   capture.output(print(x))
 })
 
-tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlink temporary file %s",f)))
+
+
+f <- tempfile()
+writeLines("
+FILE F:\\TRIM\\Skylark.dat
+TITLE Skylark.dat
+NTIMES 8
+NCOVARS 2
+LABELS
+ HABITAT
+ Cov2
+END
+COMMENT Hello Bird
+MISSING -1
+WEIGHT Present
+WEIGHTING off
+SERIALCOR on
+OVERDISP on
+BASETIME 1
+MODEL 3
+BEAVIS 7
+COVARIATES 2
+AUTODELETE off
+BUTTHEAD
+OUTPUTFILES F
+RUN", con=f)
 
 
 
+g <- tempfile()
+writeLines("
+FILE F:\\TRIM\\Skylark.dat
+TITLE Skylark.dat
+NTIMES 8
+NCOVARS 2
+END
+ HABITAT
+ Cov2
+LABELS
+COMMENT Hello Bird
+MISSING -1
+WEIGHT Present
+WEIGHTING off
+SERIALCOR on
+OVERDISP on
+BASETIME 1
+MODEL 3
+COVARIATES 2
+AUTODELETE off
+OUTPUTFILES F
+RUN", con=g)
+
+
+test_that("warning on invalid keys",{
+  expect_warning(read_tcf(f),regex = "BEAVIS.*?BUTTHEAD")
+  expect_error(read_tcf(g),regex="LABELS")
+})
 
 
 

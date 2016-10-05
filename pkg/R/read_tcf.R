@@ -197,9 +197,10 @@ as_rtrim <- function(value, template){
 #' @export
 read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
   con <- file(description = file, encoding=encoding)
+  on.exit(close(con))
   tcf <- paste(readLines(con), collapse="\n")
-  close(con)
-
+  check_tcf(tcf)
+  
   tcflist <- trimws(strsplit(tcf,"(\\n|^)RUN")[[1]])
   L <- vector(mode="list",length=length(tcflist))
   L[[1]] <- tc_from_char(tcflist[[1]])
@@ -329,5 +330,40 @@ oneliner <- function(x){
       ))
   }
 }
+
+
+
+
+check_tcf <- function(x){
+  keywords <- c(names(trimcommand()),"end","run")
+  s <- trimws(strsplit(x,"\\n")[[1]])
+
+  i_labels <- grep("^labels",s,ignore.case=TRUE)
+  i_end <- grep("^end",s,ignore.case=TRUE)
+  if (i_labels > i_end){
+    stop(sprintf("Detected LABELS keyword (#%d) before END (#%d) in TRIM command file"
+            ,i_labels,i_end))
+  }
+  # remove labels between LABELS and END (if any)
+  if (i_end - i_labels > 1)   s <- s[-seq(i_labels+1, i_end-1)]
+  
+  # remove empty lines
+  s <- s[nchar(s)>0]
+ 
+  # check tcf file for unknown keywords and warn if any occur
+  mm <- regexpr("^.+?([[:blank:]]|$)",s)
+  keys_in_file <- trimws(regmatches(s,mm))
+  
+  invalid_keys <- keys_in_file[!toupper(keys_in_file) %in% toupper(keywords)]
+
+  if(length(invalid_keys) > 0){
+    warning(sprintf("Ingnoring lines with the following invalid keywords: %s."
+                    , paste0("'",invalid_keys,"'",collapse=", ")), call.=FALSE)
+  }
+  
+}
+
+
+
 
 

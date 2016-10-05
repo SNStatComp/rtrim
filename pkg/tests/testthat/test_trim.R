@@ -170,6 +170,29 @@ test_that("skylark-3a",{
 })
 
 
+
+
+
+context("Calling trim the R-way (smoketests)")
+
+test_that("testing skylark-2a",{
+  tc <- read_tcf("outfiles/skylark-2a.tcf")
+  dat <- read_tdf(tc)
+  
+  m <- trim(count ~ time + site + Habitat, data=dat
+            , serialcor=TRUE, overdisp = TRUE, model=2
+            , changepoints=1:7, autodelete=FALSE)
+  to <- read_tof("outfiles/skylark-2a.out")
+  # formula-data interface
+  trimtest(m,to,tc)
+  # data-formula interface: note: nothing should be auto-deleted.
+  m <- trim(dat, formula = count ~ time + site + Habitat
+            , serialcor=TRUE, overdisp = TRUE, model=2
+            , changepoints=1:7,autodelete=TRUE)
+  trimtest(m,to,tc)
+  
+})
+
 context("Output printers")
 test_that("S3 output printers", {
   data(skylark)
