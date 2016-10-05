@@ -176,7 +176,7 @@ test_that("skylark-3a",{
   trimtest(m,to,tc)
 })
 
-context("TRIM skylark-4 [weights, no changepoints, poison]")
+context("TRIM skylark-4 [weights, no changepoints, Poisson]")
 test_that("skylark-4a",{
   tc <- read_tcf("outfiles/skylark-4a.tcf")
   m <- trim(tc)
