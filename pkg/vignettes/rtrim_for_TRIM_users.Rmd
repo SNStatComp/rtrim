@@ -102,12 +102,18 @@ points where necessary.
 ```{r}
 m3 <- trim(count ~ time + site + Habitat, data=skylark, model=2
      , overdisp = TRUE, serialcor = TRUE, changepoints=1:7, autodelete=TRUE)
-
+m3$changepoints
 ```
+In this case, no change points are deleted.
 
-
-
-
+Alternatively the `stepwise` algorithm can be used. This algorithm removes changepoints
+when the slope does not change significantly from before to after a changepoint, yielding a
+simpler (more robust) model.
+```{r}
+m4 <- trim(count ~ time + site + Habitat, data=skylark, model=2
+     , overdisp = TRUE, serialcor = TRUE, changepoints=1:7, stepwise = TRUE)
+m4$changepoints
+```
 
 
 
