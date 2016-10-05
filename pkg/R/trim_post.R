@@ -13,15 +13,15 @@
 #'   (\code{est.method}), overdispersion (\code{sig2}) and autocorrelation (\code{rho})
 #' @export
 #'
-#' @family analyses 
+#' @family analyses
 #' @seealso \code{\link{trim}}
 #' @examples
-#' 
+#'
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
-#' summary(z) 
+#' summary(z)
 #' # extract autocorrelation strength
-#' rho <- summary(z)$rho 
+#' rho <- summary(z)$rho
 summary.trim <- function(object,...) {
   x <- object
   if (is.finite(x$sig2) || is.finite(x$rho)) {
@@ -67,9 +67,9 @@ print.trim.summary <- function(x,...) {
 #' @examples
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
-#' summary(z) 
+#' summary(z)
 #' # extract autocorrelation strength
-#' rho <- summary(z)$rho 
+#' rho <- summary(z)$rho
 coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 
   # Craft a custom output
@@ -85,8 +85,8 @@ coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
     cols <- c(1:(n-4), (n-1):n)
   } else if (which=="both") {
     cols = 1:n
-  } 
-  out <- object$coefficients[cols] 
+  }
+  out <- object$coefficients[cols]
   out
 }
 
@@ -109,14 +109,13 @@ coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 #' @examples
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2);
-#' totals(z) 
+#' totals(z)
 #' #print(totals(z,"imputed")) # idem
 #' #totals(z, "both") # mimics classic TRIM
 #' #SE <- totals(z)$totals$std.err
 totals <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
-  which <- match.arg(which)
-  
+
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
   totals <- switch(which
@@ -148,16 +147,49 @@ export.trim.totals <- function(x, species, stratum) {
 #------------------------------------------------------------------- Print ----
 
 #' Print method for trim time totals
-#' 
-#' @param x \code{trim.totals} object
+#'
+#' @param tt \code{trim.totals} object
 #' @param ... currently unused
-#' 
+#'
 #' @export
 #' @keywords internal
-print.trim.totals <- function(x,...) {
+print.trim.totals <- function(tt,...) {
   printf("Time totals\n")
-  print(x$totals, row.names=FALSE)
+  print.data.frame(tt, row.names=FALSE)
 }
+
+
+# ============================================== Variance-Covariance matrix ====
+
+# ----------------------------------------------------------------- extract ----
+
+#' Extract variance-covariance matrix from TRIM output
+#'
+#' @param x TRIM output structure (i.e., output of a call to \code{trim})
+#' @param which Selector to distinguish between variance-covariance based on the
+#' imputed data (default), or the modelled data.
+#'
+#' @return a JxJ matrix, where J is the number or time points.
+#' @export
+#'
+#' @family analyses
+#' @examples
+#' data(skylark)
+#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' totals(z)
+#' vcv1 <- varcovar(z)       # Use imputed data
+#' vcv2 <- varcovar(z,"mod") # Use modelled data
+varcovar <- function(x, which=c("imputed","model")) {
+  stopifnot(inherits(x,"trim"))
+
+  which <- match.arg(which)
+  vcv <- switch(which
+    , model   = x$var_tt_mod
+    , imputed = x$var_tt_imp
+  )
+  vcv
+}
+
 
 
 # =========================================== Reparameterisation of Model 3 ====
@@ -178,18 +210,18 @@ print.trim.totals <- function(x,...) {
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=3)
 #' # print coefficients of the linear trend
-#' print(linear(z)) 
+#' print(linear(z))
 #' # get linear trend magnitude
-#' slope <- linear(z)$trend$Multiplicative 
+#' slope <- linear(z)$trend$Multiplicative
 #' # ... and the deviations from that trend
-#' devs  <- linear(z)$dev$Multiplicative   
+#' devs  <- linear(z)$dev$Multiplicative
 linear <- function(x) {
   stopifnot(inherits(x,"trim"))
   if (x$model !=3 ){
     message("Cannot extract linear coefficients from TRIM model %d",x$model)
     return(NULL)
   }
-  
+
   structure(list(trend=x$linear.trend, dev=x$deviations), class="trim.linear")
 }
 
@@ -197,9 +229,9 @@ linear <- function(x) {
 
 
 #' Print an object of class trim.linear
-#' 
+#'
 #' @param x An object of class \code{trim.linear}
-#' 
+#'
 #' @export
 #' @keywords internal
 print.trim.linear <- function(x,...) {

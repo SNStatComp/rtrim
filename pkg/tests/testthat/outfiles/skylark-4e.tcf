@@ -1,0 +1,18 @@
+FILE outfiles/skylark_wt.dat
+TITLE  skylark-4e
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT present
+
+comment Now with both overdispersion and serial correlation
+model 2
+changepoints 1 2
+weighting on
+overdisp on
+serialcor on
+run

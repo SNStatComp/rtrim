@@ -56,14 +56,14 @@
 #' @export
 #'
 #' @examples
-#' 
+#'
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
-#' index(z) 
+#' index(z)
 #' # mimic classic TRIM:
-#' index(z, "both") 
+#' index(z, "both")
 #' # Extract standard error for the imputed data
-#' SE <- index(z)$std.err 
+#' SE <- index(z)$std.err
 #'
 index <- function(x, which=c("imputed","model","both"), base=1) {
   stopifnot(inherits(x,"trim"))
@@ -74,20 +74,20 @@ index <- function(x, which=c("imputed","model","both"), base=1) {
     # Call workhorse function to do the actual computation
     mod <- .index(x$tt_mod, x$var_tt_mod, base)
     # Store results in a data frame
-    out <- data.frame(time  = 1:x$ntime,
+    out <- data.frame(time  = x$time.id,
                      model = mod$tau,
                      se_mod = sqrt(mod$var_tau))
   } else if (which=="imputed") {
     # Idem, using the imputed time totals instead
     imp <- .index(x$tt_imp, x$var_tt_imp, base)
-    out = data.frame(time    = 1:x$ntime,
+    out = data.frame(time    = x$time.id,
                      imputed = imp$tau,
                      se_imp  = sqrt(imp$var_tau))
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
     mod <- .index(x$tt_mod, x$var_tt_mod, base)
     imp <- .index(x$tt_imp, x$var_tt_imp, base)
-    out = data.frame(time    = 1:x$ntime,
+    out = data.frame(time    = x$time.id,
                      model   = mod$tau,
                      se_mod  = sqrt(mod$var_tau),
                      imputed = imp$tau,

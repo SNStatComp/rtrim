@@ -31,6 +31,7 @@
 #' \item{ \code{stepwise} \code{[logical]} Whether stepwise selection of the changepoints is to be used.}
 #' \item{ \code{autodelete} \code{[logical]} Whether to autodelete change points when number of observations is to low in a time segment.}
 #' \item{ \code{outputfiles} \code{[character]} Type of outputfile to generate ('F' and/or 'S')}
+#' \item{ \code{overallchangepoints} \code{[integer]} Positions of the overall change points.}
 #'}
 #'
 #' @family modelspec
@@ -57,6 +58,7 @@ trimcommand <- function(...){
     , stepwise     = logical(0)
     , autodelete   = logical(0)
     , outputfiles  = character(0)
+    , overallchangepoints = integer(0)
   )
   class(tc) <- c("trimcommand","list")
   L <- list(...)
@@ -161,6 +163,7 @@ as_rtrim <- function(value, template){
 #' \code{CHANGEPOINTS} \tab [integers] indices of changepoints\cr
 #' \code{STEPWISE} \tab [\code{on},\code{off}] Switch stepwise selection of changepoints [translated to \code{logical}].\cr
 #' \code{AUTODELETE} \tab [\code{on}, \code{off}] Delete changepoints when the corresponding time segment has to litte observations. \cr
+#' \code{OVERALLCHANGEPOINTS} \tab[integers] indices of overall changepoints\cr
 #' \code{RUN}\tab Signals end of current model specification.
 #' }
 #'

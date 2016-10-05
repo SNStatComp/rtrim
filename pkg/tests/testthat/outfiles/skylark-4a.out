@@ -1,0 +1,108 @@
+ TRIM 3.70 :  TRend analysis and Indices for Monitoring data 
+ STATISTICS NETHERLANDS 
+
+ Date/Time: 3-10-2016 11:52:50
+
+ Title :   skylark-4a
+
+ Comment: Simplest model 2 with weights
+
+ The following  6 variables have been read from file: 
+ Z:\Users\patrick\Work\CBS\TRIM\wine\skylark_wt.dat
+
+ 1. Site             number of values:    55
+ 2. Time             number of values:     8
+ 3. Count            missing =        999
+ 4. weight 
+ 5. HABITAT          number of values:  2
+ 6. COV2             number of values:  4
+
+ Number of observed zero counts           0
+ Number of observed positive counts     202
+ Total number of observed counts        202
+ Number of missing counts               238
+ Total number of counts                 440
+
+ Total count                         2536.0
+
+ Sites containing more than 10% of the total count 
+   Site Number  Observed Total    %   
+         3        431.0         17.0
+        37        266.0         10.5
+        40        624.0         24.6
+
+ Time Point Averages 
+                                              Weighted  Weighted
+   TimePoint  Observations  Average   Index   Average   Index  
+       1              25       8.52    1.00     30.12    1.00
+       2              20       8.10    0.95     27.00    0.90
+       3              30      10.90    1.28     24.10    0.80
+       4              30      11.27    1.32     23.87    0.79
+       5              28      12.75    1.50     23.36    0.78
+       6              29      14.66    1.72     36.38    1.21
+       7              22      17.00    2.00     31.73    1.05
+       8              18      18.89    2.22     35.39    1.17
+
+ RESULTS FOR MODEL: Linear Trend
+ ---------------------------------
+
+
+ WEIGHTING = On
+
+ ESTIMATION METHOD = Maximum Likelihood
+
+
+  Total time used:  0.63 seconds
+
+ GOODNESS OF FIT
+  Chi-square                210.53, df    146, p 0.0000
+  Likelihood Ratio          204.63, df    146, p 0.0000
+  AIC (up to a constant)    -87.37
+
+ WALD-TEST FOR SIGNIFICANCE OF SLOPE PARAMETER 
+  Wald-Test             27.60, df     1, p  0.0000
+
+ PARAMETER ESTIMATES 
+
+         Additive    std.err.   Multiplicative  std.err.
+ Slope    0.0548       0.0104       1.0564      0.0110
+
+ Time INDICES
+  Time     Model     std.err.     Imputed    std.err.
+     1     1                       1
+     2     1.0564     0.0110       0.9195     0.0588
+     3     1.1159     0.0233       0.9549     0.0619
+     4     1.1788     0.0369       0.9662     0.0653
+     5     1.2452     0.0520       0.9518     0.0708
+     6     1.3154     0.0686       1.0744     0.0824
+     7     1.3895     0.0870       1.1139     0.0887
+     8     1.4678     0.1072       1.1316     0.1006
+
+ TIME TOTALS
+  Time     Model     std.err.    Imputed     std.err.
+     1      1116          73        1344          88
+     2      1179          70        1236          87
+     3      1246          69        1284          89
+     4      1316          70        1299          92
+     5      1390          74        1280          96
+     6      1469          81        1444         104
+     7      1551          91        1498         108
+     8      1639         105        1521         121
+
+ OVERALL SLOPE MODEL (with intercept)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0548       0.0104         1.0564      0.0110
+
+ OVERALL SLOPE IMPUTED (with intercept, recommended)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0257       0.0113         1.0261      0.0116
+
+ OVERALL SLOPE MODEL (through base time point)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0548       0.0104         1.0564      0.0110
+
+ OVERALL SLOPE IMPUTED (through base time point)
+  Additive      std.err.   Multiplicative  std.err.
+    0.0100       0.0126         1.0100      0.0127
+
+

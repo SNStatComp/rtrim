@@ -1,0 +1,17 @@
+FILE outfiles/skylark.dat
+TITLE  skylark-x1
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT absent
+
+comment Variance-Covariance output test
+model 2
+changepoints 1 2
+overdisp on
+serialcor on
+run

@@ -1,0 +1,105 @@
+ TRIM 3.61 :  TRend analysis and Indices for Monitoring data 
+ STATISTICS NETHERLANDS 
+
+ Date/Time: 4-10-2016 17:40:30
+
+ Title :   skylark-x2
+
+ Comment: Actual year test
+
+ The following  5 variables have been read from file: 
+ Z:\Users\patrick\Work\CBS\TRIM\wine\skylark_yr.dat
+
+ 1. Site             number of values:    55
+ 2. Time             number of values:     8
+ 3. Count            missing =        999
+ 4. HABITAT          number of values:  2
+ 5. COV2             number of values:  4
+
+ Number of sites without positive counts (removed)       0
+
+ Number of observed zero counts           0
+ Number of observed positive counts     202
+ Total number of observed counts        202
+ Number of missing counts               238
+ Total number of counts                 440
+
+ Total count                         2536.0
+
+ Sites containing more than 10% of the total count 
+   Site Number  Observed Total    %   
+         3        431.0         17.0
+        37        266.0         10.5
+        40        624.0         24.6
+
+ Time Point Averages 
+   TimePoint  Observations  Average   Index  
+    1984              25       8.52    1.00
+    1985              20       8.10    0.95
+    1986              30      10.90    1.28
+    1987              30      11.27    1.32
+    1988              28      12.75    1.50
+    1989              29      14.66    1.72
+    1990              22      17.00    2.00
+    1991              18      18.89    2.22
+
+ RESULTS FOR MODEL: Linear Trend
+ --------------------------------
+  Changes in Slope at Timepoints
+   1984  1985 
+
+ ESTIMATION METHOD = Generalised Estimating Equations
+
+
+  Total time used:  1.07 seconds
+
+  Estimated Overdispersion     =  1.334
+  Estimated Serial Correlation =  0.305
+
+ GOODNESS OF FIT
+  Chi-square                193.36, df    145, p 0.0045
+  Likelihood Ratio          191.81, df    145, p 0.0056
+  AIC (up to a constant)    -98.19
+
+ WALD-TEST FOR SIGNIFICANCE OF CHANGES IN SLOPE 
+ Changepoint    Wald-Test  df   p  
+   1984            11.08    1  0.0009
+   1985            14.90    1  0.0001
+
+ PARAMETER ESTIMATES 
+
+ Slope for Time Intervals
+ from upto   Additive  std.err.    Multiplicative   std.err.
+ 1984 1985   -0.3029    0.0910          0.7387       0.0672
+ 1985 1991    0.0757    0.0157          1.0787       0.0169
+
+ Time INDICES
+  Time     Model     std.err.     Imputed    std.err.
+  1984     1                       1
+  1985     0.7387     0.0672       0.7276     0.0686
+  1986     0.7968     0.0687       0.8295     0.0774
+  1987     0.8595     0.0723       0.8353     0.0794
+  1988     0.9272     0.0787       0.9193     0.0875
+  1989     1.0001     0.0885       1.0150     0.0977
+  1990     1.0788     0.1020       1.0945     0.1084
+  1991     1.1637     0.1195       1.1776     0.1230
+
+ TIME TOTALS
+  Time      Model    std.err.     Imputed    std.err.
+  1984        513         43          511         43
+  1985        379         23          372         25
+  1986        409         20          424         24
+  1987        441         18          427         24
+  1988        476         17          470         25
+  1989        513         19          519         27
+  1990        553         25          559         30
+  1991        597         34          602         36
+
+ OVERALL SLOPE MODEL: Moderate increase (p<0.01) **
+  Additive      std.err.   Multiplicative  std.err.
+    0.0442       0.0134         1.0452      0.0140
+
+ OVERALL SLOPE IMPUTED+(recommended): Moderate increase (p<0.01) **
+  Additive      std.err.   Multiplicative  std.err.
+    0.0463       0.0135         1.0474      0.0141
+

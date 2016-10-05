@@ -1,6 +1,8 @@
 
 # compare TRIM model m against trim output string to.
-trimtest <- function(m, to, tc){
+trimtest <- function(m, to, tc, vcv=NULL){
+
+  version <- get_version(to)
 
   # data basics
   expect_equal(m$nsite, get_n_site(to))
@@ -28,25 +30,33 @@ trimtest <- function(m, to, tc){
     )
   }
 
-  # overall slope
+  # Overall slope
   tgt <- get_overal_imputed_slope(to)
-  out <- overall(m,"imputed")
-  # std errors are not tested here...
-  expect_true(abs(out$coef[2,1] - tgt[1]) < 1e-4)
-  expect_true(abs(out$coef[2,3] - tgt[3]) < 1e-4)
+  out <- overall(m,"imputed")$coef[2,] # Slope coefs are in second row
+  for (i in seq_len(ncol(tgt))) {
+    expect_true(max(abs(out[,i] - tgt[,i])) < 1e-4,
+                info = sprintf("Overall slope column %d", i))
+  }
 
-
-  # but here, with a somewhat higher tolerance:
-  expect_true( max( abs(out$coef[2,c(2,4)] - tgt[c(2,4)]) ) < 1e-3)
+  # Overall slope (changepoints) [optional]
+  if (length(tc$overallchangepoints)>0) {
+    tgt <- get_overal_cp_imputed_slope(to)
+    out <- overall(m, "imputed", tc$overallchangepoints)
+    for (i in seq_len(ncol(tgt))) {
+      expect_true(max(abs(out$coef[,i]-tgt[,i]), na.rm=TRUE) < 1e-4,
+                  info=sprintf("Overall slope (changepts) column %d",i))
+    }
+  }
 
   # goodness-of-fit
   tgt <- get_gof(to)
   out <- gof(m)
   expect_equal(out$chi2$chi2, tgt$chi2$chi2, tol = 1e-3, info="chi2 value")
   expect_equal(out$chi2$df, tgt$chi2$df, info="chi2 df")
-  expect_equal(out$chi2$p, tgt$chi2$p, tol= 1e-4, info="chi2 p-value")
+  if (version=="3.61") expect_equal(out$chi2$p, tgt$chi2$p, tol= 1e-4, info="chi2 p-value")
   expect_equal(out$LR$LR, tgt$LR$LR, tol=1e-3, info="Likelihood ratio")
   expect_equal(out$LR$df, tgt$LR$df,info="Likelihood ratio df")
+  if (version=="3.61") expect_equal(out$LR$p, tgt$LR$p, tol= 1e-4, info="Likelihood ratio p-value")
   expect_equal(abs(out$AIC), abs(tgt$AIC), tol=1e-4, info="AIC value")
 
   # wald test
@@ -83,10 +93,15 @@ trimtest <- function(m, to, tc){
   if(!is.null(tgt$time)) expect_equal(tgt$time,out$time)
   if(!is.null(tgt$cat)) expect_equal(tgt$cat,out$cat)
   if(!is.null(tgt$covar)) expect_equal(tgt$covar, as.character(out$covar))
+
+  # Variance-covariance
+  if (!is.null(vcv)) {
+    src = varcovar(m,"imputed")
+    expect_equal(src, vcv, tol=1e-3, info="Variance-covariance")
+  }
 }
 
 context("TRIM Model 3 [vanilla]")
-
 test_that("skylark-1a",{
   tc <- read_tcf("outfiles/skylark-1a.tcf")
   m <- trim(tc)
@@ -95,7 +110,6 @@ test_that("skylark-1a",{
 })
 
 context("TRIM Model 3 [overdisp]")
-
 test_that("skylark-1b",{
   tc <- read_tcf("outfiles/skylark-1b.tcf")
   m <- trim(tc)
@@ -104,7 +118,6 @@ test_that("skylark-1b",{
 })
 
 context("TRIM Model 3 [overdisp, ser.corr]")
-
 test_that("skylark 1c",{
   tc <- read_tcf("outfiles/skylark-1c.tcf")
   m <- trim(tc)
@@ -114,7 +127,6 @@ test_that("skylark 1c",{
 
 
 context("TRIM Model 2 [overdisp, ser.cor]")
-
 test_that("skylark 1d",{
   tc <- read_tcf("outfiles/skylark-1d.tcf")
   m <- trim(tc)
@@ -124,7 +136,6 @@ test_that("skylark 1d",{
 
 
 context("TRIM Model 2 [overdisp, ser.cor, all ch.points]")
-
 test_that("skylark-1e",{
   tc <- read_tcf("outfiles/skylark-1e.tcf")
   m <- trim(tc)
@@ -134,7 +145,6 @@ test_that("skylark-1e",{
 
 
 context("TRIM Model 2 [overdisp, ser.cor, 2 ch.points]")
-
 test_that("skylark-1f",{
   tc <- read_tcf("outfiles/skylark-1f.tcf")
   m <- trim(tc)
@@ -143,7 +153,6 @@ test_that("skylark-1f",{
 })
 
 context("TRIM Model 2 [overdisp, ser.cor, covar, ch.points]")
-
 test_that("skylark-2a",{
   tc <- read_tcf("outfiles/skylark-2a.tcf")
   m <- trim(tc)
@@ -152,7 +161,6 @@ test_that("skylark-2a",{
 })
 
 context("TRIM Model 3 [overdisp, ser.cor, covar]")
-
 test_that("skylark-2b",{
   tc <- read_tcf("outfiles/skylark-2b.tcf")
   m <- trim(tc)
@@ -161,7 +169,6 @@ test_that("skylark-2b",{
 })
 
 context("TRIM Model 2 [overdisp, ser.cor, covar, stepwise]")
-
 test_that("skylark-3a",{
   tc <- read_tcf("outfiles/skylark-3a.tcf")
   m <- trim(tc)
@@ -169,6 +176,78 @@ test_that("skylark-3a",{
   trimtest(m,to,tc)
 })
 
+context("TRIM skylark-4 [weights, no changepoints, poison]")
+test_that("skylark-4a",{
+  tc <- read_tcf("outfiles/skylark-4a.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4a.out")
+  trimtest(m,to,tc)
+})
+
+context("TRIM skylark-4 [weights, cp 1+2, poison]")
+test_that("skylark-4b",{
+  tc <- read_tcf("outfiles/skylark-4b.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4b.out")
+  trimtest(m,to,tc)
+})
+
+context("TRIM skylark-4 [weights, cp 1+2, overdisp]")
+test_that("skylark-4c",{
+  tc <- read_tcf("outfiles/skylark-4c.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4c.out")
+  trimtest(m,to,tc)
+})
+
+context("TRIM skylark-4 [weights, cp 1+2, serialcor]")
+test_that("skylark-4d",{
+  tc <- read_tcf("outfiles/skylark-4d.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4d.out")
+  trimtest(m,to,tc)
+})
+
+context("TRIM skylark-4 [weights, cp 1+2, overdisp+serialcor]")
+test_that("skylark-4e",{
+  tc <- read_tcf("outfiles/skylark-4e.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4e.out")
+  trimtest(m,to,tc)
+})
+
+context("TRIM skylark-4 [weights, overdisp+serialcor, stepwise refinement]")
+test_that("skylark-4f",{
+  tc <- read_tcf("outfiles/skylark-4f.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-4f.out")
+  trimtest(m,to,tc)
+})
+
+context("TRIM skylark-x [output of variance-covariance matrix]")
+test_that("skylark-x1",{
+  tc <- read_tcf("outfiles/skylark-x1.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-x1.out")
+  vcv <- read_vcv("outfiles/skylark-x1.ocv")
+  trimtest(m,to,tc,vcv)
+})
+
+context("TRIM skylark-x [actual years 1984--1991 instead 1--8]")
+test_that("skylark-x2",{
+  tc <- read_tcf("outfiles/skylark-x2.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-x2.out")
+  trimtest(m,to,tc)
+})
+
+context("TRIM skylark-x [overall changepoints]")
+test_that("skylark-x3",{
+  tc <- read_tcf("outfiles/skylark-x3.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-x3.out")
+  trimtest(m,to,tc)
+})
 
 
 

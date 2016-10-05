@@ -53,7 +53,7 @@
 #' data(skylark)
 #' z2 <- trim(count ~ time + site, data=skylark, model=2)
 #' # print info on significance of slope parameters
-#' print(z2)  
+#' print(z2)
 #' z3 <- trim(count ~ time + site, data=skylark, model=3)
 #' # print info on significance of deviations from linear trend
 #' wald(z3)
@@ -73,6 +73,11 @@ wald.trim <- function(x)
   nclass <- x$nclass
   beta <- x$beta
   var_beta <- x$var_beta
+
+  # Extract actual changepoints
+  if (model==2) {
+    changept <- x$time.id[x$changepoints]
+  }
 
   if (model==3 && ncovar==0) {
     gstar <- x$gstar
@@ -146,7 +151,7 @@ wald.trim <- function(x)
     W <- theta^2 / var_theta # Eqn~\eqref{Wald-scalar}
     df <- 1 # degrees of freedom
     p  <- 1 - pchisq(W, df=df) # $p$-value, based on $W$ being $\chi^2$ distributed.
-    wald$dslope <- list(W=W, df=df, p=p)
+    wald$dslope <- list(cp=changept, W=W, df=df, p=p)
   }
 
   # A variant is the same test for  multiple covariates
@@ -189,7 +194,7 @@ wald.trim <- function(x)
     }
     df <- nblock
     p <- 1 - pchisq(W, df)
-    wald$dslope <- list(W=W, df=df, p=p)
+    wald$dslope <- list(cp=changept, W=W, df=df, p=p)
   }
 
 
@@ -255,9 +260,9 @@ wald.trim <- function(x)
 # A simple printing function is provided that mimics the output of TRIM for Windows.
 
 #' Print an object of class trim.wald
-#' 
+#'
 #' @param x An object of class \code{trim.wald}
-#' 
+#'
 #' @export
 #' @keywords internal
 print.trim.wald <- function(x,...) {
@@ -273,8 +278,10 @@ print.trim.wald <- function(x,...) {
     printf("  Wald = %.2f, df=%d, p=%f\n", x$slope$W, x$slope$df, x$slope$p)
   } else if (!is.null(x$dslope)) {
     printf("Wald test for significance of changes in slope\n")
-    df = data.frame(Changepoint = 1:length(x$dslope$W),
-                    Wald_test = x$dslope$W, df = x$dslope$df, p = x$dslope$p)
+    df = data.frame(Changepoint = x$dslope$cp,
+                    Wald_test = x$dslope$W,
+                    df = x$dslope$df,
+                    p = x$dslope$p)
     print(df, row.names=FALSE)
   } else if (!is.null(x$deviations)) {
     printf("Wald test for significance of deviations from linear trend\n")

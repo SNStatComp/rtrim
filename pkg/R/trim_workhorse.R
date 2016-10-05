@@ -34,6 +34,7 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #' @param changepoints a numerical vector change points (only for Model 2)
 #' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
 #' @param autodelete a flag indicating auto-deletion of changepoints with too little observations.
+#' @param weights a numerical vector of weights.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -42,18 +43,41 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
                           model=2, serialcor=FALSE, overdisp=FALSE,
                           changepoints=integer(0), stepwise=FALSE, 
-                          autodelete=FALSE)
+                          autodelete=FALSE, weights=numeric(0)
+                          changepoints=integer(0), stepwise=FALSE,
+                          weights=numeric(0))
 {
-  
+  # kick out empty sites
+  ok = rep(TRUE, length(count))
+  sites = unique(site.id)
+  nkickout = 0
+  for (site in sites) {
+    idx = site.id==site
+    if (!any(count[idx]>0, na.rm=TRUE)) {
+      ok[idx] = FALSE
+      nkickout = nkickout+1
+    }
+  }
+  if (nkickout>0) {
+    count = count[ok]
+    time.id = time.id[ok]
+    site.id = site.id[ok]
+    if (length(weights)>0) weights = weights[ok]
+    rprintf("Kicked out %d sites\n", nkickout)
+  }
+
+  t1 <- Sys.time()
   if (isTRUE(stepwise)) {
-    m <- trim_refine(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints)
+    m <- trim_refine(count, time.id, site.id, covars, model, serialcor
+          , overdisp, changepoints, weights)
   } else {
     # data input checks: throw error if not enough counts available.
     if (model == 2 && autodelete){
-      changepoints <- autodelete(count=count, time=time.id, changepoints = changepoints, covars=covars)
+      changepoints <- autodelete(count=count, time=time.id
+        , changepoints = changepoints, covars=covars)
     } else if (model == 2){
       assert_plt_model(count = count, time = time.id
-                       , changepoints = changepoints, covars = covars)
+              , changepoints = changepoints, covars = covars)
     
     } else if (model == 3){
       assert_sufficient_counts(count = count, index = time.id)
@@ -62,9 +86,12 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
     
     
     # compute actual model
-    m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor
-      , overdisp, changepoints)
+    m <- trim_workhorse(count, time.id, site.id, covars, model
+          , serialcor, overdisp, changepoints, weights)
   }
+  t2 <- Sys.time()
+  dt <- difftime(t2,t1)
+  rprintf("Running trim took %8.4f %s\n",dt,attr(u,"units"))
   m
 }
 
@@ -74,13 +101,16 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
 #' TRIM workhorse function
 #'
 #' @param count a numerical vector of count data.
-#' @param time.id a numerical vector time points for each count data point.
+#' @param time.id an numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
 #' @param covars an optional data frame with covariates
 #' @param model a model type selector
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
 #' @param changepoints a numerical vector change points (only for Model 2)
+#' @param weights a numerical vector of weights.
+#' @param conv_crit convergence criterion.
+#' @param max_iter maximum number of iterations allowed.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -89,7 +119,8 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
 #' @keywords internal
 trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
                          model=2, serialcor=FALSE, overdisp=FALSE,
-                         changepoints=integer(0))
+                         changepoints=integer(0), weights=numeric(0),
+                         conv_crit=1e-5, max_iter=200)
 {
 
   # =========================================================== Preparation ====
@@ -139,6 +170,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     return(NULL)
   }
 
+  # Weights should be either absent, or aligned with the counts
+  if (length(weights)>0) {
+    use.weights <- TRUE
+    stopifnot(length(weights)==length(count))
+  } else use.weights <- FALSE
+
   # Convert time and site to factors, if they're not yet
   if (any(class(time.id) %in% c("integer","numeric"))) time.id <- ordered(time.id)
   ntime = length(levels(time.id))
@@ -168,6 +205,11 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   } else {
     cvmat <- NULL
   }
+
+  # idem for the weights
+  wt <- matrix(1.0, nsite, ntime)
+  if (use.weights) wt[idx] <- weights
+  #wt[wt>1.0] = 1.1000
 
   # We often need some specific subset of the data, e.g.\ all observations for site 3.
   # These are conveniently found by combining the following indices:
@@ -277,6 +319,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   # Parameter $\alpha$ has a unique value for each site.
   alpha <- matrix(0, nsite,1) # Store as column vector
+  alpha <- matrix(log(rowSums(f, na.rm=TRUE)/ntime))
 
   # Parameter $\beta$ is model dependent.
   if (model==2) {
@@ -314,6 +357,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # In this case,
   # $$ z = \mu V^{-1} $$
   # with $V$ a covariance matrix (see Section~\ref{covariance}).
+
+  alpha1 = alpha
+  alpha2 = alpha
+  kount=0;
   update_alpha <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
       B = make.B(i)
@@ -325,8 +372,23 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
         mu_i = mu[site==i & observed==TRUE]
         z_t <- mu_i %*% V_inv[[i]] # define correlation weights
       } else stop("Can't happen")
-      alpha[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta))
+      alpha1[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta - log(wt[i,1])))
+      if (i==6) term1 = log(z_t %*% f_i)
+      if (i==6) term2 = log(z_t %*% exp(B_i %*% beta))
+
+      sumf = sum(f[i, ], na.rm=TRUE)
+      sumu = sum(mu[i, ], na.rm=TRUE)
+      sumf6 = sum(f[6, ], na.rm=TRUE)
+      sumu6 = sum(mu[6, ], na.rm=TRUE)
+      dalpha = log(sumf/sumu)
+      alpha2[i] <<- alpha2[i] + dalpha;
     }
+    # printf("\na1[6]=%.3f, a2[6]=%..3f (sum=%.3f %.3f) w=%f term1=%f term=%f\n",
+    #        alpha1[6], alpha2[6],
+    #        sumf6, sumu6, wt[6,1], exp(term1), exp(term2));
+    kount <<- kount+1
+    # stopifnot(kount<10)
+    alpha <<- alpha1
   }
 
   # ----------------------------------------------- Time parameters $\beta$ ----
@@ -360,7 +422,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       update_mu(fill=FALSE)
 
       lik <- likelihood()
-      if (lik < lik0) break else stepsize <- stepsize / 2 # Stop or try again
+      likc <- (1+conv_crit) * lik0 # threshold value
+      if (lik < likc) break else stepsize <- stepsize / 2 # Stop or try again
     }
     subiter
   }
@@ -511,7 +574,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   update_mu <- function(fill) {
     for (i in 1:nsite) {
       B = make.B(i)
-      mu[i, ] <<- exp(alpha[i] + B %*% beta)
+      #browser()
+      if (use.weights) {
+        mu[i, ] <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
+      } else {
+        mu[i, ] <<- exp(alpha[i] + B %*% beta)
+      }
     }
     # clear estimates for non-observed cases, if required.
     if (!fill) mu[!observed] <<- 0.0
@@ -531,7 +599,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # model paramaters $\alpha$ and $\beta$, model estimates $\mu$ and likelihood measure $L$.
   new_par <- new_cnt <- new_lik <- NULL
   old_par <- old_cnt <- old_lik <- NULL
-  check_convergence <- function(iter, crit=1e-5) {
+  check_convergence <- function(iter) {
 
     # Collect new data for convergence test
     # (Store in outer environment to make them persistent)
@@ -543,10 +611,11 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       max_par_change <- max(abs(new_par - old_par))
       max_cnt_change <- max(abs(new_cnt - old_cnt))
       max_lik_change <- max(abs(new_lik - old_lik))
-      conv_par <- max_par_change < crit
-      conv_cnt <- max_cnt_change < crit
-      conv_lik <- max_lik_change < crit
-      convergence <- conv_par && conv_cnt && conv_lik
+      conv_par <- max_par_change < conv_crit
+      conv_cnt <- max_cnt_change < conv_crit
+      conv_lik <- max_lik_change < conv_crit
+      # convergence <- conv_par && conv_cnt && conv_lik
+      convergence <- conv_lik
       rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
     } else {
       convergence = FALSE
@@ -570,25 +639,29 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   method    <- "ML" # start with Maximum Likelihood
   final_method <- ifelse(serialcor || overdisp, "GEE", "ML") # optionally move on to GEE
 
-  max_iter  <- 100 # Maximum number of iterations allowed
-  conv_crit <- 1e-7
+  update_mu(fill=FALSE)
+  # print(alpha[1:10])
+  # print(mu[1:10,]); stop("intended")
+
   for (iter in 1:max_iter) {
+    #if (iter==4) method <- final_method
     rprintf("Iteration %d (%s)", iter, method)
 
     update_alpha(method)
     update_mu(fill=FALSE)
     if (method=="GEE") {
       update_r()
-      if (overdisp)  update_sig2()
+      if (serialcor || overdisp)  update_sig2() # hack
       if (serialcor) update_rho()
       update_R()
+      if (!overdisp) sig2 <- 1.0 # hack
     }
     update_V(method)
     subiters <- update_beta(method)
     rprintf(", %d subiters", subiters)
     rprintf(", lik=%.3f", likelihood())
-    if (overdisp)  rprintf(", sig^2=%.5f", sig2)
-    if (serialcor) rprintf(", rho=%.5f;", rho)
+    if (overdisp)  rprintf(", sig^2=%.3f", sig2)
+    if (serialcor) rprintf(", rho=%.3f;", rho)
 
     convergence <- check_convergence(iter)
 
@@ -626,14 +699,23 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # Measured, modelled and imputed count data are stored in a TRIM output object,
   # together with parameter values and other usefull information.
 
-  z <- list(title=title, f=f, nsite=nsite, ntime=ntime, nbeta0=nbeta0,
-            covars=covars, ncovar=ncovar, cvmat=cvmat,
+  # Convert time point back to their original (numerical) values
+  time.id <- as.numeric(levels(time.id))
+
+  z <- list(title=title, f=f, nsite=nsite, ntime=ntime, time.id=time.id,
+            nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints,
             mu=mu, imputed=imputed, alpha=alpha, beta=beta, var_beta=var_beta)
   if (use.covars) {
     z$ncovar <- ncovar # todo: eliminate?
     z$nclass <- nclass
   }
+  if (use.weights) {
+    z$wt = wt
+  } else {
+    z$wt = NULL
+  }
+
   class(z) <- "trim"
 
   # Several kinds of statistics can now be computed, and added to this output object.
@@ -648,10 +730,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   if (model==2) {
     se_beta  <- sqrt(diag(var_beta))
 
-    ncp = length(changepoints)
+    ncp <- length(changepoints)
+    from_cp <- changepoints
+    upto_cp <- if (ncp==1) ntime else c(changepoints[2:ncp], ntime)
     coefs = data.frame(
-      from   = changepoints,
-      upto   = if (ncp==1) ntime else c(changepoints[2:ncp], ntime),
+      from   = time.id[from_cp],
+      upto   = time.id[upto_cp],
       add    = beta,
       se_add = se_beta,
       mul    = exp(beta),
@@ -784,19 +868,22 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     F[i, ] <- F_i
   }
 
-  # Matrices G and H are for all mu's
+  # Matrices G and H are for all (weighted) mu's
+
+  if (use.weights) wmu <- wt * mu
+  else             wmu <- mu
 
   GddG <- matrix(0, ntime,ntime)
   for (i in 1:nsite) {
     for (j in 1:ntime) for (k in 1:ntime) {
-      GddG[j,k] <- GddG[j,k] + mu[i,j]*mu[i,k]/d[i]
+      GddG[j,k] <- GddG[j,k] + wmu[i,j]*wmu[i,k]/d[i]
     }
   }
 
   GF <- matrix(0, ntime, nbeta)
   for (i in 1:nsite) {
     for (j in 1:ntime) for (k in 1:nbeta)  {
-      GF[j,k] <- GF[j,k] + mu[i,j] * F[i,k]
+      GF[j,k] <- GF[j,k] + wmu[i,j] * F[i,k]
     }
   }
 
@@ -804,7 +891,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   for (i in 1:nsite) {
     B <- make.B(i)
     for (k in 1:nbeta) for (j in 1:ntime) {
-      H[j,k]  <- H[j,k] + B[j,k] * mu[i,j]
+      H[j,k]  <- H[j,k] + B[j,k] * wmu[i,j]
     }
   }
 
@@ -817,20 +904,29 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # substract the contribution due tp te observations, as computed by above scheme,
   # and recplace it by the contribution due to the observations, as resulting from the
   # covariance matrix.
-  muo = mu # 'observed' $\mu$'s
-  muo[!observed] = 0 # # erase estimated $\mu$'s
+
+  muo <- mu # 'observed' $\mu$'s
+  muo[!observed] <- 0 # # erase estimated $\mu$'s
+
+  if (use.weights) wmuo <- wt * mu
+  else             wmuo <- mu
+  wmuo[!observed] <- 0 # # erase estimated $\mu$'s
+
+  if (use.weights) wwmuo <- wt * wt * mu
+  else             wwmuo <- mu
+  wwmuo[!observed] <- 0 # # erase estimated $\mu$'s
 
   GddG <- matrix(0, ntime,ntime)
   for (i in 1:nsite) if (nobs[i]>0) {
     for (j in 1:ntime) for (k in 1:ntime) {
-      GddG[j,k] <- GddG[j,k] + muo[i,j]*muo[i,k]/d[i]
+      GddG[j,k] <- GddG[j,k] + wmuo[i,j]*wmuo[i,k]/d[i]
     }
   }
 
   GF <- matrix(0, ntime, nbeta)
   for (i in 1:nsite) if (nobs[i]>0) {
     for (j in 1:ntime) for (k in 1:nbeta)  {
-      GF[j,k] <- GF[j,k] + muo[i,j] * F[i,k]
+      GF[j,k] <- GF[j,k] + wmuo[i,j] * F[i,k]
     }
   }
 
@@ -838,7 +934,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   for (i in 1:nsite) if (nobs[i]>0) {
     B <- make.B(i)
     for (k in 1:nbeta) for (j in 1:ntime) {
-      H[j,k]  <- H[j,k] + B[j,k] * muo[i,j]
+      H[j,k]  <- H[j,k] + B[j,k] * wmuo[i,j]
     }
   }
 
@@ -850,10 +946,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   var_tt_obs_new = matrix(0, ntime, ntime)
   for (i in 1:nsite) {
     if (serialcor) {
-      srdu = sqrt(diag(muo[i, ]))
+      srdu = sqrt(diag(wwmuo[i, ]))
       V = sig2 * srdu %*% Rg %*% srdu
     } else {
-      V = sig2 * diag(muo[i, ])
+      V = sig2 * diag(wwmuo[i, ])
     }
     var_tt_obs_new = var_tt_obs_new + V
   }
@@ -862,10 +958,13 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   var_tt_imp = var_tt_mod - var_tt_obs_old + var_tt_obs_new
 
   # Time totals of the model, and it's standard error
-  tt_mod    <- colSums(mu)
+  tt_mod    <- colSums(wmu)
   se_tt_mod <- round(sqrt(diag(var_tt_mod)))
 
-  tt_imp     <- colSums(imputed)
+  if (use.weights) wimp <- wt * imputed  #kan eleganter
+  else             wimp <-      imputed
+
+  tt_imp     <- colSums(wimp)
   se_tt_imp <- round(sqrt(diag(var_tt_imp)))
 
   # Store in TRIM output
@@ -875,7 +974,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   z$var_tt_imp <- var_tt_imp
 
   z$time.totals <- data.frame(
-    time    = 1:ntime,
+    time    = time.id,
     model   = round(tt_mod),
     se_mod  = se_tt_mod,
     imputed = round(tt_imp),

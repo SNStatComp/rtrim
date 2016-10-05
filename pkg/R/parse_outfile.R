@@ -28,6 +28,34 @@ print.tof <- function(x,...){
   cat(x)
 }
 
+#' Read a TRIM3 variance-covariance output file
+#'
+#' @param file \\code{[character]} filename
+#'
+#' @return A matrix of class \code{[numeric]}
+#'
+#' @family parse_output
+#'
+#' @keywords internal
+read_vcv <- function(file) {
+  df <- read.table(file) # Read as data.frame
+  m  <- as.matrix(df)    # Convert to matrix...
+  out <- unname(m)       # ... and remove dimname attributes to prevent test_equal problem
+}
+
+#' Extract TRIM version used for output
+#'
+#' @return \code{character}
+#' @family parse_output
+#' @keywords internal
+get_version <- function(x){
+  re <- "TRIM (\\d\\.\\d+) :  TRend analysis.*"
+  m <- regexec(re, x)
+  a <- m[[1]][2]
+  b <- attr(m[[1]],"match.length")[2]
+  version <- substr(x, a, a+b-1)
+  version
+}
 
 #' Extract nr of times from \code{tof} object
 #'
@@ -141,19 +169,38 @@ get_overal_model_slope <- function(x){
 #' @keywords internal
 get_overal_imputed_slope <- function(x){
   stopifnot(inherits(x,"tof"))
-  get_slope(x,"IMPUTED")
+  # get_slope(x,"IMPUTED")
+  v <- get_version(x)
+  if (v=="3.61") re <- "OVERALL SLOPE IMPUTED[[:print:]]+\n.*?\n(\n|$)"
+  else           re <- "OVERALL SLOPE IMPUTED[[:print:]]+intercept[[:print:]]+\n.*?\n(\n|$)"
+  s <- get_str(re,x)
+  out <- if (length(s)>0) read.table(text=s,header=TRUE, skip=1) else NULL
 }
 
-get_slope <- function(x,label){
-  re <- paste0("OVERALL SLOPE ",label,".*?\n[[:blank:]]*(\n|$)")
-  mm <- regexpr(re,x)
-  s <- regmatches(x,mm)
-  s <- trimws(gsub("\n\n","\n",s)[[1]])
-  L <- trimws(strsplit(s,"\n")[[1]])
-  labels <- strsplit(L[2],"[[:blank:]]+")[[1]]
-  values <- as.numeric(strsplit(L[3],"[[:blank:]]+")[[1]])
-  setNames(values,labels)
+get_overal_cp_imputed_slope <- function(x){
+  stopifnot(inherits(x,"tof"))
+  re <- "OVERALL SLOPE IMPUTED[[:print:]]+INTERVALS.*?\n(\n|$)"
+  s <- get_str(re,x)
+  out <- if (length(s)>0) read.table(text=s,header=TRUE, skip=1) else NULL
 }
+
+# get_slope <- function(x,label){
+#   v <- get_version(x)
+#   if (v=="3.61") re <- paste0("OVERALL SLOPE ",label,".*?\n[[:blank:]]*(\n|$)")
+#   else           re <- paste0("OVERALL SLOPE ",label,".*intercept.*?\n[[:blank:]]*(\n|$)")
+#   mm <- regexpr(re,x)
+#   s <- regmatches(x,mm)
+#   s <- trimws(gsub("\n\n","\n",s)[[1]])
+#   L <- trimws(strsplit(s,"\n")[[1]])
+#   labels <- strsplit(L[2],"[[:blank:]]+")[[1]]
+#   values <- as.numeric(strsplit(L[4],"[[:blank:]]+")[[1]])
+#   print("\n\n***\n")
+#   print(L)
+#   print(labels)
+#   print(values)
+#   print("***\n")
+#   setNames(values,labels)
+# }
 
 
 get_oneliner <- function(x,label){

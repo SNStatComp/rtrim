@@ -1,0 +1,19 @@
+FILE outfiles/skylark_wt.dat
+TITLE  skylark-4f
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT present
+
+comment Now with automatic selection of changepoints
+model 2
+changepoints 1 2 3 4 5 6 7
+weighting on
+overdisp on
+serialcor on
+stepwise on
+run
