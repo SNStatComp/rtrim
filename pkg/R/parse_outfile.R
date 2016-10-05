@@ -147,17 +147,19 @@ get_estimation_method <- function(x){
 }
 
 
-#' Extract overall model slope \code{tof} object
-#'
-#' @inheritParams get_time_indices
-#'
-#' @return \code{character} string
-#' @family parse_output
-#' @keywords internal
-get_overal_model_slope <- function(x){
-  stopifnot(inherits(x,"tof"))
-  get_slope(x,"MODEL")
-}
+
+## NOT USED SO CURRENTLY COMMENTED OUT--MVDL
+# Extract overall model slope \code{tof} object
+#
+# @inheritParams get_time_indices
+#
+# @return \code{character} string
+# @family parse_output
+# @keywords internal
+#get_overal_model_slope <- function(x){
+#  stopifnot(inherits(x,"tof"))
+#  get_slope(x,"MODEL")
+#}
 
 
 #' Extract overall imputed slope \code{tof} object

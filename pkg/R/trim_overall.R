@@ -4,6 +4,7 @@
 #'
 #' @param x TRIM output object
 #' @param which Choose between "imputed" or "model" counts
+#' @param cp \code{[numeric]} Change points for which to compute the overall slope.
 #'
 #' @return a list containing information overall slope coefficients (\code{coef}),
 #'   the p-value of the overall slope (\code{p}),

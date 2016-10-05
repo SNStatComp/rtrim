@@ -153,9 +153,9 @@ export.trim.totals <- function(x, species, stratum) {
 #'
 #' @export
 #' @keywords internal
-print.trim.totals <- function(tt,...) {
+print.trim.totals <- function(x,...) {
   printf("Time totals\n")
-  print.data.frame(tt, row.names=FALSE)
+  print.data.frame(x, row.names=FALSE)
 }
 
 

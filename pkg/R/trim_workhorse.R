@@ -90,7 +90,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
   }
   t2 <- Sys.time()
   dt <- difftime(t2,t1)
-  rprintf("Running trim took %8.4f %s\n",dt,attr(u,"units"))
+  rprintf("Running trim took %8.4f %s\n",dt,attr(dt,"units"))
   m
 }
 
