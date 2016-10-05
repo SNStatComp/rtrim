@@ -44,15 +44,34 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
                           model=2, serialcor=FALSE, overdisp=FALSE,
                           changepoints=integer(0), stepwise=FALSE, weights=numeric(0))
 {
-  # t1 <- Sys.time()
+  # kick out empty sites
+  ok = rep(TRUE, length(count))
+  sites = unique(site.id)
+  nkickout = 0
+  for (site in sites) {
+    idx = site.id==site
+    if (!any(count[idx]>0, na.rm=TRUE)) {
+      ok[idx] = FALSE
+      nkickout = nkickout+1
+    }
+  }
+  if (nkickout>0) {
+    count = count[ok]
+    time.id = time.id[ok]
+    site.id = site.id[ok]
+    if (length(weights)>0) weights = weights[ok]
+    rprintf("Kicked out %d sites\n", nkickout)
+  }
+
+  t1 <- Sys.time()
   if (isTRUE(stepwise)) {
     m <- trim_refine(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints, weights)
   } else {
     m <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, changepoints, weights)
   }
-  # t2 <- Sys.time()
-  # dt <- difftime(t2,t1)
-  # print(dt)
+  t2 <- Sys.time()
+  dt <- difftime(t2,t1)
+  print(dt)
   m
 }
 
@@ -575,7 +594,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       conv_par <- max_par_change < conv_crit
       conv_cnt <- max_cnt_change < conv_crit
       conv_lik <- max_lik_change < conv_crit
-      convergence <- conv_par && conv_cnt && conv_lik
+      # convergence <- conv_par && conv_cnt && conv_lik
+      convergence <- conv_lik
       rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
     } else {
       convergence = FALSE
