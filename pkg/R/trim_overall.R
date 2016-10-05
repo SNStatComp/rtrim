@@ -15,7 +15,7 @@
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
 #' overall(z)
-overall <- function(x, which=c("imputed","model")) {
+overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
 
@@ -29,26 +29,27 @@ overall <- function(x, which=c("imputed","model")) {
   # The overall slope is computed for both the modeled and the imputed $\Mu$'s.
   # So we define a function to do the actual work
 
-  .compute.overall.slope <- function(tt, var_tt) {
-    stopifnot(length(tt)==ntime)
-    J <- ntime
+  .compute.overall.slope <- function(tt, var_tt, src) {
+    J <- length(tt)
+    stopifnot(nrow(var_tt)==J && ncol(var_tt)==J)
 
     # Use Ordinary Least Squares (OLS) to estimate slope parameter $\beta$
-    X <- cbind(1, seq_len(ntime)) # design matrix
+    X <- cbind(1, seq_len(J)) # design matrix
     y <- matrix(log(tt))
     bhat <- solve(t(X) %*% X) %*% t(X) %*% y # OLS estimate of $b = (\alpha,\beta)^T$
     yhat <- X %*% bhat
 
     # Apply the sandwich method to take heteroskedasticity into account
-    dvtt <- 1/tt_mod # derivative of $\log{\Mu}$
+    dvtt <- 1/tt # derivative of $\log{\Mu}$
     Om <- diag(dvtt) %*% var_tt %*% diag(dvtt) # $\var{log{\Mu}}$
     var_beta <- solve(t(X) %*% X) %*% t(X) %*% Om %*% X %*% solve(t(X) %*% X)
     b_err <- sqrt(diag(var_beta))
 
     # Compute the $p$-value, using the $t$-distribution
-    df <- ntime - 2
+    df <- J - 2
     t_val <- bhat[2] / b_err[2]
-    p <- 2 * pt(abs(t_val), df, lower.tail=FALSE)
+    if (df>0) p <- 2 * pt(abs(t_val), df, lower.tail=FALSE)
+    else      p <- NA
 
     # Also compute effect size as relative change during the monitoring period.
     effect <- abs(yhat[J] - yhat[1]) / yhat[1]
@@ -66,16 +67,39 @@ overall <- function(x, which=c("imputed","model")) {
       se_mul    = exp(bhat) * b_err,
       row.names = c("intercept","slope")
     )
-    list(coef=df,p=p, effect=effect, J=J, tt=tt, err=x$time.totals[[3]], SSR=SSR)
+    list(src=src, coef=df,p=p, effect=effect, J=J, tt=tt, err=sqrt(diag(var_tt)), SSR=SSR)
   }
 
   if (which=="imputed") {
-    out = .compute.overall.slope(tt_imp, var_tt_imp)
-    out$src = "imputed"
+    tt     <- tt_imp
+    var_tt <- var_tt_imp
+    src = "imputed"
   } else if (which=="model") {
-    out = .compute.overall.slope(tt_mod, var_tt_mod)
-    out$src = "model"
+    tt     <- tt_mod
+    var_tt <- var_tt_mod
+    src = "imputed"
   }
+
+  if (length(cp)==0) {
+    # Normal overall slope
+    out <- .compute.overall.slope(tt, var_tt, src)
+    out$type <- "normal" # mark output as 'normal' overall slope
+  } else {
+    # overall slope per changepoint
+    J <- length(tt)
+    ncp <- length(cp)
+    cpx <- c(cp, J) # Extend list of overall changepoints with final year
+    coef.collector = data.frame()
+    for (i in 1:ncp) {
+      idx <- cpx[i] : cpx[i+1]
+      tmp <- .compute.overall.slope(tt[idx], var_tt[idx,idx], src)
+      slope <- tmp$coef[2,] # slope is on second row of output dataframe
+      prefix <- data.frame(from=x$time.id[cpx[i]], upto=x$time.id[cpx[i+1]])
+      coef.collector <- rbind(coef.collector, cbind(prefix, slope))
+    }
+    out <- list(src=src,coef=coef.collector, type="changept") #store 'n' mark
+  }
+
   structure(out, class="trim.overall")
 }
 
@@ -89,21 +113,25 @@ overall <- function(x, which=c("imputed","model")) {
 #' @export
 #' @keywords internal
 print.trim.overall <- function(x,...) {
-
-  # Compute 95\% confidence interval of multiplicative slope
-  bhat <- x$coef[[3]][2] # multiplicative trend (i.e., not log-transformed)
-  berr <- x$coef[[4]][2] # corresponding standard error
-  alpha <- 0.05
-  df <- x$J-2
-  tval <- qt((1-alpha/2), df)
-  blo <- bhat - tval * berr
-  bhi <- bhat + tval * berr
-  # Compute effect size
-  change <- bhat ^ (x$J-1) - 1
-  # Build an informative string
-  info <- sprintf("p=%f, conf.int (mul)=[%f, %f], change=%.2f%%", x$p, blo, bhi, 100*change)
-  printf("Overall slope (%s): %s\n", x$src, info)
-  print(x$coef, row.names=TRUE)
+  if (x$type=="normal") {
+    # Compute 95\% confidence interval of multiplicative slope
+    bhat <- x$coef[[3]][2] # multiplicative trend (i.e., not log-transformed)
+    berr <- x$coef[[4]][2] # corresponding standard error
+    alpha <- 0.05
+    df <- x$J-2
+    tval <- qt((1-alpha/2), df)
+    blo <- bhat - tval * berr
+    bhi <- bhat + tval * berr
+    # Compute effect size
+    change <- bhat ^ (x$J-1) - 1
+    # Build an informative string
+    info <- sprintf("p=%f, conf.int (mul)=[%f, %f], change=%.2f%%", x$p, blo, bhi, 100*change)
+    printf("Overall slope (%s): %s\n", x$src, info)
+    print(x$coef, row.names=TRUE)
+  } else if (x$type=="changept") {
+    printf("Overall slope (%s) for changepoints\n", x$src)
+    print(x$coef, row.names=FALSE)
+  } else stop("Can't happen")
 }
 
 #--------------------------------------------------------------------- Plot ----

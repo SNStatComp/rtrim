@@ -76,7 +76,7 @@ wald.trim <- function(x)
 
   # Extract actual changepoints
   if (model==2) {
-    changept <- as.numeric(levels(x$time.id)[x$changepoints])
+    changept <- x$time.id[x$changepoints]
   }
 
   if (model==3 && ncovar==0) {

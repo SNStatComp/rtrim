@@ -30,16 +30,23 @@ trimtest <- function(m, to, tc, vcv=NULL){
     )
   }
 
-  # overall slope
+  # Overall slope
   tgt <- get_overal_imputed_slope(to)
-  out <- overall(m,"imputed")
-  # std errors are not tested here...
-  expect_true(abs(out$coef[2,1] - tgt[1]) < 1e-4)
-  expect_true(abs(out$coef[2,3] - tgt[3]) < 1e-4)
+  out <- overall(m,"imputed")$coef[2,] # Slope coefs are in second row
+  for (i in seq_len(ncol(tgt))) {
+    expect_true(max(abs(out[,i] - tgt[,i])) < 1e-4,
+                info = sprintf("Overall slope column %d", i))
+  }
 
-
-  # but here, with a somewhat higher tolerance:
-  expect_true( max( abs(out$coef[2,c(2,4)] - tgt[c(2,4)]) ) < 1e-3)
+  # Overall slope (changepoints) [optional]
+  if (length(tc$overallchangepoints)>0) {
+    tgt <- get_overal_cp_imputed_slope(to)
+    out <- overall(m, "imputed", tc$overallchangepoints)
+    for (i in seq_len(ncol(tgt))) {
+      expect_true(max(abs(out$coef[,i]-tgt[,i]), na.rm=TRUE) < 1e-4,
+                  info=sprintf("Overall slope (changepts) column %d",i))
+    }
+  }
 
   # goodness-of-fit
   tgt <- get_gof(to)
@@ -233,6 +240,15 @@ test_that("skylark-x2",{
   to <- read_tof("outfiles/skylark-x2.out")
   trimtest(m,to,tc)
 })
+
+context("TRIM skylark-x [overall changepoints]")
+test_that("skylark-x3",{
+  tc <- read_tcf("outfiles/skylark-x3.tcf")
+  m <- trim(tc)
+  to <- read_tof("outfiles/skylark-x3.out")
+  trimtest(m,to,tc)
+})
+
 context("Output printers")
 test_that("S3 output printers", {
   data(skylark)

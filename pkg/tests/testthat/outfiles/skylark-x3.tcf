@@ -1,0 +1,18 @@
+FILE outfiles/skylark_yr.dat
+TITLE  skylark-x2
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+End
+MISSING 999
+WEIGHT absent
+
+comment Testing overall changepoints
+model 2
+changepoints 1 2
+overdisp on
+serialcor on
+overallchangepoints 1 2
+run

@@ -659,6 +659,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # Measured, modelled and imputed count data are stored in a TRIM output object,
   # together with parameter values and other usefull information.
 
+  # Convert time point back to their original (numerical) values
+  time.id <- as.numeric(levels(time.id))
+
   z <- list(title=title, f=f, nsite=nsite, ntime=ntime, time.id=time.id,
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints,
@@ -691,8 +694,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     from_cp <- changepoints
     upto_cp <- if (ncp==1) ntime else c(changepoints[2:ncp], ntime)
     coefs = data.frame(
-      from   = as.numeric(levels(time.id)[from_cp]),
-      upto   = as.numeric(levels(time.id)[upto_cp]),
+      from   = time.id[from_cp],
+      upto   = time.id[upto_cp],
       add    = beta,
       se_add = se_beta,
       mul    = exp(beta),
@@ -931,7 +934,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   z$var_tt_imp <- var_tt_imp
 
   z$time.totals <- data.frame(
-    time    = as.numeric(levels(time.id)),
+    time    = time.id,
     model   = round(tt_mod),
     se_mod  = se_tt_mod,
     imputed = round(tt_imp),
