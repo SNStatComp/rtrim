@@ -42,6 +42,11 @@
 #' # run model
 #' m <- trim(count ~ time + site, data=skylark, model=3)
 #' 
+#' # An example using change points, a covariate, and overdispersion
+#' # 1 is added as cp automatically
+#' cp <- c(2,6)
+#' m <- trim(count ~ time + site + Habitat, data=skylark, model=2, changepoints=cp, overdisp=TRUE)
+#' plot(overall(m)) 
 trim <- function(x,...){
   UseMethod('trim')
 }

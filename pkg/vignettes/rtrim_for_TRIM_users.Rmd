@@ -89,7 +89,21 @@ For example, to use the variable `Habitat` as covariate when analysing the `skyl
 m2 <- trim(count ~ time + site + Habitat, data=skylark, model=2)
 ```
 
-It is also possible to specify weights by passing `trim` a `weights` argument. The TRIM options `overdisp` (for overdispersion) and `serialcor` (for serial correlation) are simple `TRUE/FALSE` toggles. The breaks of the piecewise loglinear model can be specified with the `changepoints` option. See `?trim` for a precise description of all options.
+It is also possible to specify weights by passing `trim` a `weights` argument.
+The TRIM options `overdisp` (for overdispersion) and `serialcor` (for serial
+correlation),  are simple `TRUE/FALSE` toggles. The breaks of
+the piecewise loglinear model can be specified with the `changepoints` option.
+The `trim` function will give an error when too little observations are present
+in a time segment, except when the `autodelete` option is set to `TRUE`. In that
+case time segments are combined until enough observations are present for a model
+to be estimated. See `?trim` for a precise description of all options. Below is an example where 
+we specify the maximum number of changepoints and let `trim` delete change
+points where necessary.
+```{r}
+m3 <- trim(count ~ time + site + Habitat, data=skylark, model=2
+     , overdisp = TRUE, serialcor = TRUE, changepoints=1:7, autodelete=TRUE)
+
+```
 
 
 
