@@ -21,7 +21,8 @@
 #' and \code{AIC}, for Chi-squared, Likelihoof Ratio and Akaike informatiuon content,
 #' respectively.
 #' @export
-#'
+#' 
+#' @family analyses
 #' @examples 
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site, model=2)

@@ -49,6 +49,8 @@
 #' @return a model-dependent list of Wald statistics
 #' @export
 #'
+#' @family wald
+#'
 #' @examples
 #' data(skylark)
 #' z2 <- trim(count ~ time + site, data=skylark, model=2)

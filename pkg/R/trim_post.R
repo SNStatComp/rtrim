@@ -61,13 +61,18 @@ print.trim.summary <- function(x,...) {
 #'
 #' @return a list containing the model type (element \code{model}, 1,2 or 3), and
 #' element \code{coef}, which is a data frame containing the actual coefficients.
+#' The dimensiond of the output \code{data.frame} depend on the model and whether
+#' covarates are taken into account in the model.
+#' 
+#'  
+#' 
 #' @export
 #'
 #' @family analyses
 #' @examples
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
-#' summary(z)
+#' coefficients(z)
 #' # extract autocorrelation strength
 #' rho <- summary(z)$rho
 coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {

@@ -55,8 +55,10 @@
 #' @return a data frame containing indices and their uncertainty (expressed as standard error)
 #' @export
 #'
-#' @examples
+#' @family analyses
 #'
+#' @examples
+#' 
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
 #' index(z)
