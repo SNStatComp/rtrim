@@ -33,6 +33,15 @@
 #' data(skylark)
 #' m <- trim(count ~ time + site, data=skylark, model=2)
 #' gof(m)
+#' 
+#' # An example using weights
+#' # set up some random weights (one for each site)
+#' w <- runif(55, 0.1, 0.9)
+#' # match weights to sites
+#' weights <- w[skylark$site]
+#' # run model
+#' m <- trim(count ~ time + site, data=skylark, model=3)
+#' 
 trim <- function(x,...){
   UseMethod('trim')
 }
@@ -64,7 +73,8 @@ trim.trimcommand <- function(x,...){
 #'  are treated as the 'time' and 'site' variable, in that specific order. All
 #'  other variables are treated as covariates.
 #' @param model TRIM model type.
-#' @param weights \code{[numeric]} Optional vector of weights.
+#' @param weights \code{[numeric]} Optional vector of site weigts. The length of 
+#' \code{weights} must be equal to the number of rows in the data. 
 #' @param serialcor \code{[logical]} Take serial correlation into account.
 #' @param overdisp \code{[logical]} Take overdispersion into account.
 #' @param changepoints \code{[numeric]} Indices for changepoints.
@@ -79,11 +89,12 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
 
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
-  #if (missing(weights)) weights <- rep(1,nrow(x))
+  
   stopifnot(is.numeric(model),model %in% 2:3)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
   stopifnot(isTRUE(stepwise)||!isTRUE(stepwise))
+  stopifnot(all(weights>0), length(weights) != nrow(x))
 
   # estimate the model and return
   m <- trim_estimate(

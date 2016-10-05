@@ -62,7 +62,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
     time.id = time.id[ok]
     site.id = site.id[ok]
     if (length(weights)>0) weights = weights[ok]
-    rprintf("Kicked out %d sites\n", nkickout)
+    rprintf("Removed %d sites without observations\n", nkickout)
   }
 
   t1 <- Sys.time()
