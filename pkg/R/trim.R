@@ -73,14 +73,9 @@ trim.trimcommand <- function(x,...){
 #' 
 #' @rdname trim
 #' @export
-<<<<<<< HEAD
-trim.data.frame <- function(x, formula, model = 2, weights
+trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
   , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
   , autodelete=FALSE, ...){
-=======
-trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
-  , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
->>>>>>> d68fc8f9922c085f353afe14d075d8fa66537fb0
 
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
@@ -101,25 +96,17 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
     , overdisp=overdisp
     , changepoints = changepoints
     , stepwise = stepwise
-<<<<<<< HEAD
     , autodelete = autodelete
-=======
     , weights = weights
->>>>>>> d68fc8f9922c085f353afe14d075d8fa66537fb0
   )
 }
 
 #' @rdname trim
 #' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
 #' @export
-<<<<<<< HEAD
-trim.formula <- function(x, data, model=c(1,2,3), weights
+trim.formula <- function(x, data, model=c(1,2,3), weights=numeric(0)
           , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
           , autodelete=FALSE, ...){
-=======
-trim.formula <- function(x, data, model=c(2,3), weights=numeric(0)
-          , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE, ...){
->>>>>>> d68fc8f9922c085f353afe14d075d8fa66537fb0
   stopifnot(inherits(data,"data.frame"))
   trim.data.frame(x=data, formula=x, model=model, weights=weights
       , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints

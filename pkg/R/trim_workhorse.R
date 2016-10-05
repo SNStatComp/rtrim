@@ -40,12 +40,11 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_estimate <- function(count, time.id, site.id, covars=data.frame(),
-                          model=2, serialcor=FALSE, overdisp=FALSE,
-                          changepoints=integer(0), stepwise=FALSE, 
-                          autodelete=FALSE, weights=numeric(0)
-                          changepoints=integer(0), stepwise=FALSE,
-                          weights=numeric(0))
+trim_estimate <- function(count, time.id, site.id, covars=data.frame()
+                         , model=2, serialcor=FALSE, overdisp=FALSE
+                         , changepoints=integer(0) 
+                         , autodelete=FALSE, weights=numeric(0)
+                         , stepwise=FALSE)
 {
   # kick out empty sites
   ok = rep(TRUE, length(count))
