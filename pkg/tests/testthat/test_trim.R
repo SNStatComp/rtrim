@@ -9,8 +9,8 @@ trimtest <- function(m, to, tc, vcv=NULL){
   expect_equal(m$ntime, get_n_time(to))
 
   # Overdispersion and serial correlation
-  if (tc$overdisp) expect_true(abs(m$sig2 - get_overdispersion(to)) < 1e3)
-  if (tc$serialcor) expect_true(abs(m$rho - get_serial_correlation(to)) < 1e-3)
+  if (tc$overdisp) expect_true(abs(overdispersion(m) - get_overdispersion(to)) < 1e3)
+  if (tc$serialcor) expect_true(abs(serial_correlation(m) - get_serial_correlation(to)) < 1e-3)
 
   # time index check
   tgt <- get_time_indices(to)

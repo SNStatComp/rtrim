@@ -51,7 +51,7 @@ summary.trim <- function(object,...) {
 #' @export
 #' @family analyses
 serial_correlation <- function(x){
-  stopifnot(inherits(x),"trim")
+  stopifnot(inherits(x,"trim"))
   x$rho
 }
 
@@ -66,7 +66,7 @@ serial_correlation <- function(x){
 #' @family analyses
 #'
 overdispersion <- function(x){
-  stopifnot(inherits(x),"trim")
+  stopifnot(inherits(x,"trim"))
   x$sig2
 }
 
