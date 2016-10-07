@@ -25,8 +25,8 @@
 #' @keywords internal
 trim_estimate <- function(count, time.id, site.id, covars=data.frame()
                          , model=2, serialcor=FALSE, overdisp=FALSE
-                         , changepoints=integer(0) 
-                         , autodelete=FALSE, weights=numeric(0)
+                         , changepoints=integer(0)
+                         , autodelete=TRUE, weights=numeric(0)
                          , stepwise=FALSE)
 {
   call <- sys.call(1)
@@ -55,19 +55,19 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
           , overdisp, changepoints, weights)
   } else {
     # data input checks: throw error if not enough counts available.
-    if (model == 2 && autodelete){
+    if (model == 2 && length(changepoints)>0 && autodelete){
       changepoints <- autodelete(count=count, time=time.id
         , changepoints = changepoints, covars=covars)
     } else if (model == 2){
       assert_plt_model(count = count, time = time.id
               , changepoints = changepoints, covars = covars)
-    
+
     } else if (model == 3){
       assert_sufficient_counts(count = count, index = time.id)
       assert_covariate_counts(count = count, time = time.id, covars=covars)
     }
-    
-    
+
+
     # compute actual model
     m <- trim_workhorse(count, time.id, site.id, covars, model
           , serialcor, overdisp, changepoints, weights)
@@ -144,7 +144,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       stopifnot(length(unique(cv))==nclass[i]) # Assert the range is contiguous
     }
   } else {
-    nlass <- 0
+    nclass <- 0
   }
 
   # \verb!model! should be in the range 1 to 3
@@ -344,7 +344,6 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   alpha1 = alpha
   alpha2 = alpha
-  kount=0;
   update_alpha <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
       B = make.B(i)
@@ -357,21 +356,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
         z_t <- mu_i %*% V_inv[[i]] # define correlation weights
       } else stop("Can't happen")
       alpha1[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta - log(wt[i,1])))
-      if (i==6) term1 = log(z_t %*% f_i)
-      if (i==6) term2 = log(z_t %*% exp(B_i %*% beta))
 
       sumf = sum(f[i, ], na.rm=TRUE)
       sumu = sum(mu[i, ], na.rm=TRUE)
-      sumf6 = sum(f[6, ], na.rm=TRUE)
-      sumu6 = sum(mu[6, ], na.rm=TRUE)
       dalpha = log(sumf/sumu)
       alpha2[i] <<- alpha2[i] + dalpha;
     }
-    # printf("\na1[6]=%.3f, a2[6]=%..3f (sum=%.3f %.3f) w=%f term1=%f term=%f\n",
-    #        alpha1[6], alpha2[6],
-    #        sumf6, sumu6, wt[6,1], exp(term1), exp(term2));
-    kount <<- kount+1
-    # stopifnot(kount<10)
     alpha <<- alpha1
   }
 
@@ -558,7 +548,6 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   update_mu <- function(fill) {
     for (i in 1:nsite) {
       B = make.B(i)
-      #browser()
       if (use.weights) {
         mu[i, ] <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
       } else {
