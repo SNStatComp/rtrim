@@ -30,7 +30,7 @@ summary.trim <- function(object,...) {
   printf("Call:\n%s\n",cl)
   
   printf("\nCoefficients:\n")
-  print(coefficients(object,"both"))
+  print(coef.trim(object,"both"))
   printf("\n")
   
   printf(" Overdispersion    : %8.4f\n",object$rho)
