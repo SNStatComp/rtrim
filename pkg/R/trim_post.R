@@ -4,13 +4,15 @@
 
 # ----------------------------------------------------------------- extract ----
 
+
 #' Extract summary information for a TRIM job
+#'
+#' Print a summary of a \code{\link{trim}} object.
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param ... Currently unused
 #'
-#' @return a list of type \code{trim.summary} containing elements for estimation method
-#'   (\code{est.method}), overdispersion (\code{sig2}) and autocorrelation (\code{rho})
+#' @return \code{NULL}, invisibly.
 #' @export
 #'
 #' @family analyses
@@ -23,29 +25,20 @@
 #' # extract autocorrelation strength
 #' rho <- summary(z)$rho
 summary.trim <- function(object,...) {
-  x <- object
-  if (is.finite(x$sig2) || is.finite(x$rho)) {
-    out = list(est.method="Generalised Estimating Equations")
-  } else {
-    out = list(est.method="Maximum Likelihood")
-  }
-  out$sig2 <- x$sig2
-  out$rho  <- x$rho
-  class(out) <- "trim.summary"
-  out
-}
-
-# ------------------------------------------------------------------- print ----
-
-#' Print method for \code{trim.summary}
-#'
-#' @export
-#' @param x An object of class \code{trim.summary}
-#' @keywords internal
-print.trim.summary <- function(x,...) {
-  printf("\nEstimation method = %s\n", x$est.method)
-  if (is.finite(x$sig2)) printf("  Estimated Overdispersion     = %f\n", x$sig2)
-  if (is.finite(x$rho))  printf("  Estimated Serial Correlation = %f\n", x$rho)
+  
+  printf("Call:\n%s\n",deparse(object$call))
+  
+  
+  printf("\nCoefficients:\n")
+  print(coefficients(object,"both"))
+  printf("\n\n")
+  
+  printf(" Overdispersion    : %8.4f\n",object$rho)
+  printf(" Serial Correlation: %8.4f\n\n",object$sig2)
+  
+  
+  print(gof(object))
+  invisible(NULL)   
 }
 
 

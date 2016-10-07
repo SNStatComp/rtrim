@@ -54,13 +54,15 @@ trim <- function(x,...){
 #' @rdname trim
 #' @export
 trim.trimcommand <- function(x,...){
+  call <- sys.call()
+
   dat <- read_tdf(x)
   covars <- x$labels[x$covariates]
 
   if (isTRUE(x$weighting)) { wgt <- dat$weight }
   else             { wgt <- numeric(0) }
-
-  out = trim_estimate(count=dat$count
+  
+  out <- trim_estimate(count=dat$count
                       , time.id = dat$time
                       , site.id = dat$site
                       , covars = dat[covars]
@@ -70,7 +72,6 @@ trim.trimcommand <- function(x,...){
                       , changepoints = x$changepoints
                       , stepwise = x$stepwise
                       , weights = wgt)
-  out
 }
 
 #' @param formula \code{[formula]} The dependent variable (left-hand-side)

@@ -90,7 +90,7 @@ gof.numeric <- function(f, mu, alpha, beta) {
 #' @keywords internal
 print.trim.gof <- function(x,...) {
   # print welcome message
-  cat(sprintf("Goodness of fit\n"))
+  cat(sprintf("Goodness of fit:\n"))
 
   # print $\chi^2$ results
   with(x$chi2,

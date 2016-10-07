@@ -2,23 +2,6 @@
 
 # This Section describes the core TRIM function, which estimates the TRIM parameters.
 
-# First intriduce some helper functions.
-#' Set verbosity of trim model functions
-#'
-#' @param verbose \code{[logical]} toggle verbosity.
-#'
-#' @export
-set_trim_verbose <- function(verbose=FALSE){
-  stopifnot(isTRUE(verbose)|!isTRUE(verbose))
-  options(trim_verbose=verbose)
-}
-set_trim_verbose(TRUE)
-
-# Convenience function for console output during runs
-rprintf <- function(fmt,...) { if(getOption("trim_verbose")) cat(sprintf(fmt,...)) }
-
-# Similar, but for object/summary printing
-printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 
 # ##################################################### Estimation function ####
 
@@ -46,6 +29,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
                          , autodelete=FALSE, weights=numeric(0)
                          , stepwise=FALSE)
 {
+  call <- sys.call(1)
   # kick out empty sites
   ok = rep(TRUE, length(count))
   sites = unique(site.id)
@@ -89,8 +73,9 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
           , serialcor, overdisp, changepoints, weights)
   }
   t2 <- Sys.time()
-  dt <- difftime(t2,t1)
-  rprintf("Running trim took %8.4f %s\n",dt,attr(dt,"units"))
+  m$dt <- difftime(t2,t1)
+  rprintf("Running trim took %8.4f %s\n",dt,attr(m$dt,"units"))
+  m$call <- call
   m
 }
 
@@ -721,8 +706,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   # ------------------------------------- Overdispersion and Autocorrelation ---
 
-  z$sig2 <- ifelse(overdisp, sig2, NA)
-  z$rho  <- ifelse(serialcor, rho,  NA)
+  # remove if not required: makes summary printing and extracting more elegant.
+  z$sig2 <- if (overdisp) sig2 else NULL 
+  z$rho  <- if (serialcor) rho else  NULL
 
   #-------------------------------------------- Coefficients and uncertainty ---
 
