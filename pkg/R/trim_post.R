@@ -9,7 +9,7 @@
 #'
 #' Print a summary of a \code{\link{trim}} object.
 #'
-#' @param object TRIM output structure (i.e., output of a call to \code{trim})
+#' @param object an object of class \code{\link{trim}}.
 #' @param ... Currently unused
 #'
 #' @return \code{NULL}, invisibly.
@@ -225,13 +225,15 @@ varcovar <- function(x, which=c("imputed","model")) {
 
 # ----------------------------------------------------------------- extract ----
 
-#' Extract coefficients of the reparameterisation of TRIM model 3
+#' Extract coefficients of the reparameterisation of trim model 3
 #'
-#' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #'
-#' @return a list with elements
-#'   \code{trend}, containing additive and multiplicative parameters of the linear trend,
-#'   and \code{dev}, containing the deviations from that trend.
+#'
+#' @param x an object of class \code{\link{trim}}
+#'
+#' @return a list of class \code{trim.linear} with elements \code{trend}, 
+#'   containing additive and multiplicative parameters of the overall linear
+#'   trend, and \code{dev}, containing the deviations from that trend.
 #' @export
 #'
 #' @family analyses

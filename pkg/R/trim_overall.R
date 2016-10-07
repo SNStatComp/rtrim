@@ -2,13 +2,17 @@
 
 #' Compute overall slope
 #'
-#' @param x TRIM output object
-#' @param which Choose between "imputed" or "model" counts
+#' The overal slope represents the total growth over the piecewise linear model.
+#'
+#'
+#' @param x an object of class \code{\link{trim}}.
+#' @param which \code{[character]} Choose between \code{"imputed"} or
+#'   \code{"model"} counts.
 #' @param cp \code{[numeric]} Change points for which to compute the overall slope.
 #'
-#' @return a list containing information overall slope coefficients (\code{coef}),
-#'   the p-value of the overall slope (\code{p}),
-#'   the size-effect (\code{effect}),
+#' @return a list of class \code{trim.overall} containing overall slope
+#'   coefficients (\code{coef}), the p-value of the overall slope (\code{p}),
+#'   and the size-effect (\code{effect}).
 #' @export
 #'
 #' @family analyses
@@ -184,7 +188,7 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   # Now plot layer-by-layer
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
-  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", main=title)
+  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", main=title,...)
   polygon(xconf, yconf, col=gray(0.9), lty=0)
   lines(x, ytrend, col=cbred, lwd=3)
   segments(j,y0, j,y1, lwd=3, col=gray(0.5))

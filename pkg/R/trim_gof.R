@@ -8,14 +8,14 @@
 # Here we define `gof' as a S3 generic function
 #' Extract TRIM goodness-of-fit information.
 #'
-#' TRIM computes three goodness-of-fit measures:
+#' \code{\link{trim}} computes three goodness-of-fit measures:
 #' \itemize{
 #'   \item Chi-squared
 #'   \item Likelihood ration
 #'   \item Akaike Information content
 #' }
 #'
-#' @param x TRIM output structure (i.e., output of a call to \code{trim})
+#' @param x an object of class \code{\link{trim}}. 
 #'
 #' @return a list of type "trim.gof", containing elements \code{chi2}, \code{LR}
 #' and \code{AIC}, for Chi-squared, Likelihoof Ratio and Akaike informatiuon content,

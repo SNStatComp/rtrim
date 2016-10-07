@@ -45,14 +45,19 @@
 
 # ========================================================== User interface ====
 
-#' Extract time-indices from TRIM output
+#' Extract time-indices from trim output
 #'
-#' @param x TRIM output structure (output of a call to \code{\link{trim}})
+#' @param x an object of class \code{\link{trim}} 
 #' @param which Selector to distinguish between time indices based on the imputed data (default),
 #' the modelled data, or both.
 #' @param base Base time point, for which the index is 1
 #'
-#' @return a data frame containing indices and their uncertainty (expressed as standard error)
+#' @return a data frame containing indices and their uncertainty expressed as
+#'   standard error. Depending on the chosen output, columns \code{model}
+#'   and \code{se_mod}, and/or \code{imputed} and \code{se_imp} are present.
+#'   The first column is always \code{time}.
+#'   
+#'   
 #' @export
 #'
 #' @family analyses
@@ -64,8 +69,8 @@
 #' index(z)
 #' # mimic classic TRIM:
 #' index(z, "both")
-#' # Extract standard error for the imputed data
-#' SE <- index(z)$std.err
+#' # Extract standard errors for the imputed data
+#' SE <- index(z,"imputed")$se_mod
 #'
 index <- function(x, which=c("imputed","model","both"), base=1) {
   stopifnot(inherits(x,"trim"))
