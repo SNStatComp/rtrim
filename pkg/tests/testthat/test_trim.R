@@ -257,7 +257,7 @@ context("Calling trim the R-way (smoketests)")
 test_that("testing skylark-2a",{
   tc <- read_tcf("outfiles/skylark-2a.tcf")
   dat <- read_tdf(tc)
-  
+
   m <- trim(count ~ time + site + Habitat, data=dat
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7, autodelete=FALSE)
@@ -269,7 +269,7 @@ test_that("testing skylark-2a",{
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7,autodelete=TRUE)
   trimtest(m,to,tc)
-  
+
 })
 
 context("Output printers")

@@ -27,22 +27,26 @@ assert_increasing <- function(x, varname){
 
 # sufficient data per index (index=time for model 3, pieces for model 2)
 assert_sufficient_counts <- function(count, index){
-  time_totals <- tapply(X = count, INDEX = index, FUN = sum, na.rm=TRUE)  
+  time_totals <- tapply(X = count, INDEX = index, FUN = sum, na.rm=TRUE)
   assert_positive(time_totals, names(index))
 }
 
 # Get an indicator for the pieces in 'piecewise linear model'
 # that are encoded in changepoints.
-pieces_from_changepoints <- function(time, changepoints){
-  pieces <- integer(length(time)) + 1
+pieces_from_changepoints <- function(time, changepoints) {
+  # convert time from (possibly non-contiguous) years to time points 1..ntime
+  tpt <- as.integer(ordered(time))
+
+  pieces <- integer(length(tpt)) + 1
   C <- changepoints
-  if (C[length(C)] != max(time)) C <- append(C,max(time))
-  
+  if (C[length(C)] != max(tpt)) C <- append(C,max(tpt))
+
   for ( i in seq_along(C[-1])){
-    j <- seq(C[i] + 1, C[i+1])
-    pieces[time %in% j] <- C[i]
+    # j <- seq(C[i] + 1, C[i+1])
+    j <- seq(C[i], C[i+1] - 1)
+    pieces[tpt %in% j] <- C[i]
   }
-  pieces  
+  pieces
 }
 
 # sufficient data for piecewise linear trend model
@@ -60,11 +64,11 @@ assert_plt_model <- function(count, time, changepoints, covars){
 
 
 # get a list of errors: for which time (pieces) and covariate values
-# are there zero counts? Result is an empty list or a named list 
+# are there zero counts? Result is an empty list or a named list
 # of matrices with columns 'timename', value (of the covariate)
 get_cov_count_errlist <- function(count, time, covars, timename="time"){
   ERR <- list()
-  
+
   for ( i in seq_along(covars) ){
     covname <- names(covars)[i]
     cov <- covars[[i]]
@@ -78,7 +82,7 @@ get_cov_count_errlist <- function(count, time, covars, timename="time"){
       ERR[[covname]] <- err
     }
   }
-  
+
   ERR
 }
 
@@ -87,7 +91,7 @@ get_cov_count_errlist <- function(count, time, covars, timename="time"){
 # covar: list of covariate vectors
 assert_covariate_counts <- function(count, time, covars, timename="time"){
   err <- get_cov_count_errlist(count, time, covars, timename=timename)
-  if ( length(err)>0 ) 
+  if ( length(err)>0 )
     stop("Zero observations for the following cases:\n"
          , gsub("\\$.*?\n","",print_and_capture(err))
          , call.=FALSE)

@@ -43,7 +43,7 @@ printf <- function(fmt,...) {cat(sprintf(fmt,...))}
 trim_estimate <- function(count, time.id, site.id, covars=data.frame()
                          , model=2, serialcor=FALSE, overdisp=FALSE
                          , changepoints=integer(0)
-                         , autodelete=FALSE, weights=numeric(0)
+                         , autodelete=TRUE, weights=numeric(0)
                          , stepwise=FALSE)
 {
   # kick out empty sites
@@ -71,7 +71,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
           , overdisp, changepoints, weights)
   } else {
     # data input checks: throw error if not enough counts available.
-    if (model == 2 && autodelete){
+    if (model == 2 && length(changepoints)>0 && autodelete){
       changepoints <- autodelete(count=count, time=time.id
         , changepoints = changepoints, covars=covars)
     } else if (model == 2){
@@ -563,7 +563,6 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   update_mu <- function(fill) {
     for (i in 1:nsite) {
       B = make.B(i)
-      #browser()
       if (use.weights) {
         mu[i, ] <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
       } else {
