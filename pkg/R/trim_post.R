@@ -42,6 +42,35 @@ summary.trim <- function(object,...) {
 }
 
 
+#' Extract serial correlation from TRIM object
+#' 
+#' @param x An object of class \code{\link{trim}}
+#' 
+#' @return The serial correlation coefficient if computed, otherwise \code{NULL}.
+#' 
+#' @export
+#' @family analyses
+serial_correlation <- function(x){
+  stopifnot(inherits(x),"trim")
+  x$rho
+}
+
+
+#' Extract overdispersion from trim object
+#'
+#' @param x An object of class \code{\link{trim}}
+#' 
+#' @return The overdispersion value if computed, otherwise \code{NULL}.
+#' 
+#' @export
+#' @family analyses
+#'
+overdispersion <- function(x){
+  stopifnot(inherits(x),"trim")
+  x$sig2
+}
+
+
 # ============================================================ Coefficients ====
 
 # ----------------------------------------------------------------- Extract ----
@@ -52,12 +81,14 @@ summary.trim <- function(object,...) {
 #' @param which What coefficients to return.
 #' @param ... currently unused
 #'
-#' @return a list containing the model type (element \code{model}, 1,2 or 3), and
-#' element \code{coef}, which is a data frame containing the actual coefficients.
-#' The dimensiond of the output \code{data.frame} depend on the model and whether
-#' covarates are taken into account in the model.
+#' @return A \code{data.frame} containing coefficients and their standard errors.
+#' Depending on the requested type of coefficients column names are \code{add}
+#' and \code{se_add} for additive coefficients and/or \code{mul} and \code{se_mul}
+#' for multiplicative coefficients. For model 2, the output has columns
+#' \code{from} and \code{upto}, indicating the time slices for which the coefficients
+#' are valid. For model 3, a column \code{time} is present, indicating to which
+#' time point each (set of) coefficient(s) pertain.
 #' 
-#'  
 #' 
 #' @export
 #'
