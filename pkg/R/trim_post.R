@@ -25,17 +25,17 @@
 #' # extract autocorrelation strength
 #' rho <- summary(z)$rho
 summary.trim <- function(object,...) {
-  
-  printf("Call:\n%s\n",deparse(object$call))
-  
+ 
+  cl <- paste(capture.output(print(object$call)),collapse="\n")
+  printf("Call:\n%s\n",cl)
   
   printf("\nCoefficients:\n")
   print(coefficients(object,"both"))
-  printf("\n\n")
+  printf("\n")
   
   printf(" Overdispersion    : %8.4f\n",object$rho)
-  printf(" Serial Correlation: %8.4f\n\n",object$sig2)
-  
+  printf(" Serial Correlation: %8.4f\n",object$sig2)
+  printf("\n")
   
   print(gof(object))
   invisible(NULL)   
