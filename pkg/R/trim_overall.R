@@ -143,15 +143,28 @@ print.trim.overall <- function(x,...) {
 
 #' Plot overall slope
 #'
+#' Creates a plot of the overall slope, its 95\% confidence band, the
+#' total population per time and their 95\% confidence intervals.
+#' 
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
 #' @param imputed Toggle to show imputed counts
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @family analyses
+#' 
+#' @examples 
+#' data(skylark)
+#' m <- trim(count ~ time + site, data=skylark, model=2)
+#' plot(overall(m))
+#' 
 #' @export
 plot.trim.overall <- function(x, imputed=TRUE, ...) {
   X <- x
-  title <- attr(X, "title")
+  title <- if (is.null(list(...)$main)){
+    attr(X, "title")
+  } else {
+    list(...)$main
+  }
 
   J <- X$J
 
@@ -188,7 +201,7 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   # Now plot layer-by-layer
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
-  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", main=title,...)
+  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", las=1, main=title,...)
   polygon(xconf, yconf, col=gray(0.9), lty=0)
   lines(x, ytrend, col=cbred, lwd=3)
   segments(j,y0, j,y1, lwd=3, col=gray(0.5))

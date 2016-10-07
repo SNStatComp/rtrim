@@ -78,7 +78,7 @@ trim.trimcommand <- function(x,...){
 #'  is treated as the 'counts' variable. The first and second independent variable
 #'  are treated as the 'time' and 'site' variable, in that specific order. All
 #'  other variables are treated as covariates.
-#' @param model TRIM model type.
+#' @param model \code{[numeric]} TRIM model type 1, 2, or 3.
 #' @param weights \code{[numeric]} Optional vector of site weigts. The length of 
 #' \code{weights} must be equal to the number of rows in the data. 
 #' @param serialcor \code{[logical]} Take serial correlation into account.

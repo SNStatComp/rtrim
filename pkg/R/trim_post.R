@@ -130,8 +130,11 @@ coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 #' @param which Selector to distinguish between time totals based on the imputed data (default),
 #' the modelled data, or both.
 #'
-#' @return a structure of class \code{trim.totals}, which is a list with as single
-#' element the data frame \code{totals}.
+#' @return a \code{data.frame} with subclass \code{trim.totals} 
+#'  (for pretty-printing). The columns are \code{time}, \code{model}
+#'  and \code{se_mod} (for standard error), and/or \code{imputed}
+#'  and \code{se_imp}, depending on the selection.
+#' 
 #' @export
 #'
 #' @family analyses
@@ -198,7 +201,7 @@ print.trim.totals <- function(x,...) {
 #' @param which Selector to distinguish between variance-covariance based on the
 #' imputed data (default), or the modelled data.
 #'
-#' @return a JxJ matrix, where J is the number or time points.
+#' @return a JxJ matrix, where J is the number of time points.
 #' @export
 #'
 #' @family analyses

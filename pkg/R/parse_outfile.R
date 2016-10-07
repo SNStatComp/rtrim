@@ -1,13 +1,4 @@
 
-# library(rtrim)
-# data(skylark)
-# set_trim_verbose(FALSE)
-# m <- trim(count ~ time + site, data=skylark, model=2)
-#
-# r <- readLines("pkg/tests/testthat/outfiles/skylark-1d.out")
-# r <- paste(r,collapse="\n")
-# cat(r)
-
 #' Read a TRIM3 output file
 #'
 #' @param file \code{[character]} filename
