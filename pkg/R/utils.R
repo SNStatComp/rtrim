@@ -1,7 +1,14 @@
 
  #' Set verbosity of trim model functions
  #'
- #' @param verbose \code{[logical]} toggle verbosity.
+ #' @section Details:
+ #' 
+ #' Control how much output \code{\link{trim}} writes to the screen while
+ #' fitting the model. 
+ #'
+ #'
+ #' @param verbose \code{[logical]} toggle verbosity. \code{TRUE} means: be
+ #' verbose, \code{FALSE} means be quiet (this is the default).
  #'
  #' @export
  set_trim_verbose <- function(verbose=FALSE){

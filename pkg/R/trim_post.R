@@ -22,8 +22,6 @@
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' summary(z)
-#' # extract autocorrelation strength
-#' rho <- summary(z)$rho
 summary.trim <- function(object,...) {
  
   cl <- paste(capture.output(print(object$call)),collapse="\n")
