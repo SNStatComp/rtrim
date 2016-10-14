@@ -23,29 +23,29 @@
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' summary(z)
 summary.trim <- function(object,...) {
- 
+
   cl <- paste(capture.output(print(object$call)),collapse="\n")
   printf("Call:\n%s\n",cl)
-  
+
   printf("\nCoefficients:\n")
   print(coef.trim(object,"both"))
   printf("\n")
-  
+
   printf(" Overdispersion    : %8.4f\n",object$rho)
   printf(" Serial Correlation: %8.4f\n",object$sig2)
   printf("\n")
-  
+
   print(gof(object))
-  invisible(NULL)   
+  invisible(NULL)
 }
 
 
 #' Extract serial correlation from TRIM object
-#' 
+#'
 #' @param x An object of class \code{\link{trim}}
-#' 
+#'
 #' @return The serial correlation coefficient if computed, otherwise \code{NULL}.
-#' 
+#'
 #' @export
 #' @family analyses
 serial_correlation <- function(x){
@@ -57,9 +57,9 @@ serial_correlation <- function(x){
 #' Extract overdispersion from trim object
 #'
 #' @param x An object of class \code{\link{trim}}
-#' 
+#'
 #' @return The overdispersion value if computed, otherwise \code{NULL}.
-#' 
+#'
 #' @export
 #' @family analyses
 #'
@@ -104,8 +104,8 @@ overdispersion <- function(x){
 #' \code{from} and \code{upto}, indicating the time slices for which the coefficients
 #' are valid. For model 3, a column \code{time} is present, indicating to which
 #' time point each (set of) coefficient(s) pertain.
-#' 
-#' 
+#'
+#'
 #' @export
 #'
 #' @family analyses

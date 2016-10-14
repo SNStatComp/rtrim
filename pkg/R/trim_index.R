@@ -63,7 +63,7 @@
 #' @family analyses
 #'
 #' @examples
-#' 
+#'
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
 #' index(z)
@@ -74,6 +74,12 @@
 #'
 index <- function(x, which=c("imputed","model","both"), base=1) {
   stopifnot(inherits(x,"trim"))
+
+  # Match base to actual time points
+  if (base %in% x$time.id) {
+    base = which(base == x$time.id)
+    stopifnot(length(base)==1)
+  }
 
   # Computation and output is user-configurable
   which <- match.arg(which)

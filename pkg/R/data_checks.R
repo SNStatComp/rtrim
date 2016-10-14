@@ -7,11 +7,11 @@
 #'
 #' @param x A \code{\link{trimcommand}} object, a \code{data.frame}, or the location of a TRIM command file.
 #' @param ... Parameters passed to other methods.
-#' 
+#'
 #' @family modelspec
-#' 
+#'
 #' @export
-check_observations <- function(x,...){ 
+check_observations <- function(x,...){
   UseMethod("check_observations")
 }
 
@@ -21,12 +21,12 @@ check_observations <- function(x,...){
 #' @param count.id \code{[character|numeric]} column index of the counts in \code{x}
 #' @param changepoints \code{[numeric]} Changepoints (model 2 only)
 #' @param eps \code{[numeric]} Numbers whose absolute magnitude are lesser than \code{eps} are considered zero.
-#' 
+#'
 #' @return A \code{list} with two components. The component \code{sufficient} takes the value
 #' \code{TRUE} or \code{FALSE} depending on whether sufficient counts have been found.
 #' The component \code{errors} is a \code{list}, of which the structure depends on the chosen model,
 #' that indicates under what conditions insufficient data is present to estimate the model.
-#' 
+#'
 #' \itemize{
 #' \item{For model 3 without covariates, \code{$errors} is a list whose single element is a vector of time
 #' points with insufficient counts}.
@@ -36,18 +36,18 @@ check_observations <- function(x,...){
 #' counts are found.}
 #' \item{Model 2: TODO}
 #' }
-#' 
-#' 
-#' 
+#'
+#'
+#'
 #' @export
 #' @rdname check_observations
 check_observations.data.frame <- function(x, model, covar = list()
   , changepoints = numeric(0), time.id="time",count.id="count", eps=1e-8, ...){
- 
+
   stopifnot(model %in% 1:3)
-  
+
   out <- list()
-  
+
   if (model==3 && length(covar) == 0 ){
     time_totals <- tapply(X = x[,count.id], INDEX = x[,time.id], FUN = sum, na.rm=TRUE)
     ii <- time_totals <= eps
@@ -59,7 +59,7 @@ check_observations.data.frame <- function(x, model, covar = list()
   } else {
     warning("Data checking is currently implemented for mode 3 only. Returning empty list")
   }
-  
+
   out
 }
 
@@ -117,13 +117,12 @@ pieces_from_changepoints <- function(time, changepoints) {
   # convert time from (possibly non-contiguous) years to time points 1..ntime
   tpt <- as.integer(ordered(time))
 
-  pieces <- integer(length(tpt)) + 1
+  pieces <- integer(length(tpt)) # + 1 # Why ??? the +1?
   C <- changepoints
   if (C[length(C)] != max(tpt)) C <- append(C,max(tpt))
 
   for ( i in seq_along(C[-1])){
-    # j <- seq(C[i] + 1, C[i+1])
-    j <- seq(C[i], C[i+1] - 1)
+    j <- seq(C[i] + 1, C[i+1])
     pieces[tpt %in% j] <- C[i]
   }
   pieces
@@ -156,7 +155,14 @@ get_cov_count_errlist <- function(count, time, covars, timename="time"){
     names(index)[1] <- timename
     tab <- tapply(count, INDEX=index, FUN=sum, na.rm=TRUE)
     df <- as.data.frame(as.table(tab))
+
+    # df$Freq[is.na(df$Freq)] <- 0 # replace NA -> 0
+    #
+    # # Allow no-data at cp 0
+    # CP0 = levels(df$time)[1]
+    # err <- df[df$Freq==0 & df$time!=CP0, 1:2]
     err <- df[df$Freq==0, 1:2]
+
     if (nrow(err) > 0){
       names(err)[2] <- covname
       ERR[[covname]] <- err
@@ -184,6 +190,7 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 # needs to be deleted.
 get_deletion <- function(count, time, changepoints, covars){
   if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
+  if (length(changepoints)==1) return(-1) # Never propose to delete a lonely changepoint
   pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
   out <- -1
   if ( length(covars)> 0){
@@ -196,17 +203,20 @@ get_deletion <- function(count, time, changepoints, covars){
     tab <- tapply(count, list(pieces=pieces), sum,na.rm=TRUE)
     j <- tab <= 0
     if (any(j)){
-      out <- as.numeric(names(tab)[which(j)[1]])
+      wj = which(j)[1]
+      out <- as.numeric(names(tab)[min(wj+1, length(tab))])
     }
   }
   out
 }
 
 autodelete <- function(count, time, changepoints, covars){
-
   out <- get_deletion(count, time, changepoints, covars)
-  while ( out > 0){
-    rprintf("Auto-deleting change point %d\n",as.integer(out))
+  while (out > 0) {
+    cp = as.integer(out)
+    yr = time[cp]
+    if (cp==yr) rprintf("Auto-deleting change point %d\n", cp)
+    else        rprintf("Auto-deleting change point %d (%d)\n", cp, yr)
     # delete changepoint
     changepoints <- changepoints[changepoints != out]
     out <- get_deletion(count, time, changepoints, covars)
