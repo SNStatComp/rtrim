@@ -11,7 +11,7 @@
 #' \code{\link{trim}} computes three goodness-of-fit measures:
 #' \itemize{
 #'   \item Chi-squared
-#'   \item Likelihood ration
+#'   \item Likelihood ratio
 #'   \item Akaike Information content
 #' }
 #'

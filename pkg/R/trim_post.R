@@ -5,7 +5,7 @@
 # ----------------------------------------------------------------- extract ----
 
 
-#' Extract summary information for a TRIM job
+#' Print summary information for a TRIM job
 #'
 #' Print a summary of a \code{\link{trim}} object.
 #'
@@ -22,8 +22,6 @@
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' summary(z)
-#' # extract autocorrelation strength
-#' rho <- summary(z)$rho
 summary.trim <- function(object,...) {
  
   cl <- paste(capture.output(print(object$call)),collapse="\n")
@@ -77,6 +75,24 @@ overdispersion <- function(x){
 
 #' Extract TRIM model coefficients.
 #'
+#' @section Details:
+#' Each model in \code{TRIM} can be written in the form \eqn{ln(w\mu) = A\alpha 
+#' + B\beta}, where \eqn{\mu} represents the number of counts at a site at a 
+#' certain time, and \eqn{w} a site-dependent weight (by default 1). The vector
+#' \eqn{\alpha} contains site-parameters and vector \eqn{\beta} contains time
+#' parameters. The value of matrices \eqn{A} and \code{B} depend on the chosen
+#' model. The parameter vectors \eqn{\alpha} and \eqn{\beta} are the
+#' coefficients to be estimated. A detailed description of the methodology and
+#' interpretation of the coefficients can be found here: \bold{TODO: ADD
+#' REFERENCE}.
+#' 
+#' Once a model is run using the \code{\link{trim}} function, the computed 
+#' coefficients can be extraced using \code{coef}, or its alias
+#' \code{coefficients}. See the examples below. The actual time totals and
+#' indices can be extracted using \code{\link{totals}} or \code{\link{index}}.
+#' 
+#'
+#'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which What coefficients to return.
 #' @param ... currently unused
@@ -97,8 +113,6 @@ overdispersion <- function(x){
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' coefficients(z)
-#' # extract autocorrelation strength
-#' rho <- summary(z)$rho
 coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 
   # Craft a custom output
