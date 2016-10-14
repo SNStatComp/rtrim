@@ -19,6 +19,7 @@
 overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
+  #browser()
 
   # extract vars from TRIM output
   tt_mod <- x$tt_mod
@@ -27,21 +28,49 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
   var_tt_imp <- x$var_tt_imp
   ntime <- x$ntime
 
+  # if (base>0) { # use index instead
+  #     browser()
+  #     tt     = tt_mod
+  #     var_tt = var_tt_mod
+  #     b = base
+  #
+  #     tau <- tt / tt[b]
+  #     J <- length(tt)
+  #     var_tau <- numeric(J)
+  #     for (j in 1:J) {
+  #       d <- matrix(c(-tt[j] / tt[b]^2, 1/tt[b]))
+  #       V <- var_tt[c(b,j), c(b,j)]
+  #       var_tau[j] <- t(d) %*% V %*% d
+  #     }
+  #
+  #     tt_mod <- tt_imp <- tau
+  #     var_tt_mod <- var_tt_imp <- diag(var_tau)
+  # }
+
+
   # The overall slope is computed for both the modeled and the imputed $\Mu$'s.
   # So we define a function to do the actual work
 
   .compute.overall.slope <- function(tt, var_tt, src) {
+    # tpt = time points, either 1..J or year1..yearn
     J <- length(tt)
     stopifnot(nrow(var_tt)==J && ncol(var_tt)==J)
 
+    # handle zero time totals (might happen in imputed TT)
+    problem = tt<1e-6
+    log_tt = log(tt)
+    log_tt[problem] <- 0.0
+    alt_tt <- exp(log_tt)
+
     # Use Ordinary Least Squares (OLS) to estimate slope parameter $\beta$
-    X <- cbind(1, seq_len(J)) # design matrix
-    y <- matrix(log(tt))
+    X <- cbind(1, 1:J) # design matrix
+    y <- matrix(log_tt)
+    #y[tt<1e-6] = 0.0 # Handle zero (or very low) counts
     bhat <- solve(t(X) %*% X) %*% t(X) %*% y # OLS estimate of $b = (\alpha,\beta)^T$
     yhat <- X %*% bhat
 
     # Apply the sandwich method to take heteroskedasticity into account
-    dvtt <- 1/tt # derivative of $\log{\Mu}$
+    dvtt <- 1/alt_tt # derivative of $\log{\Mu}$
     Om <- diag(dvtt) %*% var_tt %*% diag(dvtt) # $\var{log{\Mu}}$
     var_beta <- solve(t(X) %*% X) %*% t(X) %*% Om %*% X %*% solve(t(X) %*% X)
     b_err <- sqrt(diag(var_beta))
@@ -78,13 +107,14 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
   } else if (which=="model") {
     tt     <- tt_mod
     var_tt <- var_tt_mod
-    src = "imputed"
+    src = "model"
   }
 
   if (length(cp)==0) {
     # Normal overall slope
     out <- .compute.overall.slope(tt, var_tt, src)
     out$type <- "normal" # mark output as 'normal' overall slope
+    out$timept <- x$time.id # export tiem points for proper plotting
   } else {
     # overall slope per changepoint
     J <- length(tt)
@@ -150,6 +180,7 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   title <- attr(X, "title")
 
   J <- X$J
+  tpt = X$timept
 
   # Collect all data for plotting: time-totals
   j <- 1:J
@@ -162,11 +193,12 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   # Trend line
   a <- X$coef[[1]][1] # intercept
   b <- X$coef[[1]][2] # slope
-  x <- seq(1, J, length.out=100)
+  x <- seq(1, J, length.out=100) # continue timepoint 1..J
   ytrend <- exp(a + b*x)
 
   # Confidence band
-  xconf <- c(x, rev(x))
+  xcont <- seq(min(tpt), max(tpt), len=100) # continue year1..yearn
+  xconf <- c(xcont, rev(xcont))
   alpha <- 0.05
   df <- J - 2
   t <- qt((1-alpha/2), df)
@@ -178,16 +210,15 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   yconf <- c(ylo, rev(yhi))
 
   # Compute the total range of all plot elements
-  xrange = range(x)
+  xrange = range(xcont)
   yrange = range(range(yconf), range(y0), range(y1))
 
-  # Now plot layer-by-layer
+  # Now plot layer-by-layer (using ColorBrewer colors)
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
   plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", main=title)
   polygon(xconf, yconf, col=gray(0.9), lty=0)
-  lines(x, ytrend, col=cbred, lwd=3)
-  segments(j,y0, j,y1, lwd=3, col=gray(0.5))
-  points(j, ydata, col=cbblue, type='b', pch=16, lwd=3)
-
+  lines(xcont, ytrend, col=cbred, lwd=3)
+  segments(tpt,y0, tpt,y1, lwd=3, col=gray(0.5))
+  points(tpt, ydata, col=cbblue, type='b', pch=16, lwd=3)
 }

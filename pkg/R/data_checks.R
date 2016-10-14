@@ -37,13 +37,12 @@ pieces_from_changepoints <- function(time, changepoints) {
   # convert time from (possibly non-contiguous) years to time points 1..ntime
   tpt <- as.integer(ordered(time))
 
-  pieces <- integer(length(tpt)) + 1
+  pieces <- integer(length(tpt)) # + 1 # Why ??? the +1?
   C <- changepoints
   if (C[length(C)] != max(tpt)) C <- append(C,max(tpt))
 
   for ( i in seq_along(C[-1])){
-    # j <- seq(C[i] + 1, C[i+1])
-    j <- seq(C[i], C[i+1] - 1)
+    j <- seq(C[i] + 1, C[i+1])
     pieces[tpt %in% j] <- C[i]
   }
   pieces
@@ -104,10 +103,12 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 # needs to be deleted.
 get_deletion <- function(count, time, changepoints, covars){
   if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
+  if (length(changepoints)==1) return(-1) # Never propose to delete a lonely changepoint
   pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
   out <- -1
   if ( length(covars)> 0){
     err <- get_cov_count_errlist(count, pieces, covars)
+    print(err)
     if ( length(err)>0){
       e <- err[[1]]
       out <- changepoints[as.numeric(e[1,1])]
@@ -116,17 +117,21 @@ get_deletion <- function(count, time, changepoints, covars){
     tab <- tapply(count, list(pieces=pieces), sum,na.rm=TRUE)
     j <- tab <= 0
     if (any(j)){
-      out <- as.numeric(names(tab)[which(j)[1]])
+      wj = which(j)[1]
+      out <- as.numeric(names(tab)[min(wj+1, length(tab))])
     }
   }
   out
 }
 
 autodelete <- function(count, time, changepoints, covars){
-
+  # browser()
   out <- get_deletion(count, time, changepoints, covars)
-  while ( out > 0){
-    rprintf("Auto-deleting change point %d\n",as.integer(out))
+  while (out > 0) {
+    cp = as.integer(out)
+    yr = time[cp]
+    if (cp==yr) rprintf("Auto-deleting change point %d\n", cp)
+    else        rprintf("Auto-deleting change point %d (%d)\n", cp, yr)
     # delete changepoint
     changepoints <- changepoints[changepoints != out]
     out <- get_deletion(count, time, changepoints, covars)
