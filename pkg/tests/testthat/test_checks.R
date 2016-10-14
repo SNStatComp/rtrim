@@ -15,6 +15,22 @@ test_that("basic assertions",{
 })
 
 
+test_that("check_observations",{
+  # model 3, no covariates
+  d <- data.frame(time = 1:3, count=0:2)
+  out <- check_observations(d,model=3)
+  expect_false(out$sufficient)
+  expect_equal(out$errors,list(time=1))
+
+  # model 3 with covariates
+  d <- data.frame(count = rep(0:1,2), time = rep(1:2,each=2), cov = rep(1:2,2))
+  out <- check_observations(d, model=3,covar="cov")
+  expect_false(out$sufficient)
+  expect_equal(out$errors,list(cov=data.frame(time=factor(1:2),cov=factor(c(1,1),levels=1:2))) )
+  
+  # model 2 
+  
+})
 
 
 test_that("Sufficient data for piecewise linear trend model (Model 2)",{
