@@ -10,6 +10,15 @@
 #'   \code{"model"} counts.
 #' @param cp \code{[numeric]} Change points for which to compute the overall slope.
 #'
+#' @section Details:
+#' 
+#' The overall slope represents the mean growth or decline over a period of time.
+#' This can be determined over the whole time period for which the modelis fitted (this is the default)
+#' or may be computed over time slices that can be defined with the \code{cp} parameter.
+#' The values for \code{cp} do not depend on \code{changepoints} that were used when 
+#' specifying the \code{trim} model (See also the example below).
+#'
+#'
 #' @return a list of class \code{trim.overall} containing overall slope
 #'   coefficients (\code{coef}), the p-value of the overall slope (\code{p}),
 #'   and the size-effect (\code{effect}).
@@ -17,9 +26,17 @@
 #'
 #' @family analyses
 #' @examples
+#' 
+#' # obtain the overall slope accross all change points.
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
 #' overall(z)
+#' plot(overall(z))
+#' 
+#' # Obtain the slope from changepoint to changepoint
+#' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
+#' # slope from time point 1 to 5
+#' overall(z,cp=c(1,5,7))
 overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
