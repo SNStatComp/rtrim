@@ -217,9 +217,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     }
   }
 
-  # For model 3, changepoints are not allowed
-  # TODO: proper error msg "No Changepoints allowed with model 3"
-  if (model==3) stopifnot(length(changepoints)==0)
+  if (model==3 && length(changepoints) > 0) stop("Changepoints cannot be specified for model 3")
 
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
