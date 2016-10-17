@@ -32,6 +32,8 @@
 #' \item{ \code{autodelete} \code{[logical]} Whether to autodelete change points when number of observations is to low in a time segment.}
 #' \item{ \code{outputfiles} \code{[character]} Type of outputfile to generate ('F' and/or 'S')}
 #' \item{ \code{overallchangepoints} \code{[integer]} Positions of the overall change points.}
+#' \item{ \code{impcovout} \code{[logical]} Whether the covariance matrix of the imputed counts is saved.}
+#' \item{ \code{covin} \code{[logical]} Whether the covariance matrix is read in.}
 #'}
 #'
 #' @family modelspec
@@ -59,6 +61,8 @@ trimcommand <- function(...){
     , autodelete   = logical(0)
     , outputfiles  = character(0)
     , overallchangepoints = integer(0)
+    , impcovout    = FALSE
+    , covin        = FALSE
   )
   class(tc) <- c("trimcommand","list")
   L <- list(...)
@@ -164,7 +168,10 @@ as_rtrim <- function(value, template){
 #' \code{STEPWISE} \tab [\code{on},\code{off}] Switch stepwise selection of changepoints [translated to \code{logical}].\cr
 #' \code{AUTODELETE} \tab [\code{on}, \code{off}] Delete changepoints when the corresponding time segment has to litte observations. \cr
 #' \code{OVERALLCHANGEPOINTS} \tab[integers] indices of overall changepoints\cr
-#' \code{RUN}\tab Signals end of current model specification.
+#' \code{RUN}\tab Signals end of current model specification.\cr
+#' \bold{Output} \tab\cr
+#' \code{IMPCOVOUT}\tab [\code{on}, \code{off}] Switch to save variance-covariance matrix \cr
+#' \code{COVIN}\tab [\code{on}, \code{off}] Switch to read variance-covariance matrix
 #' }
 #'
 #'
@@ -202,8 +209,10 @@ read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
   con <- file(description = file, encoding=encoding)
   on.exit(close(con))
   tcf <- paste(readLines(con), collapse="\n")
+  tcf <- gsub("\nIMPCOVOUT\n","\nIMPCOVOUT on\n", tcf) # Hack to allow IMPCOVOUT keys without corresponding values, as in TRIM3
+  tcf <- gsub("\nCOVIN\n","\nCOVIN on\n", tcf) # Hack to allow COVIN keys without corresponding values, as in TRIM3
   check_tcf(tcf)
-  
+
   tcflist <- trimws(strsplit(tcf,"(\\n|^)RUN")[[1]])
   L <- vector(mode="list",length=length(tcflist))
   L[[1]] <- tc_from_char(tcflist[[1]])
@@ -349,21 +358,21 @@ check_tcf <- function(x){
   }
   # remove labels between LABELS and END (if any)
   if (i_end - i_labels > 1)   s <- s[-seq(i_labels+1, i_end-1)]
-  
+
   # remove empty lines
   s <- s[nchar(s)>0]
- 
+
   # check tcf file for unknown keywords and warn if any occur
   mm <- regexpr("^.+?([[:blank:]]|$)",s)
   keys_in_file <- trimws(regmatches(s,mm))
-  
+
   invalid_keys <- keys_in_file[!toupper(keys_in_file) %in% toupper(keywords)]
 
   if(length(invalid_keys) > 0){
     warning(sprintf("Ingnoring lines with the following invalid keywords: %s."
                     , paste0("'",invalid_keys,"'",collapse=", ")), call.=FALSE)
   }
-  
+
 }
 
 

@@ -33,7 +33,7 @@
 #' data(skylark)
 #' m <- trim(count ~ time + site, data=skylark, model=2)
 #' gof(m)
-#' 
+#'
 #' # An example using weights
 #' # set up some random weights (one for each site)
 #' w <- runif(55, 0.1, 0.9)
@@ -41,12 +41,12 @@
 #' weights <- w[skylark$site]
 #' # run model
 #' m <- trim(count ~ time + site, data=skylark, model=3)
-#' 
+#'
 #' # An example using change points, a covariate, and overdispersion
 #' # 1 is added as cp automatically
 #' cp <- c(2,6)
 #' m <- trim(count ~ time + site + Habitat, data=skylark, model=2, changepoints=cp, overdisp=TRUE)
-#' plot(overall(m)) 
+#' plot(overall(m))
 trim <- function(x,...){
   UseMethod('trim')
 }
@@ -61,7 +61,10 @@ trim.trimcommand <- function(x,...){
 
   if (isTRUE(x$weighting)) { wgt <- dat$weight }
   else             { wgt <- numeric(0) }
-  
+
+  if (isTRUE(x$covin)) covin <- read_icv(x)
+  else                 covin <- list()
+
   out <- trim_estimate(count=dat$count
                       , time.id = dat$time
                       , site.id = dat$site
@@ -71,7 +74,9 @@ trim.trimcommand <- function(x,...){
                       , overdisp = x$overdisp
                       , changepoints = x$changepoints
                       , stepwise = x$stepwise
-                      , weights = wgt)
+                      , weights = wgt
+                      , covin = covin
+                      , ...)
 }
 
 #' @param formula \code{[formula]} The dependent variable (left-hand-side)
@@ -79,14 +84,14 @@ trim.trimcommand <- function(x,...){
 #'  are treated as the 'time' and 'site' variable, in that specific order. All
 #'  other variables are treated as covariates.
 #' @param model \code{[numeric]} TRIM model type 1, 2, or 3.
-#' @param weights \code{[numeric]} Optional vector of site weigts. The length of 
-#' \code{weights} must be equal to the number of rows in the data. 
+#' @param weights \code{[numeric]} Optional vector of site weigts. The length of
+#' \code{weights} must be equal to the number of rows in the data.
 #' @param serialcor \code{[logical]} Take serial correlation into account.
 #' @param overdisp \code{[logical]} Take overdispersion into account.
 #' @param changepoints \code{[numeric]} Indices for changepoints.
 #' @param stepwise \code{[logical]} Perform stepwise refinement of changepoints.
 #' @param autodelete \code{[logical]} Auto-delete changepoints when number of observations is too small.
-#' 
+#'
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
@@ -95,7 +100,7 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
 
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
-  
+
   stopifnot(is.numeric(model),model %in% 2:3)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))

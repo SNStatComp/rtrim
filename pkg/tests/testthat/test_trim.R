@@ -1,6 +1,6 @@
 
 # compare TRIM model m against trim output string to.
-trimtest <- function(m, to, tc, vcv=NULL){
+trimtest <- function(m, to, tc, vcv=NULL) {
 
   version <- get_version(to)
 

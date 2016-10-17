@@ -75,6 +75,7 @@ wald.trim <- function(x)
   nclass <- x$nclass
   beta <- x$beta
   var_beta <- x$var_beta
+  ucp <- x$ucp # use.changepoints
 
   # Extract actual changepoints
   if (model==2) {
@@ -93,7 +94,7 @@ wald.trim <- function(x)
   # This test applies to the case where model 2 is used without covariates or changepoints.
   # There thus is a single $\beta$ representing the trend for all sites and throughout the whole period,
   # and the univariate approach Eqn~\eqref{Wald-scalar} applies.
-  if (model==2 && nbeta==1 && ncovar==0) {
+  if (model==2 && ucp==FALSE && nbeta==1 && ncovar==0) {
     theta <- as.numeric(beta)
     var_theta <- as.numeric(var_beta)
     W  <- theta^2 / var_theta # Compute the Wald statistic by \eqref{Wald-scalar}
@@ -136,7 +137,7 @@ wald.trim <- function(x)
   #      0 &\quad\text{otherwise}.
   #   \end{cases}
   # \end{equation}
-  else if (model==2 && nbeta>1 && ncovar==0) {
+  else if (model==2 && nbeta>=1 && ncovar==0) {
     A <- diag(nbeta)           # Start with a diagonal matrix
     idx <- row(A)==(col(A)+1)  # The band just below the diagonal
     A[idx] <- -1
