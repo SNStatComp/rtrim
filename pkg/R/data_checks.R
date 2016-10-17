@@ -190,14 +190,15 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 # needs to be deleted.
 get_deletion <- function(count, time, changepoints, covars){
   if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
-  if (length(changepoints)==1) return(-1) # Never propose to delete a lonely changepoint
-  pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
   out <- -1
+  if (length(changepoints)==1) return(out) # Never propose to delete a lonely changepoint
+  pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
+  
   if ( length(covars)> 0){
-    err <- get_cov_count_errlist(count, pieces, covars)
+    err <- get_cov_count_errlist(count, pieces, covars,timename="piece")
     if ( length(err)>0){
       e <- err[[1]]
-      out <- changepoints[as.numeric(e[1,1])]
+      out <- as.numeric(as.character(e[1,1]))
     }
   } else {
     tab <- tapply(count, list(pieces=pieces), sum,na.rm=TRUE)

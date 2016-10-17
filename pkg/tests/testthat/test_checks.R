@@ -102,11 +102,6 @@ test_that("autodelete w/o covariates",{
 })
 
 test_that("autodelete with covariates",{
-  # d <- data.frame(
-  #   time = 1:10
-  #   , covar = rep(letters[1:2], times=5)
-  #   , count = rep(1,10)
-  # )
   d <- data.frame(
     time = rep(1:10, times=2)
     , covar = rep(letters[1:2], each=10)
@@ -114,24 +109,24 @@ test_that("autodelete with covariates",{
   )
 
   # case all fine
-  # BUG: there is nio real time 1 for class b
+  # BUG: there is no real time 1 for class b
   expect_equal(
     autodelete(count = d$count, time = d$time, changepoints=c(4,7),covars=list(cov=d$covar))
   , c(4,7)
   )
 
-  # case delete 7 # NEEDS fixing
-  # d$count[8:10] <- 0
-  # expect_equal(
-  #   autodelete(count = d$count, time = d$time, changepoints=c(4,7),covars=list(cov=d$covar))
-  #   , 4
-  # )
+   #case delete 7 
+   d$count[8:10] <- 0
+   expect_equal(
+     autodelete(count = d$count, time = d$time, changepoints=c(4,7),covars=list(cov=d$covar))
+     , 4
+   )
   #
-  # changepoints with explicit 1 at the beginning. NEEDS fixing
-  # expect_equal(
-  #   autodelete(count = d$count, time = d$time, changepoints=c(1,4,7),covars=list(cov=d$covar))
-  #   ,c(1, 4)
-  # )
+  
+   expect_equal(
+     autodelete(count = d$count, time = d$time, changepoints=c(1,4,7),covars=list(cov=d$covar))
+     ,c(1, 4)
+   )
 
 })
 
