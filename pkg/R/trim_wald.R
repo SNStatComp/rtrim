@@ -49,7 +49,7 @@
 #' @return a model-dependent list of Wald statistics
 #' @export
 #'
-#' @family wald
+#' @family analyses
 #'
 #' @examples
 #' data(skylark)

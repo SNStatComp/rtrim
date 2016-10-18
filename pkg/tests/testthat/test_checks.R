@@ -28,8 +28,14 @@ test_that("check_observations",{
   expect_false(out$sufficient)
   expect_equal(out$errors,list(cov=data.frame(time=factor(1:2),cov=factor(c(1,1),levels=1:2))) )
 
-  # model 2
-
+  # model 2, no covariates
+  d <- data.frame(time = 1:10, count = c(rep(1,7),rep(0,3)))
+  out <- check_observations(d,model=2,changepoints = c(4,7))
+  expect_false(out$sufficient)
+  expect_equal(out$errors$changepoint, 7)
+  
+  # model 2, with covariates
+  
 })
 
 

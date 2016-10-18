@@ -141,24 +141,38 @@ coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 #' Extract time-totals from TRIM output
 #'
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
-#' @param which Selector to distinguish between time totals based on the imputed data (default),
-#' the modelled data, or both.
+#' @param which select what totals to compute (see \code{Details} section).
 #'
 #' @return a \code{data.frame} with subclass \code{trim.totals} 
 #'  (for pretty-printing). The columns are \code{time}, \code{model}
 #'  and \code{se_mod} (for standard error), and/or \code{imputed}
 #'  and \code{se_imp}, depending on the selection.
 #' 
+#' @section Details:
+#' 
+#' The idea of \code{TRIM} is to impute those site-time combinations where
+#' no counts are available. Time-totals (i.e. summed over sites) can be obtained 
+#' for two cases:
+#' 
+#' \itemize{
+#' \item{\code{"imputed"}: Time totals are computed after replacing missing values with values predicted by the model}.
+#' \item{\code{"model"}: Time totals are computed after replacing both missing values and observed values with
+#' values predicted by the model.}
+#' }
+#' 
+#' 
+#' @return A \code{data.frame} with time totals and their standard errors.
+#' 
 #' @export
 #'
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' z <- trim(count ~ time + site, data=skylark, model=2,cp=c(3,5))
 #' totals(z)
-#' #print(totals(z,"imputed")) # idem
-#' #totals(z, "both") # mimics classic TRIM
-#' #SE <- totals(z)$totals$std.err
+#' 
+#' totals(z, "both") # mimics classic TRIM
+#' 
 totals <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
 
