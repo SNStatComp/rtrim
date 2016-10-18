@@ -76,22 +76,33 @@ overdispersion <- function(x){
 #' Extract TRIM model coefficients.
 #'
 #' @section Details:
-#' Each model in \code{TRIM} can be written in the form \eqn{ln(w\mu) = A\alpha 
-#' + B\beta}, where \eqn{\mu} represents the number of counts at a site at a 
-#' certain time, and \eqn{w} a site-dependent weight (by default 1). The vector
-#' \eqn{\alpha} contains site-parameters and vector \eqn{\beta} contains time
-#' parameters. The value of matrices \eqn{A} and \code{B} depend on the chosen
-#' model. The parameter vectors \eqn{\alpha} and \eqn{\beta} are the
-#' coefficients to be estimated. A detailed description of the methodology and
-#' interpretation of the coefficients can be found here: \bold{TODO: ADD
-#' REFERENCE}.
 #' 
-#' Once a model is run using the \code{\link{trim}} function, the computed 
-#' coefficients can be extraced using \code{coef}, or its alias
-#' \code{coefficients}. See the examples below. The actual time totals and
-#' indices can be extracted using \code{\link{totals}} or \code{\link{index}}.
+#' Extract the site, growth or time effect parameters computed with
+#' \code{\link{trim}}.
 #' 
+#' @section Additive versus multiplicative representation:
+#' 
+#' In the simplest cases (no covariates, no change points), the trim
+#' Model 2 and Model 3 can be summarized as follows:
+#' 
+#' \itemize{
+#' \item{Model 2: \eqn{\ln\mu_{ij}=\alpha_i + \beta\times(j-1)} }
+#' \item{Model 3: \eqn{\ln\mu_{ij}=\alpha_i + \gamma_j}.}
+#' }
+#' 
+#' Here, \eqn{\mu_{ij}} is the estimated number of counts at site \eqn{i}, time 
+#' \eqn{j}. The parameters \eqn{\alpha_i}, \eqn{\beta} and \eqn{\gamma_j} are 
+#' refererred to as coefficients in the additive representation. Bby
+#' exponentiating both sides of the above equations, alternative representations
+#' can be written down. Explicitly, one can show that
 #'
+#' \itemize{
+#' \item{Model 2: \eqn{\mu_{ij}= a_ib^{(j-1)} = b\mu_{ij-1}}, where \eqn{a_i=e^{\alpha_i}} and \eqn{b=e^\beta}.}
+#' \item{Model 3: \eqn{\mu_{ij}=a_ic_j}, where \eqn{a_i=e^{\alpha_i}}, \eqn{c_1=1} and \eqn{c_j=e^{\gamma_j}} for \eqn{j>1}.}
+#' }
+#'
+#' The parameters \eqn{a_i}, \eqn{b} and \eqn{c_j} are referred to as
+#' coefficients in the \emph{multiplicative representation}.
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which What coefficients to return.

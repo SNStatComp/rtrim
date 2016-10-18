@@ -47,7 +47,7 @@
 #' or \code{\link{totals}}. Refer to the `See also' section for an overview.
 #'
 #'
-#' @section Using covariates:
+#' @section {Using covariates}:
 #' 
 #' In the basic case of Models 2 and 3, the growth parameter \eqn{\beta} does
 #' not vary accross sites. If auxiliary information is available (for instance
@@ -59,7 +59,7 @@
 #'
 #' \eqn{\beta_0 + \sum_{k=1}^K z_{ijk}\beta_k}.
 #' 
-#' Here, \eqn{\beta_0} is referred to as the \emph{baseline} and $z_{ijk}$ is a 
+#' Here, \eqn{\beta_0} is referred to as the \emph{baseline} and \eqn{z_{ijk}} is a 
 #' dummy variable that combines dummy variables for all covariates. Since a 
 #' covariate with \eqn{L} classes is modeled by \eqn{L-1} dummy variables, the 
 #' value of \eqn{K} is equal to the sum of the numbers of categories for all 
@@ -67,7 +67,7 @@
 #' a covariate to change over time at a certain sites. It is therefore possible 
 #' to include situations for example where a site turns from farmland to rural 
 #' area. The \code{\link[=coef.trim]{coefficients}} function will report every 
-#' individual value of \eqn{\beta}. With a \code{\link{[=wald.trim]{wald}} test, 
+#' individual value of \eqn{\beta}. With a \code{\link[=wald.trim]{wald}} test, 
 #' the significance of contributions of covariates can be tested.
 #' 
 #' For \bold{Model 3 with covariates} the parameter \eqn{\gamma_j} is replaced by
