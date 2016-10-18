@@ -80,7 +80,13 @@ When reporting bugs, it helps us a lot if you can create an  as small as possibl
 that demonstrates the error. Some good general guidelines for reporting bugs are given [here](https://sifterapp.com/blog/2012/08/tips-for-effectively-reporting-bugs-and-issues/)
 
 
+### A fair warning
 
+Although we are close to a first formal release, this is a beta version.
+In particular this means that you may expect 
+
+- Running into bugs. Don't panic - this is normal at this stage of development.
+- The final versions of functions (naming of parameters etc) may still change a little in the official release. 
 
 
 
