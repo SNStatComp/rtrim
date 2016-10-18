@@ -22,7 +22,7 @@ drat::addRepo('markvanderloo')
 # install as usual
 install.packages('rtrim',type='source')
 ```
-
+This procedure is necessary while we are still in beta. Once the package is on CRAN, installation neither `Rtools` nor `drat` will be required.
 
 #### What is in the review version?
 
