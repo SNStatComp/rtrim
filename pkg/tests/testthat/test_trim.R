@@ -269,8 +269,27 @@ test_that("testing skylark-2a",{
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7,autodelete=TRUE)
   trimtest(m,to,tc)
+  
 
 })
+
+context("Invalid model spec errors")
+test_that("invalids",{
+  data(skylark)
+  expect_error(
+    trim(count ~ time + site, data=skylark, model=3
+         ,changepoints=c(3,5),stepwise = TRUE)
+    , regexp = "stepwise removal only works for model 2"
+  )
+
+  expect_error(
+    trim(count ~ time + site, data=skylark, model=3
+         ,changepoints=c(3,5))
+    , regexp = "Changepoints cannot be specified for model 3"
+  )
+    
+})
+
 
 context("Output printers")
 test_that("S3 output printers", {

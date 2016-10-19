@@ -57,6 +57,10 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
             ifelse(nkickout==1, "site","sites"), paste0(del.sites, collapse=", "))
   }
 
+  if (isTRUE(stepwise) && model != 2){
+    stop(sprintf("stepwise removal only works for model 2"), call.=FALSE)
+  }
+  
   t1 <- Sys.time()
   if (isTRUE(stepwise)) {
     m <- trim_refine(count, time.id, site.id, covars, model, serialcor
@@ -235,7 +239,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   }
 
   if (model==3 && length(changepoints) > 0) stop("Changepoints cannot be specified for model 3")
-
+  
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
   # where design matrices $A$ and $B$ both have $IJ$ rows.
