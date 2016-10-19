@@ -12,7 +12,8 @@
 #' @param object an object of class \code{\link{trim}}.
 #' @param ... Currently unused
 #'
-#' @return \code{NULL}, invisibly.
+#' @return A \code{list}, containing the coefficients (in additive and multiplicative form) 
+#' , the overdispersion and the serial correlation parameters (if computed), invisibly.
 #' @export
 #'
 #' @family analyses
@@ -28,7 +29,7 @@ summary.trim <- function(object,...) {
   printf("Call:\n%s\n",cl)
 
   printf("\nCoefficients:\n")
-  print(coef.trim(object,"both"))
+  print(coef.trim(object))
   printf("\n")
 
   printf(" Overdispersion    : %8.4f\n",object$rho)
@@ -36,7 +37,11 @@ summary.trim <- function(object,...) {
   printf("\n")
 
   print(gof(object))
-  invisible(NULL)
+  invisible(list(
+    coefficients = coef.trim(object)
+    , overdispersion = overdispersion(object)
+    , serialcorrelation = serial_correlation(object)
+  ))
 }
 
 
@@ -285,58 +290,6 @@ varcovar <- function(x, which=c("imputed","model")) {
 }
 
 
-
-# =========================================== Reparameterisation of Model 3 ====
-
-# ----------------------------------------------------------------- extract ----
-
-#' Extract coefficients of the reparameterisation of trim model 3
-#'
-#'
-#'
-#' @param x an object of class \code{\link{trim}}
-#'
-#' @return a list of class \code{trim.linear} with elements \code{trend}, 
-#'   containing additive and multiplicative parameters of the overall linear
-#'   trend, and \code{dev}, containing the deviations from that trend.
-#' @export
-#'
-#' @family analyses
-#' @examples
-#' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=3)
-#' # print coefficients of the linear trend
-#' print(linear(z))
-#' # get linear trend magnitude
-#' slope <- linear(z)$trend$Multiplicative
-#' # ... and the deviations from that trend
-#' devs  <- linear(z)$dev$Multiplicative
-linear <- function(x) {
-  stopifnot(inherits(x,"trim"))
-  if (x$model !=3 ){
-    message("Cannot extract linear coefficients from TRIM model %d",x$model)
-    return(NULL)
-  }
-
-  structure(list(trend=x$linear.trend, dev=x$deviations), class="trim.linear")
-}
-
-# ------------------------------------------------------------------- print ----
-
-
-#' Print an object of class trim.linear
-#'
-#' @param x An object of class \code{trim.linear}
-#'
-#' @export
-#' @keywords internal
-print.trim.linear <- function(x,...) {
-
-  printf("Linear Trend + Deviations for Each Time\n")
-  print(x$trend, row.names=TRUE)
-  printf("\n")
-  print(x$dev, row.names=FALSE)
-}
 
 
 
