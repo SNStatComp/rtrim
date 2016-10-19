@@ -273,8 +273,8 @@ test_that("testing skylark-2a",{
 
 })
 
-context("Invalid model spec errors")
-test_that("invalids",{
+context("Error handling")
+test_that("invalid model specs",{
   data(skylark)
   expect_error(
     trim(count ~ time + site, data=skylark, model=3
@@ -288,6 +288,28 @@ test_that("invalids",{
     , regexp = "Changepoints cannot be specified for model 3"
   )
     
+})
+
+
+
+test_that("tcf checker",{
+  
+  # bug reported by Henk Sierdsema (SOVON)
+x <- "
+FILE trim_15720_V.txt
+TITLE Corvus corax
+NTIMES 34
+NCOVARS 0
+MISSING -1
+WEIGHT Absent
+SERIALCOR on
+OVERDISP on
+BASETIME 1
+MODEL 2
+OUTPUTFILES S F
+RUN
+"
+expect_null(check_tcf(x))
 })
 
 
