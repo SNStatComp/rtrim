@@ -282,7 +282,7 @@ test_that("S3 output printers", {
   expect_output(print(overall(m2)))
   expect_output(print(totals(m2)))
   expect_output(print(index(m2)))
-  expect_output(summary(m2))
+  expect_output(print(summary(m2)))
 })
 
 

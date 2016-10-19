@@ -12,8 +12,11 @@
 #' @param object an object of class \code{\link{trim}}.
 #' @param ... Currently unused
 #'
-#' @return A \code{list}, containing the coefficients (in additive and multiplicative form) 
-#' , the overdispersion and the serial correlation parameters (if computed), invisibly.
+#' @return A \code{list} of class \code{trim.summary} containing the call that
+#'   created the object, the model code, the coefficients (in additive and
+#'   multiplicative form) , the goodness of fit parameters,the overdispersion
+#'   and the serial correlation parameters (if computed).
+#'   
 #' @export
 #'
 #' @family analyses
@@ -25,23 +28,32 @@
 #' summary(z)
 summary.trim <- function(object,...) {
 
-  cl <- paste(capture.output(print(object$call)),collapse="\n")
+  structure(list(
+    call = object$call
+    , coefficients = coef.trim(object)
+    , gof = gof(object)
+    , overdispersion = overdispersion(object)
+    , serialcorrelation = serial_correlation(object)
+    , model = object$model
+  ),class="trim.summary")
+}
+
+#' @export
+#' @keywords internal
+print.trim.summary <- function(x,...){
+  
+  cl <- paste(capture.output(print(x$call)),collapse="\n")
   printf("Call:\n%s\n",cl)
 
   printf("\nCoefficients:\n")
-  print(coef.trim(object))
+  print(x$coefficients)
   printf("\n")
 
-  printf(" Overdispersion    : %8.4f\n",object$rho)
-  printf(" Serial Correlation: %8.4f\n",object$sig2)
+  printf(" Overdispersion    : %8.4f\n",x$overdispersion)
+  printf(" Serial Correlation: %8.4f\n",x$serialcorrelation)
   printf("\n")
 
-  print(gof(object))
-  invisible(list(
-    coefficients = coef.trim(object)
-    , overdispersion = overdispersion(object)
-    , serialcorrelation = serial_correlation(object)
-  ))
+  print(x$gof)
 }
 
 
