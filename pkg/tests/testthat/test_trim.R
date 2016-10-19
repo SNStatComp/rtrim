@@ -82,7 +82,7 @@ trimtest <- function(m, to, tc, vcv=NULL) {
   }
   # coefficients
   tgt <- get_coef(to,tc$labels)
-  out <- coefficients(m,which="both")
+  out <- coefficients(m)
   v <- c("add","se_add","mul","se_mul")
   expect_equal(tgt$add,out$add,tol=1e-4)
   expect_equal(tgt$mul,out$mul,tol=1e-4)

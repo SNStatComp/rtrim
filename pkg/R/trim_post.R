@@ -92,7 +92,7 @@ overdispersion <- function(x){
 #' 
 #' Here, \eqn{\mu_{ij}} is the estimated number of counts at site \eqn{i}, time 
 #' \eqn{j}. The parameters \eqn{\alpha_i}, \eqn{\beta} and \eqn{\gamma_j} are 
-#' refererred to as coefficients in the additive representation. Bby
+#' refererred to as coefficients in the additive representation. By
 #' exponentiating both sides of the above equations, alternative representations
 #' can be written down. Explicitly, one can show that
 #'
@@ -102,20 +102,43 @@ overdispersion <- function(x){
 #' }
 #'
 #' The parameters \eqn{a_i}, \eqn{b} and \eqn{c_j} are referred to as
-#' coefficients in the \emph{multiplicative representation}.
+#' coefficients in the \emph{multiplicative form}.
+#' 
+#' @section Trend and deviation (Model 3 only):
+#' 
+#' The equation for Model 3
+#' 
+#' \eqn{\ln\mu_{ij}  = \alpha_i + \gamma_j},
+#' 
+#' can also be written as an overall slope resulting from a linear regression of
+#' the \eqn{\mu_{ij}} over time,  plus site- and time effects that
+#' record deviations from this overall slope.  In such a reparametrisation 
+#' the previous equation can be written as
+#' 
+#' \eqn{\ln\mu_{ij} = \alpha_i^* + \beta^*d_j + \gamma_j^*,}
+#'
+#' where \eqn{d_j} equals \eqn{j} minus the mean over all \eqn{j} (i.e. if \eqn{j=1,2,\ldots,J}
+#' then \eqn{d_j = j-(J+1)/2}). It is not hard to show that
+#' \itemize{
+#' \item{The \eqn{\alpha_i^*} are the mean \eqn{\ln\mu_{ij}} per site}
+#' \item{The \eqn{\gamma_j^*} must sum to zero.}
+#' }
+#' The coefficients \eqn{\alpha_i^*} and \eqn{\gamma_j^*} are obtained by
+#' setting \code{representation="deviations"}. If \code{representation="trend"},
+#' the overall trend parameters \eqn{\beta^*} and \eqn{\alpha^*} from the overall
+#' slope defined by \eqn{\alpha^* + \beta^*d_j} is returned. 
+#' 
+#' Finally, note that both the overall slope and the deviations can be written
+#' in multiplicative format.
+#' 
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
-#' @param which What coefficients to return.
+#' @param representation \code{[character]} Choose the coefficient
+#'   representation \code{"trend"} and \code{"deviations"} are for model 3 only.
 #' @param ... currently unused
 #'
-#' @return A \code{data.frame} containing coefficients and their standard errors.
-#' Depending on the requested type of coefficients column names are \code{add}
-#' and \code{se_add} for additive coefficients and/or \code{mul} and \code{se_mul}
-#' for multiplicative coefficients. For model 2, the output has columns
-#' \code{from} and \code{upto}, indicating the time slices for which the coefficients
-#' are valid. For model 3, a column \code{time} is present, indicating to which
-#' time point each (set of) coefficient(s) pertain.
-#'
+#' @return A \code{data.frame} containing coefficients and their standard errors,
+#' both in additive and multiplicative form.
 #'
 #' @export
 #'
@@ -124,24 +147,24 @@ overdispersion <- function(x){
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' coefficients(z)
-coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
+coef.trim <- function(object, 
+    representation=c("standard","trend","deviations"),...) {
 
-  # Craft a custom output
-  which <- match.arg(which)
-
-  # Last 4 columns contain the additive and multiplicative parameters.
-  # Select the appropriate subset from these, and all columns before these 4.
-  n = ncol(object$coefficients)
-  stopifnot(n>=4)
-  if (which=="additive") {
-    cols <- 1:(n-2)
-  } else if (which=="multiplicative") {
-    cols <- c(1:(n-4), (n-1):n)
-  } else if (which=="both") {
-    cols = 1:n
+  
+  representation <- match.arg(representation)
+  
+  if (representation %in% c("deviations","trend") && object$model != 3){
+    stop(
+      sprintf("Cannot extract  %s from TRIM model %d\n",representation,object$model)
+      , call.=TRUE)
   }
-  out <- object$coefficients[cols]
-  out
+
+  switch(representation
+    , "standard" = object$coefficients
+    , "deviations" = setNames(object$deviations,c("time","add","se_add","mul","se_mul"))
+    , "trend" = setNames(object$linear.trend,c("add","se_add","mul","se_mul"))
+  )
+  
 }
 
 
