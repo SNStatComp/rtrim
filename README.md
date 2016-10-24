@@ -9,7 +9,9 @@ Reimplementation of [TRIM](https://www.cbs.nl/en-gb/society/nature-and-environme
 ### Install the review version (beta)
 
 
-A review release (version 0.0.3.1) can now be installed with the following instructions.
+**Update:** Review version 0.0.3.2 is now (2016-10-24) available.
+
+A review release (version 0.0.3.2) can now be installed with the following instructions.
 
 
 1. If you are a Windows user, first install [Rtools](https://cran.r-project.org/bin/windows/Rtools/).
