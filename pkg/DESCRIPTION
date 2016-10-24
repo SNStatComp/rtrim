@@ -6,12 +6,12 @@ LazyData: no
 Type: Package
 LazyLoad: yes
 Authors@R: c( person("Patrick","Bogaart",role="aut"), person("Mark", "van der Loo", role=c("aut","cre"),email="mark.vanderloo@gmail.com"), person("Jeroen", "Pannekoek", role="aut"))
-Description: Reimplementation of the TRIM software of Pannekoek and van Strien.
-Version: 0.0.3
+Description: Reimplementation of the TRIM software of J. Pannekoek. 
+Version: 0.0.3.2
 Imports: methods, utils, stats, graphics, grDevices
 URL: https://github.com/markvanderloo/rtrim
 BugReports: https://github.com/markvanderloo/rtrim/issues
-Date: 2015-06-12
+Date: 2016-10-17
 Suggests:
     testthat,
     knitr,

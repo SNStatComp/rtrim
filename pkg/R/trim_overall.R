@@ -33,6 +33,11 @@
 #' overall(z)
 #' plot(overall(z))
 #' 
+#' # Overall is a list, you can get information out if it using the $ syntax,
+#' # for example
+#' L <- overall(z)
+#' L$coef
+#' 
 #' # Obtain the slope from changepoint to changepoint
 #' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
 #' # slope from time point 1 to 5

@@ -82,7 +82,7 @@ trimtest <- function(m, to, tc, vcv=NULL) {
   }
   # coefficients
   tgt <- get_coef(to,tc$labels)
-  out <- coefficients(m,which="both")
+  out <- coefficients(m)
   v <- c("add","se_add","mul","se_mul")
   expect_equal(tgt$add,out$add,tol=1e-4)
   expect_equal(tgt$mul,out$mul,tol=1e-4)
@@ -269,8 +269,49 @@ test_that("testing skylark-2a",{
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7,autodelete=TRUE)
   trimtest(m,to,tc)
+  
 
 })
+
+context("Error handling")
+test_that("invalid model specs",{
+  data(skylark)
+  expect_error(
+    trim(count ~ time + site, data=skylark, model=3
+         ,changepoints=c(3,5),stepwise = TRUE)
+    , regexp = "stepwise removal only works for model 2"
+  )
+
+  expect_error(
+    trim(count ~ time + site, data=skylark, model=3
+         ,changepoints=c(3,5))
+    , regexp = "Changepoints cannot be specified for model 3"
+  )
+    
+})
+
+
+
+test_that("tcf checker",{
+  
+  # bug reported by Henk Sierdsema (SOVON)
+x <- "
+FILE trim_15720_V.txt
+TITLE Corvus corax
+NTIMES 34
+NCOVARS 0
+MISSING -1
+WEIGHT Absent
+SERIALCOR on
+OVERDISP on
+BASETIME 1
+MODEL 2
+OUTPUTFILES S F
+RUN
+"
+expect_null(check_tcf(x))
+})
+
 
 context("Output printers")
 test_that("S3 output printers", {
@@ -282,6 +323,7 @@ test_that("S3 output printers", {
   expect_output(print(overall(m2)))
   expect_output(print(totals(m2)))
   expect_output(print(index(m2)))
+  expect_output(print(summary(m2)))
 })
 
 

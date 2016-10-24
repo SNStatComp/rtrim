@@ -352,13 +352,14 @@ check_tcf <- function(x){
 
   i_labels <- grep("^labels",s,ignore.case=TRUE)
   i_end <- grep("^end",s,ignore.case=TRUE)
-  if (i_labels > i_end){
-    stop(sprintf("Detected LABELS keyword (#%d) before END (#%d) in TRIM command file"
-            ,i_labels,i_end))
+  if (length(i_labels)>0 && length(i_end) > 0){
+    if (i_labels > i_end){
+      stop(sprintf("Detected LABELS keyword (#%d) before END (#%d) in TRIM command file"
+              ,i_labels,i_end))
+    }
+    # remove labels between LABELS and END (if any)
+    if (i_end - i_labels > 1)   s <- s[-seq(i_labels+1, i_end-1)]
   }
-  # remove labels between LABELS and END (if any)
-  if (i_end - i_labels > 1)   s <- s[-seq(i_labels+1, i_end-1)]
-
   # remove empty lines
   s <- s[nchar(s)>0]
 

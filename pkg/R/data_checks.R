@@ -47,7 +47,6 @@ check_observations.data.frame <- function(x, model, covar = list()
   stopifnot(model %in% 1:3)
 
   out <- list()
-
   if (model==3 && length(covar) == 0 ){
     time_totals <- tapply(X = x[,count.id], INDEX = x[,time.id], FUN = sum, na.rm=TRUE)
     ii <- time_totals <= eps
@@ -56,8 +55,12 @@ check_observations.data.frame <- function(x, model, covar = list()
   } else if (model == 3 && length(covar>0)) {
     out$errors <- get_cov_count_errlist(x[,count.id],x[,time.id],covars=x[covar],timename=time.id)
     out$sufficient <- length(out$errors) == 0
-  } else {
-    warning("Data checking is currently implemented for mode 3 only. Returning empty list")
+  } else if (model == 2 && length(covar) == 0) {
+    pieces <- pieces_from_changepoints(x[,time.id],changepoints)
+    time_totals <- tapply(X=x[,count.id],INDEX=pieces, FUN = sum, na.rm=TRUE)
+    ii <- time_totals <= eps
+    out$sufficient <- !any(ii)
+    out$errors <- list(changepoint = as.numeric(names(time_totals))[ii])
   }
 
   out
@@ -114,10 +117,12 @@ assert_sufficient_counts <- function(count, index){
 # Get an indicator for the pieces in 'piecewise linear model'
 # that are encoded in changepoints.
 pieces_from_changepoints <- function(time, changepoints) {
+  if (length(changepoints)==0) return(rep(0,length(time))) # nothing to do
+
   # convert time from (possibly non-contiguous) years to time points 1..ntime
   tpt <- as.integer(ordered(time))
 
-  pieces <- integer(length(tpt)) # + 1 # Why ??? the +1?
+  pieces <- integer(length(tpt))
   C <- changepoints
   if (C[length(C)] != max(tpt)) C <- append(C,max(tpt))
 
@@ -190,15 +195,15 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 # needs to be deleted.
 get_deletion <- function(count, time, changepoints, covars){
   if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
-  if (length(changepoints)==1) return(-1) # Never propose to delete a lonely changepoint
-  pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
   out <- -1
+  if (length(changepoints)==1) return(out) # Never propose to delete a lonely changepoint
+  pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
+
   if ( length(covars)> 0){
-    err <- get_cov_count_errlist(count, pieces, covars)
-    print(err)
+    err <- get_cov_count_errlist(count, pieces, covars,timename="piece")
     if ( length(err)>0){
       e <- err[[1]]
-      out <- changepoints[as.numeric(e[1,1])]
+      out <- as.numeric(as.character(e[1,1]))
     }
   } else {
     tab <- tapply(count, list(pieces=pieces), sum,na.rm=TRUE)

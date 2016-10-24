@@ -12,7 +12,11 @@
 #' @param object an object of class \code{\link{trim}}.
 #' @param ... Currently unused
 #'
-#' @return \code{NULL}, invisibly.
+#' @return A \code{list} of class \code{trim.summary} containing the call that
+#'   created the object, the model code, the coefficients (in additive and
+#'   multiplicative form) , the goodness of fit parameters,the overdispersion
+#'   and the serial correlation parameters (if computed).
+#'   
 #' @export
 #'
 #' @family analyses
@@ -24,19 +28,32 @@
 #' summary(z)
 summary.trim <- function(object,...) {
 
-  cl <- paste(capture.output(print(object$call)),collapse="\n")
+  structure(list(
+    call = object$call
+    , coefficients = coef.trim(object)
+    , gof = gof(object)
+    , overdispersion = overdispersion(object)
+    , serialcorrelation = serial_correlation(object)
+    , model = object$model
+  ),class="trim.summary")
+}
+
+#' @export
+#' @keywords internal
+print.trim.summary <- function(x,...){
+  
+  cl <- paste(capture.output(print(x$call)),collapse="\n")
   printf("Call:\n%s\n",cl)
 
   printf("\nCoefficients:\n")
-  print(coef.trim(object,"both"))
+  print(x$coefficients)
   printf("\n")
 
-  printf(" Overdispersion    : %8.4f\n",object$rho)
-  printf(" Serial Correlation: %8.4f\n",object$sig2)
+  printf(" Overdispersion    : %8.4f\n",x$overdispersion)
+  printf(" Serial Correlation: %8.4f\n",x$serialcorrelation)
   printf("\n")
 
-  print(gof(object))
-  invisible(NULL)
+  print(x$gof)
 }
 
 
@@ -76,35 +93,69 @@ overdispersion <- function(x){
 #' Extract TRIM model coefficients.
 #'
 #' @section Details:
-#' Each model in \code{TRIM} can be written in the form \eqn{ln(w\mu) = A\alpha 
-#' + B\beta}, where \eqn{\mu} represents the number of counts at a site at a 
-#' certain time, and \eqn{w} a site-dependent weight (by default 1). The vector
-#' \eqn{\alpha} contains site-parameters and vector \eqn{\beta} contains time
-#' parameters. The value of matrices \eqn{A} and \code{B} depend on the chosen
-#' model. The parameter vectors \eqn{\alpha} and \eqn{\beta} are the
-#' coefficients to be estimated. A detailed description of the methodology and
-#' interpretation of the coefficients can be found here: \bold{TODO: ADD
-#' REFERENCE}.
 #' 
-#' Once a model is run using the \code{\link{trim}} function, the computed 
-#' coefficients can be extraced using \code{coef}, or its alias
-#' \code{coefficients}. See the examples below. The actual time totals and
-#' indices can be extracted using \code{\link{totals}} or \code{\link{index}}.
+#' Extract the site, growth or time effect parameters computed with
+#' \code{\link{trim}}.
 #' 
+#' @section Additive versus multiplicative representation:
+#' 
+#' In the simplest cases (no covariates, no change points), the trim
+#' Model 2 and Model 3 can be summarized as follows:
+#' 
+#' \itemize{
+#' \item{Model 2: \eqn{\ln\mu_{ij}=\alpha_i + \beta\times(j-1)} }
+#' \item{Model 3: \eqn{\ln\mu_{ij}=\alpha_i + \gamma_j}.}
+#' }
+#' 
+#' Here, \eqn{\mu_{ij}} is the estimated number of counts at site \eqn{i}, time 
+#' \eqn{j}. The parameters \eqn{\alpha_i}, \eqn{\beta} and \eqn{\gamma_j} are 
+#' refererred to as coefficients in the additive representation. By
+#' exponentiating both sides of the above equations, alternative representations
+#' can be written down. Explicitly, one can show that
 #'
+#' \itemize{
+#' \item{Model 2: \eqn{\mu_{ij}= a_ib^{(j-1)} = b\mu_{ij-1}}, where \eqn{a_i=e^{\alpha_i}} and \eqn{b=e^\beta}.}
+#' \item{Model 3: \eqn{\mu_{ij}=a_ic_j}, where \eqn{a_i=e^{\alpha_i}}, \eqn{c_1=1} and \eqn{c_j=e^{\gamma_j}} for \eqn{j>1}.}
+#' }
+#'
+#' The parameters \eqn{a_i}, \eqn{b} and \eqn{c_j} are referred to as
+#' coefficients in the \emph{multiplicative form}.
+#' 
+#' @section Trend and deviation (Model 3 only):
+#' 
+#' The equation for Model 3
+#' 
+#' \eqn{\ln\mu_{ij}  = \alpha_i + \gamma_j},
+#' 
+#' can also be written as an overall slope resulting from a linear regression of
+#' the \eqn{\mu_{ij}} over time,  plus site- and time effects that
+#' record deviations from this overall slope.  In such a reparametrisation 
+#' the previous equation can be written as
+#' 
+#' \eqn{\ln\mu_{ij} = \alpha_i^* + \beta^*d_j + \gamma_j^*,}
+#'
+#' where \eqn{d_j} equals \eqn{j} minus the mean over all \eqn{j} (i.e. if \eqn{j=1,2,\ldots,J}
+#' then \eqn{d_j = j-(J+1)/2}). It is not hard to show that
+#' \itemize{
+#' \item{The \eqn{\alpha_i^*} are the mean \eqn{\ln\mu_{ij}} per site}
+#' \item{The \eqn{\gamma_j^*} must sum to zero.}
+#' }
+#' The coefficients \eqn{\alpha_i^*} and \eqn{\gamma_j^*} are obtained by
+#' setting \code{representation="deviations"}. If \code{representation="trend"},
+#' the overall trend parameters \eqn{\beta^*} and \eqn{\alpha^*} from the overall
+#' slope defined by \eqn{\alpha^* + \beta^*d_j} is returned. 
+#' 
+#' Finally, note that both the overall slope and the deviations can be written
+#' in multiplicative format.
+#' 
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
-#' @param which What coefficients to return.
+#' @param representation \code{[character]} Choose the coefficient
+#'   representation \code{"trend"} and \code{"deviations"} are for model 3 only.
 #' @param ... currently unused
 #'
-#' @return A \code{data.frame} containing coefficients and their standard errors.
-#' Depending on the requested type of coefficients column names are \code{add}
-#' and \code{se_add} for additive coefficients and/or \code{mul} and \code{se_mul}
-#' for multiplicative coefficients. For model 2, the output has columns
-#' \code{from} and \code{upto}, indicating the time slices for which the coefficients
-#' are valid. For model 3, a column \code{time} is present, indicating to which
-#' time point each (set of) coefficient(s) pertain.
-#'
+#' @return A \code{data.frame} containing coefficients and their standard errors,
+#' both in additive and multiplicative form.
 #'
 #' @export
 #'
@@ -113,24 +164,24 @@ overdispersion <- function(x){
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' coefficients(z)
-coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
+coef.trim <- function(object, 
+    representation=c("standard","trend","deviations"),...) {
 
-  # Craft a custom output
-  which <- match.arg(which)
-
-  # Last 4 columns contain the additive and multiplicative parameters.
-  # Select the appropriate subset from these, and all columns before these 4.
-  n = ncol(object$coefficients)
-  stopifnot(n>=4)
-  if (which=="additive") {
-    cols <- 1:(n-2)
-  } else if (which=="multiplicative") {
-    cols <- c(1:(n-4), (n-1):n)
-  } else if (which=="both") {
-    cols = 1:n
+  
+  representation <- match.arg(representation)
+  
+  if (representation %in% c("deviations","trend") && object$model != 3){
+    stop(
+      sprintf("Cannot extract  %s from TRIM model %d\n",representation,object$model)
+      , call.=TRUE)
   }
-  out <- object$coefficients[cols]
-  out
+
+  switch(representation
+    , "standard" = object$coefficients
+    , "deviations" = setNames(object$deviations,c("time","add","se_add","mul","se_mul"))
+    , "trend" = setNames(object$linear.trend,c("add","se_add","mul","se_mul"))
+  )
+  
 }
 
 
@@ -141,24 +192,38 @@ coef.trim <- function(object, which=c("additive","multiplicative","both"),...) {
 #' Extract time-totals from TRIM output
 #'
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
-#' @param which Selector to distinguish between time totals based on the imputed data (default),
-#' the modelled data, or both.
+#' @param which select what totals to compute (see \code{Details} section).
 #'
 #' @return a \code{data.frame} with subclass \code{trim.totals} 
 #'  (for pretty-printing). The columns are \code{time}, \code{model}
 #'  and \code{se_mod} (for standard error), and/or \code{imputed}
 #'  and \code{se_imp}, depending on the selection.
 #' 
+#' @section Details:
+#' 
+#' The idea of \code{TRIM} is to impute those site-time combinations where
+#' no counts are available. Time-totals (i.e. summed over sites) can be obtained 
+#' for two cases:
+#' 
+#' \itemize{
+#' \item{\code{"imputed"}: Time totals are computed after replacing missing values with values predicted by the model}.
+#' \item{\code{"model"}: Time totals are computed after replacing both missing values and observed values with
+#' values predicted by the model.}
+#' }
+#' 
+#' 
+#' @return A \code{data.frame} with time totals and their standard errors.
+#' 
 #' @export
 #'
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' z <- trim(count ~ time + site, data=skylark, model=2,cp=c(3,5))
 #' totals(z)
-#' #print(totals(z,"imputed")) # idem
-#' #totals(z, "both") # mimics classic TRIM
-#' #SE <- totals(z)$totals$std.err
+#' 
+#' totals(z, "both") # mimics classic TRIM
+#' 
 totals <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
 
@@ -237,58 +302,6 @@ varcovar <- function(x, which=c("imputed","model")) {
 }
 
 
-
-# =========================================== Reparameterisation of Model 3 ====
-
-# ----------------------------------------------------------------- extract ----
-
-#' Extract coefficients of the reparameterisation of trim model 3
-#'
-#'
-#'
-#' @param x an object of class \code{\link{trim}}
-#'
-#' @return a list of class \code{trim.linear} with elements \code{trend}, 
-#'   containing additive and multiplicative parameters of the overall linear
-#'   trend, and \code{dev}, containing the deviations from that trend.
-#' @export
-#'
-#' @family analyses
-#' @examples
-#' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=3)
-#' # print coefficients of the linear trend
-#' print(linear(z))
-#' # get linear trend magnitude
-#' slope <- linear(z)$trend$Multiplicative
-#' # ... and the deviations from that trend
-#' devs  <- linear(z)$dev$Multiplicative
-linear <- function(x) {
-  stopifnot(inherits(x,"trim"))
-  if (x$model !=3 ){
-    message("Cannot extract linear coefficients from TRIM model %d",x$model)
-    return(NULL)
-  }
-
-  structure(list(trend=x$linear.trend, dev=x$deviations), class="trim.linear")
-}
-
-# ------------------------------------------------------------------- print ----
-
-
-#' Print an object of class trim.linear
-#'
-#' @param x An object of class \code{trim.linear}
-#'
-#' @export
-#' @keywords internal
-print.trim.linear <- function(x,...) {
-
-  printf("Linear Trend + Deviations for Each Time\n")
-  print(x$trend, row.names=TRUE)
-  printf("\n")
-  print(x$dev, row.names=FALSE)
-}
 
 
 
