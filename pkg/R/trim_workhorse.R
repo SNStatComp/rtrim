@@ -60,7 +60,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
   if (isTRUE(stepwise) && model != 2){
     stop(sprintf("stepwise removal only works for model 2"), call.=FALSE)
   }
-  
+
   t1 <- Sys.time()
   if (isTRUE(stepwise)) {
     m <- trim_refine(count, time.id, site.id, covars, model, serialcor
@@ -156,13 +156,26 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       cv <- covars[[i]] # The vector of covariate class ID's
       stopifnot(min(cv)==1) # Assert lower end of range
       nclass[i] = max(cv)  # Upper end of range
-      stopifnot(nclass[i]>1) # Assert upper end
+      #stopifnot(nclass[i]>1) # Assert upper end
       stopifnot(length(unique(cv))==nclass[i]) # Assert the range is contiguous
     }
   } else {
     nclass <- 0
   }
-  browser()
+
+  # remove covariates that have only a single class
+  while (any(nclass==1)) {
+    idx <-  which(nclass==1)[1]
+    warning(sprintf("Removing covariate \"%s\" which has only one class.", names(covars)[idx])
+            , call. = FALSE)
+    covars <-  covars[-idx]
+    nclass <- nclass[-idx]
+    ncovar <- ncovar-1
+  }
+  if (ncovar==0) {
+    warning("No covariates left", call. = FALSE)
+    use.covars <- FALSE
+  }
 
   # \verb!model! should be in the range 1 to 3
   stopifnot(model %in% 1:3)
@@ -240,7 +253,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   }
 
   if (model==3 && length(changepoints) > 0) stop("Changepoints cannot be specified for model 3")
-  
+
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
   # where design matrices $A$ and $B$ both have $IJ$ rows.
@@ -1002,12 +1015,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   var_tt_mod <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
   if (use.covin) {
-    var_tt_mod <- 0
+    #var_tt_mod <- 0
     # gf-h e-1 fta-b
     # GF-H as before (ntime x nbeta)
     #
     # E-1 as before (nbeta x nbeta)
-    Einv = solve(E)
+    #Einv = solve(E)
     # F'A - B :
     # F = nsite x nbeta --> F' = nbeta x nsite
     # A = IJ x nsite
@@ -1056,13 +1069,15 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       F_mat <- rep.rows(F, nobs[i])
       M3 <- t(F_mat - Bo)
 
-      M4 = M1 - M2 %*% M3
+      M4 = M1 + M2 %*% M3
 
       dvar <- M4 %*% covin[[i]] %*% t(M4)
       var_tt_mod <- var_tt_mod + dvar
     }
     F <- F.saved
+    browser()
   }
+
 
 
   # To compute the variance of the time totals of the imputed data, we first
