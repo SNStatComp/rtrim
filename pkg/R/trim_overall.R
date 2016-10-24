@@ -2,20 +2,41 @@
 
 #' Compute overall slope
 #'
-#' @param x TRIM output object
-#' @param which Choose between "imputed" or "model" counts
+#' The overal slope represents the total growth over the piecewise linear model.
+#'
+#'
+#' @param x an object of class \code{\link{trim}}.
+#' @param which \code{[character]} Choose between \code{"imputed"} or
+#'   \code{"model"} counts.
 #' @param cp \code{[numeric]} Change points for which to compute the overall slope.
 #'
-#' @return a list containing information overall slope coefficients (\code{coef}),
-#'   the p-value of the overall slope (\code{p}),
-#'   the size-effect (\code{effect}),
+#' @section Details:
+#' 
+#' The overall slope represents the mean growth or decline over a period of time.
+#' This can be determined over the whole time period for which the modelis fitted (this is the default)
+#' or may be computed over time slices that can be defined with the \code{cp} parameter.
+#' The values for \code{cp} do not depend on \code{changepoints} that were used when 
+#' specifying the \code{trim} model (See also the example below).
+#'
+#'
+#' @return a list of class \code{trim.overall} containing overall slope
+#'   coefficients (\code{coef}), the p-value of the overall slope (\code{p}),
+#'   and the size-effect (\code{effect}).
 #' @export
 #'
 #' @family analyses
 #' @examples
+#' 
+#' # obtain the overall slope accross all change points.
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
 #' overall(z)
+#' plot(overall(z))
+#' 
+#' # Obtain the slope from changepoint to changepoint
+#' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
+#' # slope from time point 1 to 5
+#' overall(z,cp=c(1,5,7))
 overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
@@ -169,15 +190,28 @@ print.trim.overall <- function(x,...) {
 
 #' Plot overall slope
 #'
+#' Creates a plot of the overall slope, its 95\% confidence band, the
+#' total population per time and their 95\% confidence intervals.
+#' 
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
 #' @param imputed Toggle to show imputed counts
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @family analyses
+#' 
+#' @examples 
+#' data(skylark)
+#' m <- trim(count ~ time + site, data=skylark, model=2)
+#' plot(overall(m))
+#' 
 #' @export
 plot.trim.overall <- function(x, imputed=TRUE, ...) {
   X <- x
-  title <- attr(X, "title")
+  title <- if (is.null(list(...)$main)){
+    attr(X, "title")
+  } else {
+    list(...)$main
+  }
 
   J <- X$J
   tpt = X$timept
@@ -216,7 +250,7 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   # Now plot layer-by-layer (using ColorBrewer colors)
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
-  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", main=title)
+  plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", las=1, main=title,...)
   polygon(xconf, yconf, col=gray(0.9), lty=0)
   lines(xcont, ytrend, col=cbred, lwd=3)
   segments(tpt,y0, tpt,y1, lwd=3, col=gray(0.5))

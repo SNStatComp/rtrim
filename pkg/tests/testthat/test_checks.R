@@ -15,6 +15,22 @@ test_that("basic assertions",{
 })
 
 
+test_that("check_observations",{
+  # model 3, no covariates
+  d <- data.frame(time = 1:3, count=0:2)
+  out <- check_observations(d,model=3)
+  expect_false(out$sufficient)
+  expect_equal(out$errors,list(time=1))
+
+  # model 3 with covariates
+  d <- data.frame(count = rep(0:1,2), time = rep(1:2,each=2), cov = rep(1:2,2))
+  out <- check_observations(d, model=3,covar="cov")
+  expect_false(out$sufficient)
+  expect_equal(out$errors,list(cov=data.frame(time=factor(1:2),cov=factor(c(1,1),levels=1:2))) )
+
+  # model 2
+
+})
 
 
 test_that("Sufficient data for piecewise linear trend model (Model 2)",{
@@ -86,20 +102,26 @@ test_that("autodelete w/o covariates",{
 })
 
 test_that("autodelete with covariates",{
+  # d <- data.frame(
+  #   time = 1:10
+  #   , covar = rep(letters[1:2], times=5)
+  #   , count = rep(1,10)
+  # )
   d <- data.frame(
-    time = 1:10
-    , covar = rep(letters[1:2], times=5)
-    , count = rep(1,10)
+    time = rep(1:10, times=2)
+    , covar = rep(letters[1:2], each=10)
+    , count = rep(1, 20)
   )
 
   # case all fine
+  # BUG: there is nio real time 1 for class b
   expect_equal(
     autodelete(count = d$count, time = d$time, changepoints=c(4,7),covars=list(cov=d$covar))
   , c(4,7)
   )
 
   # case delete 7 # NEEDS fixing
-  # d$count[9] <- 0 # fixed 9 -> 7,9
+  # d$count[8:10] <- 0
   # expect_equal(
   #   autodelete(count = d$count, time = d$time, changepoints=c(4,7),covars=list(cov=d$covar))
   #   , 4

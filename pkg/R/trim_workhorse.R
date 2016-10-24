@@ -158,6 +158,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   } else {
     nclass <- 0
   }
+  browser()
 
   # \verb!model! should be in the range 1 to 3
   stopifnot(model %in% 1:3)
@@ -234,9 +235,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     }
   }
 
-  # For model 3, changepoints are not allowed
-  # TODO: proper error msg "No Changepoints allowed with model 3"
-  if (model==3) stopifnot(length(changepoints)==0)
+  if (model==3 && length(changepoints) > 0) stop("Changepoints cannot be specified for model 3")
 
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
@@ -953,6 +952,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   # Matrices E and F take missings into account
   E <- -ib # replace by covin hessian
+  E_inv = solve(E)
 
   nbeta <- length(beta)
   F <- matrix(0, nsite, nbeta)
@@ -1008,6 +1008,56 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     # F = nsite x nbeta --> F' = nbeta x nsite
     # A = IJ x nsite
     # B = IJ x nbeta
+  }
+
+  rep.rows <- function(row, n) matrix(rep(row, each=n), nrow=n)
+  rep.cols <- function(col, n) matrix(rep(col, times=n), ncol=n)
+
+  if (use.covin) {
+    F.saved = F
+    # First loop op sites
+    for (i in 1:nsite) { # First loop
+      wu = wt[i, ] * mu[i, ]
+      obs <- observed[i, ] # observed j's
+      w <- mu[i, obs]
+      d <- sum(w)
+      Bi = make.B(i)
+      Bo = Bi[obs, ]
+
+      w_mat = rep.cols(w, nbeta)
+      F = colSums(Bo * w_mat / d)
+
+      wu_mat <- rep.cols(wu, nbeta)
+      F_mat <- rep.rows(F, ntime)
+      GFminH <- GFminH + wu_mat * (F_mat - Bi)
+    }
+
+    M2 <- GFminH %*% E_inv
+
+    var_tt_mod <- matrix(0, ntime, ntime)
+
+    for (i in 1:nsite) { # second loop
+      wu = wt[i, ] * mu[i, ]
+      obs <- observed[i, ] # observed j's
+      w <- mu[i, obs]
+      d <- sum(w)
+      # uplus <- sum(w) # same as d?
+      M1 <- rep.cols(wmu[i, ], nobs[i])
+      Bi = make.B(i)
+      Bo = Bi[obs, ]
+
+      w_mat = rep.cols(w, nbeta)
+      F = colSums(Bo * w_mat / d)
+
+      F_mat <- rep.rows(F, nobs[i])
+      M3 <- t(F_mat - Bo)
+
+      M4 = M1 - M2 %*% M3
+
+      dvar <- M4 %*% covin[[i]] %*% t(M4)
+      var_tt_mod <- var_tt_mod + dvar
+    }
+    F <- F.saved
   }
 
 

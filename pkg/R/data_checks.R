@@ -1,5 +1,85 @@
 # Some basic assertions to test whether models can be run.
 
+#' Check whether there are sufficient observations to run a model
+#'
+#'
+#'
+#'
+#' @param x A \code{\link{trimcommand}} object, a \code{data.frame}, or the location of a TRIM command file.
+#' @param ... Parameters passed to other methods.
+#'
+#' @family modelspec
+#'
+#' @export
+check_observations <- function(x,...){
+  UseMethod("check_observations")
+}
+
+#' @param model \code{[numeric]} Model 1, 2 or 3?
+#' @param covar \code{[character|numeric]} column index of covariates in \code{x}
+#' @param time.id \code{[character|numeric]} column index of time points in \code{x}
+#' @param count.id \code{[character|numeric]} column index of the counts in \code{x}
+#' @param changepoints \code{[numeric]} Changepoints (model 2 only)
+#' @param eps \code{[numeric]} Numbers whose absolute magnitude are lesser than \code{eps} are considered zero.
+#'
+#' @return A \code{list} with two components. The component \code{sufficient} takes the value
+#' \code{TRUE} or \code{FALSE} depending on whether sufficient counts have been found.
+#' The component \code{errors} is a \code{list}, of which the structure depends on the chosen model,
+#' that indicates under what conditions insufficient data is present to estimate the model.
+#'
+#' \itemize{
+#' \item{For model 3 without covariates, \code{$errors} is a list whose single element is a vector of time
+#' points with insufficient counts}.
+#' \item{For model 3 with covariates, \code{$errors} is a named list with an element for each covariate
+#' for which insufficients counts are encountered. Each element is a two-column \code{data.frame}. The
+#' first column indicates the time point, the second column indicates for what covariate value insufficient
+#' counts are found.}
+#' \item{Model 2: TODO}
+#' }
+#'
+#'
+#'
+#' @export
+#' @rdname check_observations
+check_observations.data.frame <- function(x, model, covar = list()
+  , changepoints = numeric(0), time.id="time",count.id="count", eps=1e-8, ...){
+
+  stopifnot(model %in% 1:3)
+
+  out <- list()
+
+  if (model==3 && length(covar) == 0 ){
+    time_totals <- tapply(X = x[,count.id], INDEX = x[,time.id], FUN = sum, na.rm=TRUE)
+    ii <- time_totals <= eps
+    out$sufficient <- !any(ii)
+    out$errors <- setNames(list(x[ii,time.id]),time.id)
+  } else if (model == 3 && length(covar>0)) {
+    out$errors <- get_cov_count_errlist(x[,count.id],x[,time.id],covars=x[covar],timename=time.id)
+    out$sufficient <- length(out$errors) == 0
+  } else {
+    warning("Data checking is currently implemented for mode 3 only. Returning empty list")
+  }
+
+  out
+}
+
+
+#' @export
+#' @rdname check_observations
+check_observations.trimcommand <- function(x,...){
+  dat <- read_tdf(x$file)
+  check_observations.data.frame(x=dat,model=x$model, covar=x$labels[x$covariates]
+                                , changepoints = x$changepoints)
+}
+
+#' @export
+#' @rdname check_observations
+check_observarions.character <- function(x,...){
+  tc <- read_tcf(x)
+  check_observations.trimcommand(tc,...)
+}
+
+
 # capture how an object is printed in a string.
 print_and_capture <- function(x){
   paste(capture.output(print(x)),collapse="\n")
@@ -74,10 +154,17 @@ get_cov_count_errlist <- function(count, time, covars, timename="time"){
     index <- list(time=time,value = cov)
     names(index)[1] <- timename
     tab <- tapply(count, INDEX=index, FUN=sum, na.rm=TRUE)
-    err <- which(tab <= 0,arr.ind=TRUE)
-    dimnames(err) <- setNames(list(NULL,colnames(err)),c("",covname))
-    if (length(err) > 0){
-      err[,2] <- colnames(tab)[err[,2]]
+    df <- as.data.frame(as.table(tab))
+
+    # df$Freq[is.na(df$Freq)] <- 0 # replace NA -> 0
+    #
+    # # Allow no-data at cp 0
+    # CP0 = levels(df$time)[1]
+    # err <- df[df$Freq==0 & df$time!=CP0, 1:2]
+    err <- df[df$Freq==0, 1:2]
+
+    if (nrow(err) > 0){
+      names(err)[2] <- covname
       ERR[[covname]] <- err
     }
   }
@@ -125,7 +212,6 @@ get_deletion <- function(count, time, changepoints, covars){
 }
 
 autodelete <- function(count, time, changepoints, covars){
-  # browser()
   out <- get_deletion(count, time, changepoints, covars)
   while (out > 0) {
     cp = as.integer(out)
