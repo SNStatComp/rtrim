@@ -171,10 +171,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     covars <-  covars[-idx]
     nclass <- nclass[-idx]
     ncovar <- ncovar-1
-  }
-  if (ncovar==0) {
-    warning("No covariates left", call. = FALSE)
-    use.covars <- FALSE
+    if (ncovar==0) {
+      warning("No covariates left", call. = FALSE)
+      use.covars <- FALSE
+    }
   }
 
   # \verb!model! should be in the range 1 to 3
@@ -950,6 +950,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # ----------------------------------------------------------- Time totals ----
 
   # Recompute Score matrix $i_b$ with final $\mu$'s
+  saved.ib = i_b
   ib <- 0
   for (i in 1:nsite) {
     B <- make.B(i)
@@ -965,177 +966,152 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     ib <- ib - term
   }
 
-
-
   # Matrices E and F take missings into account
   E <- -ib # replace by covin hessian
   E_inv = solve(E)
 
-  nbeta <- length(beta)
-  F <- matrix(0, nsite, nbeta)
-  d <- numeric(nsite)
-  for (i in 1:nsite) {
-    B <- make.B(i)
-    d[i] <- sum(Omega[[i]])
-    w_i <- colSums(Omega[[i]])
-    B_i <- B[observed[site==i], ,drop=FALSE]
-    F_i <- (t(w_i) %*% B_i) / d[i]
-    F[i, ] <- F_i
-  }
-
-  # Matrices G and H are for all (weighted) mu's
-
-  wmu <- if (use.weights) wt * mu else mu
-
-  GddG <- matrix(0, ntime,ntime)
-  for (i in 1:nsite) {
-    for (j in 1:ntime) for (k in 1:ntime) {
-      GddG[j,k] <- GddG[j,k] + wmu[i,j]*wmu[i,k]/d[i]
-    }
-  }
-
-  GF <- matrix(0, ntime, nbeta)
-  for (i in 1:nsite) {
-    for (j in 1:ntime) for (k in 1:nbeta)  {
-      GF[j,k] <- GF[j,k] + wmu[i,j] * F[i,k]
-    }
-  }
-
-  H <- matrix(0, ntime, nbeta)
-  for (i in 1:nsite) {
-    B <- make.B(i)
-    for (k in 1:nbeta) for (j in 1:ntime) {
-      H[j,k]  <- H[j,k] + B[j,k] * wmu[i,j]
-    }
-  }
-
-  GFminH <- GF - H
-
-  # All building blocks are ready. Use them to compute the variance
-  var_tt_mod <- GddG + GFminH %*% solve(E) %*% t(GFminH)
-
-  if (use.covin) {
-    #var_tt_mod <- 0
-    # gf-h e-1 fta-b
-    # GF-H as before (ntime x nbeta)
-    #
-    # E-1 as before (nbeta x nbeta)
-    #Einv = solve(E)
-    # F'A - B :
-    # F = nsite x nbeta --> F' = nbeta x nsite
-    # A = IJ x nsite
-    # B = IJ x nbeta
-  }
-
   rep.rows <- function(row, n) matrix(rep(row, each=n), nrow=n)
   rep.cols <- function(col, n) matrix(rep(col, times=n), ncol=n)
 
-  if (use.covin) {
-    F.saved = F
-    # First loop op sites
-    for (i in 1:nsite) { # First loop
-      wu = wt[i, ] * mu[i, ]
-      obs <- observed[i, ] # observed j's
-      w <- mu[i, obs]
-      d <- sum(w)
-      Bi = make.B(i)
-      Bo = Bi[obs, ]
+  var_model_tt <- function(observed_only = FALSE) {
 
-      w_mat = rep.cols(w, nbeta)
-      F = colSums(Bo * w_mat / d)
+    if (!use.covin) { # use computed covariance
 
-      wu_mat <- rep.cols(wu, nbeta)
-      F_mat <- rep.rows(F, ntime)
-      GFminH <- GFminH + wu_mat * (F_mat - Bi)
+      F <- matrix(0, nsite, nbeta)
+      d <- numeric(nsite)
+      for (i in 1:nsite) {
+        B <- make.B(i)
+        d[i] <- sum(Omega[[i]])
+        w_i <- colSums(Omega[[i]])
+        B_i <- B[observed[site==i], ,drop=FALSE]
+        F_i <- (t(w_i) %*% B_i) / d[i]
+        F[i, ] <- F_i
+      }
+
+      # Matrices G and H are for all (weighted) mu's
+      wmu <- if (use.weights) wt * mu else mu
+      if (observed_only) wmu[!observed] = 0.0
+
+      GddG <- matrix(0, ntime,ntime)
+      for (i in 1:nsite) {
+        for (j in 1:ntime) for (k in 1:ntime) {
+          GddG[j,k] <- GddG[j,k] + wmu[i,j]*wmu[i,k]/d[i]
+        }
+      }
+
+      GF <- matrix(0, ntime, nbeta)
+      for (i in 1:nsite) {
+        for (j in 1:ntime) for (k in 1:nbeta)  {
+          GF[j,k] <- GF[j,k] + wmu[i,j] * F[i,k]
+        }
+      }
+
+      H <- matrix(0, ntime, nbeta)
+      for (i in 1:nsite) {
+        B <- make.B(i)
+        for (k in 1:nbeta) for (j in 1:ntime) {
+          H[j,k]  <- H[j,k] + B[j,k] * wmu[i,j]
+        }
+      }
+
+      GFminH <- GF - H
+
+      # All building blocks are ready. Use them to compute the variance
+      var_tt_mod <- GddG + GFminH %*% solve(E) %*% t(GFminH)
+
+    } else { # Use input covariance
+
+      # First loop op sites to compute $GF - H$.
+      GFminH = matrix(0, ntime, nbeta)
+      for (i in 1:nsite) { # First loop
+        u <-  mu[i, ]
+        wu <- wt[i, ] * mu[i, ]
+
+        obs <- observed[i, ] # observed j's
+        w <- mu[i, obs]
+
+        d <- sum(w)
+
+        Bi = make.B(i)
+        Bo = Bi[obs, ]
+
+        w_mat = rep.cols(w, nbeta)
+        F = colSums(Bo * w_mat / d)
+
+        wu_mat <- rep.cols(wu, nbeta)
+        F_mat <- rep.rows(F, ntime)
+        GFminH <- GFminH + wu_mat * (F_mat - Bi)
+      }
+      M2 <- GFminH %*% E_inv
+
+      # second loop
+      var_tt_mod <- matrix(0, ntime, ntime)
+      for (i in 1:nsite) {
+        wu = wt[i, ] * mu[i, ]
+        obs <- observed[i, ] # observed j's
+        w <- mu[i, obs]
+        d <- sum(w)
+        M1 <- rep.cols(wu/d, nobs[i])
+        Bi = make.B(i)
+        Bo = Bi[obs, ]
+        w_mat = rep.cols(w, nbeta)
+        F = colSums(Bo * w_mat / d)
+
+        F_mat <- rep.rows(F, nobs[i])
+        M3 <- t(F_mat - Bo)
+
+        M4 = M1 + M2 %*% M3
+
+        dvar <- M4 %*% covin[[i]] %*% t(M4)
+        var_tt_mod <- var_tt_mod + dvar
+      }
     }
 
-    M2 <- GFminH %*% E_inv
-
-    var_tt_mod <- matrix(0, ntime, ntime)
-
-    for (i in 1:nsite) { # second loop
-      wu = wt[i, ] * mu[i, ]
-      obs <- observed[i, ] # observed j's
-      w <- mu[i, obs]
-      d <- sum(w)
-      # uplus <- sum(w) # same as d?
-      M1 <- rep.cols(wmu[i, ], nobs[i])
-      Bi = make.B(i)
-      Bo = Bi[obs, ]
-
-      w_mat = rep.cols(w, nbeta)
-      F = colSums(Bo * w_mat / d)
-
-      F_mat <- rep.rows(F, nobs[i])
-      M3 <- t(F_mat - Bo)
-
-      M4 = M1 + M2 %*% M3
-
-      dvar <- M4 %*% covin[[i]] %*% t(M4)
-      var_tt_mod <- var_tt_mod + dvar
-    }
-    F <- F.saved
-    browser()
+    var_tt_mod
   }
 
-
+  var_tt_mod <- var_model_tt(FALSE)
 
   # To compute the variance of the time totals of the imputed data, we first
-  # substract the contribution due tp te observations, as computed by above scheme,
-  # and recplace it by the contribution due to the observations, as resulting from the
+  # substract the contribution due to te observations, as computed by above scheme,
+  # and replace it by the contribution due to the observations, as resulting from the
   # covariance matrix.
 
-  muo <- mu # 'observed' $\mu$'s
-  muo[!observed] <- 0 # # erase estimated $\mu$'s
-
-  wmuo <- if (use.weights) wt * mu else mu
-  wmuo[!observed] <- 0 # # erase estimated $\mu$'s
-
-  wwmuo <- if (use.weights) wt * wt * mu else mu
-  wwmuo[!observed] <- 0 # # erase estimated $\mu$'s
-
-  GddG <- matrix(0, ntime,ntime)
-  for (i in 1:nsite) if (nobs[i]>0) {
-    for (j in 1:ntime) for (k in 1:ntime) {
-      GddG[j,k] <- GddG[j,k] + wmuo[i,j]*wmuo[i,k]/d[i]
-    }
-  }
-
-  GF <- matrix(0, ntime, nbeta)
-  for (i in 1:nsite) if (nobs[i]>0) {
-    for (j in 1:ntime) for (k in 1:nbeta)  {
-      GF[j,k] <- GF[j,k] + wmuo[i,j] * F[i,k]
-    }
-  }
-
-  H <- matrix(0, ntime, nbeta)
-  for (i in 1:nsite) if (nobs[i]>0) {
-    B <- make.B(i)
-    for (k in 1:nbeta) for (j in 1:ntime) {
-      H[j,k]  <- H[j,k] + B[j,k] * wmuo[i,j]
-    }
-  }
-
-  GFminH <- GF - H
-
-  var_tt_obs_old <- GddG + GFminH %*% solve(E) %*% t(GFminH)
-
-  # Now compute the variance due to observations
-  var_tt_obs_new = matrix(0, ntime, ntime)
-  for (i in 1:nsite) {
-    if (serialcor) {
-      srdu = sqrt(diag(wwmuo[i, ]))
-      V = sig2 * srdu %*% Rg %*% srdu
+  var_observed_tt <- function() {
+    # Variance due to observations
+    var_tt_obs_new = matrix(0, ntime, ntime)
+    if (!use.covin) {
+      wwmu <- if (use.weights) wt * wt * mu else mu
+      wwmu[!observed] <- 0 # # erase estimated $\mu$'s
+      for (i in 1:nsite) {
+        if (serialcor) {
+          srdu = sqrt(diag(wwmu[i, ]))
+          V = sig2 * srdu %*% Rg %*% srdu
+        } else {
+          V = sig2 * diag(wwmu[i, ])
+        }
+        var_tt_obs_new = var_tt_obs_new + V
+      }
     } else {
-      V = sig2 * diag(wwmuo[i, ])
+      for (i in 1:nsite) {
+        V = covin[[i]]
+        for (j1 in 1:ntime) for (j2 in 1:ntime) {
+          if (observed[i,j1] && observed[i,j2]) {
+            var_tt_obs_new[j1,j2] <- var_tt_obs_new[j1,j2] + wt[i,j1] * wt[i,j2] * V[j1,j2]
+          }
+        }
+      }
     }
-    var_tt_obs_new = var_tt_obs_new + V
+    var_tt_obs_new
   }
 
   # Combine
+  var_tt_obs_old <- var_model_tt(observed_only=TRUE)
+  var_tt_obs_new <- var_observed_tt()
   var_tt_imp = var_tt_mod - var_tt_obs_old + var_tt_obs_new
 
   # Time totals of the model, and it's standard error
+  wmu <- if (use.weights) wt * mu else mu
   tt_mod    <- colSums(wmu)
   se_tt_mod <- round(sqrt(diag(var_tt_mod)))
 
