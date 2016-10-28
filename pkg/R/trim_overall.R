@@ -7,7 +7,7 @@
 #'
 #' @param x an object of class \code{\link{trim}}.
 #' @param which \code{[character]} Choose between \code{"imputed"} or
-#'   \code{"model"} counts.
+#'   \code{"fitted"} counts.
 #' @param cp \code{[numeric]} Change points for which to compute the overall slope.
 #'
 #' @section Details:
@@ -20,8 +20,7 @@
 #'
 #'
 #' @return a list of class \code{trim.overall} containing overall slope
-#'   coefficients (\code{coef}), the p-value of the overall slope (\code{p}),
-#'   and the size-effect (\code{effect}).
+#'   coefficients (\code{coef}), augmented wih p-values and an interpretation).
 #' @export
 #'
 #' @family analyses
@@ -42,10 +41,9 @@
 #' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
 #' # slope from time point 1 to 5
 #' overall(z,cp=c(1,5,7))
-overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
+overall <- function(x, which=c("imputed","fitted"), cp=numeric(0)) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
-  #browser()
 
   # extract vars from TRIM output
   tt_mod <- x$tt_mod
@@ -101,10 +99,11 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
 
   # The overall slope is computed for both the modeled and the imputed $\Mu$'s.
   # So we define a function to do the actual work
-  .compute.overall.slope <- function(tt, var_tt, src) {
+  .compute.overall.slope <- function(tpt, tt, var_tt, src) {
     # tpt = time points, either 1..J or year1..yearn
-    J <- length(tt)
-    stopifnot(nrow(var_tt)==J && ncol(var_tt)==J)
+    n <- length(tpt)
+    stopifnot(length(tt)==n)
+    stopifnot(nrow(var_tt)==n && ncol(var_tt)==n)
 
     # handle zero time totals (might happen in imputed TT)
     problem = tt<1e-6
@@ -113,7 +112,7 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
     alt_tt <- exp(log_tt)
 
     # Use Ordinary Least Squares (OLS) to estimate slope parameter $\beta$
-    X <- cbind(1, 1:J) # design matrix
+    X <- cbind(1, tpt) # design matrix
     y <- matrix(log_tt)
     #y[tt<1e-6] = 0.0 # Handle zero (or very low) counts
     bhat <- solve(t(X) %*% X) %*% t(X) %*% y # OLS estimate of $b = (\alpha,\beta)^T$
@@ -126,18 +125,18 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
     b_err <- sqrt(diag(var_beta))
 
     # Compute the $p$-value, using the $t$-distribution
-    df <- J - 2
+    df <- n - 2
     t_val <- bhat[2] / b_err[2]
     if (df>0) p <- 2 * pt(abs(t_val), df, lower.tail=FALSE)
     else      p <- NA
 
     # Also compute effect size as relative change during the monitoring period.
-    effect <- abs(yhat[J] - yhat[1]) / yhat[1]
+    #effect <- abs(yhat[J] - yhat[1]) / yhat[1]
 
     # Reverse-engineer the SSR (sum of squared residuals) from the standard error
-    j <- 1:J
+    j <- 1 : n
     D <- sum((j-mean(j))^2)
-    SSR <- b_err[2]^2 * D * (J-2)
+    SSR <- b_err[2]^2 * D * (n-2)
 
     # Export the results
     z <- data.frame(
@@ -151,41 +150,53 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
     z$t = z$mul / z$se_mul
     z$p = if (df>0) 2 * pt(abs(z$t), df, lower.tail=FALSE)
           else      NA
-    z$meaning   = c("<none>", .meaning(z$mul[2], z$se_mul[2], J-2))
-    list(src=src, coef=z,p=p, effect=effect, J=J, tt=tt, err=sqrt(diag(var_tt)), SSR=SSR)
+    z$meaning   = c("<none>", .meaning(z$mul[2], z$se_mul[2], n-2))
+    list(src=src, coef=z, SSR=SSR)
   }
 
   if (which=="imputed") {
     tt     <- tt_imp
     var_tt <- var_tt_imp
     src = "imputed"
-  } else if (which=="model") {
+  } else if (which=="fitted") {
     tt     <- tt_mod
     var_tt <- var_tt_mod
-    src = "model"
+    src = "fitted"
   }
 
+  J = length(tt)
   if (length(cp)==0) {
     # Normal overall slope
-    out <- .compute.overall.slope(tt, var_tt, src)
+    out <- .compute.overall.slope(1:J, tt, var_tt, src)
     out$type <- "normal" # mark output as 'normal' overall slope
-    out$timept <- x$time.id # export tiem points for proper plotting
   } else {
-    # overall slope per changepoint
-    J <- length(tt)
+    # overall slope per changepoint. First some checks.
+    stopifnot(min(cp)>=1)
+    stopifnot(max(cp)<J)
+    stopifnot(all(diff(cp)>0))
     ncp <- length(cp)
     cpx <- c(cp, J) # Extend list of overall changepoints with final year
     coef.collector = data.frame()
+    int.collector  = data.frame() # here go the intercepts
+    SSR.collector = numeric(ncp)
     for (i in 1:ncp) {
       idx <- cpx[i] : cpx[i+1]
-      tmp <- .compute.overall.slope(tt[idx], var_tt[idx,idx], src)
+      tmp <- .compute.overall.slope(idx, tt[idx], var_tt[idx,idx], src)
       slope <- tmp$coef[2,] # slope is on second row of output dataframe
       prefix <- data.frame(from=x$time.id[cpx[i]], upto=x$time.id[cpx[i+1]])
       coef.collector <- rbind(coef.collector, cbind(prefix, slope))
+      intercept <- tmp$coef[1,] # slope is on second row of output dataframe
+      int.collector <- rbind(int.collector, cbind(prefix, intercept))
+      SSR.collector[i] = tmp$SSR
     }
-    out <- list(src=src,coef=coef.collector, type="changept") #store 'n' mark
+    out <- list(src=src
+                , coef=coef.collector, intercept = int.collector, SSR=SSR.collector
+                , type="changept") #store 'n' mark
   }
-
+  out$J = J
+  out$tt = tt
+  out$err = sqrt(diag(var_tt))
+  out$timept <- x$time.id # export time points for proper plotting
   structure(out, class="trim.overall")
 }
 
@@ -203,15 +214,14 @@ print.trim.overall <- function(x,...) {
     # Compute 95\% confidence interval of multiplicative slope
     bhat <- x$coef[[3]][2] # multiplicative trend (i.e., not log-transformed)
     berr <- x$coef[[4]][2] # corresponding standard error
-    alpha <- 0.05
+    level <- 0.95
+    alpha <- 1 - level
     df <- x$J-2
     tval <- qt((1-alpha/2), df)
     blo <- bhat - tval * berr
     bhi <- bhat + tval * berr
-    # Compute effect size
-    change <- bhat ^ (x$J-1) - 1
     # Build an informative string
-    info <- sprintf("p=%f, conf.int (mul)=[%f, %f], change=%.2f%%", x$p, blo, bhi, 100*change)
+    info <- sprintf("conf.int (mul; level=%d%%)=[%f, %f]", level*100, blo, bhi)
     printf("Overall slope (%s): %s\n", x$src, info)
     print(x$coef, row.names=TRUE)
   } else if (x$type=="changept") {
@@ -247,41 +257,93 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
     list(...)$main
   }
 
-  J <- X$J
   tpt = X$timept
 
   # Collect all data for plotting: time-totals
-  j <- 1:J
   ydata <- X$tt
 
   # error bars
   y0 = ydata - X$err
   y1 = ydata + X$err
 
-  # Trend line
-  a <- X$coef[[1]][1] # intercept
-  b <- X$coef[[1]][2] # slope
-  x <- seq(1, J, length.out=100) # continue timepoint 1..J
-  ytrend <- exp(a + b*x)
+  conf.band <- NULL # Initialize, so it does exist - sort of
 
-  # Confidence band
-  xcont <- seq(min(tpt), max(tpt), len=100) # continue year1..yearn
-  xconf <- c(xcont, rev(xcont))
-  alpha <- 0.05
-  df <- J - 2
-  t <- qt((1-alpha/2), df)
-  dx2 <- (x-mean(j))^2
-  sumdj2 <- sum((j-mean(j))^2)
-  dy <- t * sqrt((X$SSR/(J-2))*(1/J + dx2/sumdj2))
-  ylo <- exp(a + b*x - dy)
-  yhi <- exp(a + b*x + dy)
-  yconf <- c(ylo, rev(yhi))
+  if (X$type=="normal") {
+    # Trend line
+    a <- X$coef[[1]][1] # intercept
+    b <- X$coef[[1]][2] # slope
+    x <- seq(1, J, length.out=100) # continue timepoint 1..J
+    ytrend <- exp(a + b*x)
+    xtrend <- seq(min(tpt), max(tpt), len=length(ytrend)) # continue year1..yearn
+    trendline = cbind(xtrend, ytrend)
+
+    # Confidence band
+    xconf <- c(xtrend, rev(xtrend))
+    alpha <- 0.05
+    J = X$J
+    df <- J - 2
+    t <- qt((1-alpha/2), df)
+    j = 1:J
+    dx2 <- (x-mean(j))^2
+    sumdj2 <- sum((j-mean(j))^2)
+    dy <- t * sqrt((X$SSR/(J-2))*(1/J + dx2/sumdj2))
+    ylo <- exp(a + b*x - dy)
+    yhi <- exp(a + b*x + dy)
+    yconf <- c(ylo, rev(yhi))
+    conf.band <- cbind(xconf, yconf)
+  } else if (X$type=="changept") {
+    nsegment = nrow(X$coef)
+    for (i in 1:nsegment) {
+
+      # Trend line
+      a <- X$intercept[i,3] # intercept
+      b <- X$coef[i,3] # slope
+      from <- X$coef[i,1]
+      upto <- X$coef[i,2]
+      delta = (upto-from)*10
+      x      <- seq(from, upto, length.out=delta) # continue timepoint 1..J
+      ytrend <- exp(a + b*x)
+      xtrend <- seq(tpt[from], tpt[upto], length.out=length(ytrend))
+      if (i==1) {
+        trendline = cbind(xtrend, ytrend)
+      } else {
+        trendline = rbind(trendline, NA)
+        trendline = rbind(trendline, cbind(xtrend, ytrend))
+      }
+
+      # Confidence band
+      xconf <- c(xtrend, rev(xtrend))
+      alpha <- 0.05 # Confidence level
+      ntpt <- upto - from + 1 # Number of time points in segment
+      df <- ntpt - 2
+      if (df<=0) next # No confidence band for this segment...
+
+      t <- qt((1-alpha/2), df)
+      j = from : upto
+      dx2 <- (x-mean(j))^2
+      sumdj2 <- sum((j-mean(j))^2)
+      SSR = X$SSR[i] # Get stored SSR as computed by overall()
+      dy <- t * sqrt((SSR/df)*(1/ntpt + dx2/sumdj2))
+      ylo <- exp(a + b*x - dy)
+      yhi <- exp(a + b*x + dy)
+      yconf <- c(ylo, rev(yhi))
+
+      if (is.null(conf.band)) {
+        conf.band <- cbind(xconf, yconf)
+      } else {
+        conf.band = rbind(conf.band, NA)
+        conf.band = rbind(conf.band, cbind(xconf, yconf))
+      }
+
+    }
+    yrange = c(300,700)
+  } else stop("Can't happen")
 
   # Compute the total range of all plot elements (but limit the impact of the confidence band)
-  xrange = range(xcont)
-  yrange1 = range(range(y0), range(y1))
-  yrange2 = range(range(yconf))
-  yrange = range(yrange1, yrange2)
+  xrange = range(trendline[,1], na.rm=TRUE)
+  yrange1 = range(range(y0), range(y1), range(trendline[,2]), na.rm=TRUE)
+  yrange2 = range(range(conf.band[,2], na.rm=TRUE))
+  yrange = range(yrange1, yrange2, na.rm=TRUE)
   ylim = 2 * yrange1[2]
   if (yrange[2] > ylim) yrange[2] = ylim
 
@@ -289,8 +351,8 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
   plot(xrange, yrange, type='n', xlab="Time point", ylab="Count", las=1, main=title,...)
-  polygon(xconf, yconf, col=gray(0.9), lty=0)
-  lines(xcont, ytrend, col=cbred, lwd=3)
+  polygon(conf.band, col=gray(0.9), lty=0)
+  lines(trendline, col=cbred, lwd=3) # trendline
   segments(tpt,y0, tpt,y1, lwd=3, col=gray(0.5))
   points(tpt, ydata, col=cbblue, type='b', pch=16, lwd=3)
 }
