@@ -358,8 +358,16 @@ now_what <- function(z) {
       ntot = length(p)
       ndel = sum(p > 0.2)
       worst = which.max(p)
-      rprintf("%d out of %d changepoints appear to be insignificant;", ndel, ntot)
-      rprintf("changepoint #%d would be the first candidate to remove.\n", worst)
+      printf("%d out of %d changepoints appear to be insignificant;", ndel, ntot)
+      printf("changepoint #%d would be the first candidate to remove.\n", worst)
+      advice_given <- TRUE
+    }
+  }
+
+  if (z$model==3) {
+    LR_p <- gof(z)$LR$p
+    if (LR_p < 0.05) {
+      printf("Model 3 has a bad fit (%g < 0.05); Try a different model.\n", LR_p)
       advice_given <- TRUE
     }
   }
