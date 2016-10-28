@@ -770,7 +770,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       Sys.sleep(0.1)
     }
     if (convergence && method==final_method) {
-      rprintf("\nConvergence reached after %d iterations\n", iter)
+      rprintf("\n")
       break
     } else if (convergence) {
       rprintf("\nChanging ML --> GEE\n")
@@ -783,7 +783,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # If we reach the preset maximum number of iterations, we clearly have not reached
   # convergence.
   converged <- iter < max_iter
-  if (!converged) rprintf("No convergence reached after %d iterations.\n", iter)
+  convergence_msg <- sprintf("%s reached after %d iterations",
+                             ifelse(convergence,"Convergence","No convergence"),
+                             iter)
+  rprintf("%s\n", convergence_msg)
 
   # Run the final model
   update_mu(fill=TRUE)
@@ -838,6 +841,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints, converged=converged,
             mu=mu, imputed=imputed, alpha=alpha, beta=beta, var_beta=var_beta)
+
+  z$method <- ifelse(use.covin, "Pseudo ML", final_method)
+  z$convergence <- convergence_msg
 
   # mark the original request for changepoints to allow wald(z) to perform a dslope
   # test in case of a single changepoint. (otherwise we cannot distinguish it from an
