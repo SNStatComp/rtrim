@@ -47,17 +47,17 @@
 
 #' Extract time-indices from trim output
 #'
-#' @param x an object of class \code{\link{trim}} 
+#' @param x an object of class \code{\link{trim}}
 #' @param which Selector to distinguish between time indices based on the imputed data (default),
-#' the modelled data, or both.
+#' the fitted model, or both.
 #' @param base Base time point, for which the index is 1
 #'
 #' @return a data frame containing indices and their uncertainty expressed as
-#'   standard error. Depending on the chosen output, columns \code{model}
-#'   and \code{se_mod}, and/or \code{imputed} and \code{se_imp} are present.
+#'   standard error. Depending on the chosen output, columns \code{fitted}
+#'   and \code{se_fit}, and/or \code{imputed} and \code{se_imp} are present.
 #'   The first column is always \code{time}.
-#'   
-#'   
+#'
+#'
 #' @export
 #'
 #' @family analyses
@@ -72,7 +72,7 @@
 #' # Extract standard errors for the imputed data
 #' SE <- index(z,"imputed")$se_mod
 #'
-index <- function(x, which=c("imputed","model","both"), base=1) {
+index <- function(x, which=c("imputed","fitted","both"), base=1) {
   stopifnot(inherits(x,"trim"))
 
   # Match base to actual time points
@@ -88,8 +88,8 @@ index <- function(x, which=c("imputed","model","both"), base=1) {
     mod <- .index(x$tt_mod, x$var_tt_mod, base)
     # Store results in a data frame
     out <- data.frame(time  = x$time.id,
-                     model = mod$tau,
-                     se_mod = sqrt(mod$var_tau))
+                     fitted = mod$tau,
+                     se_fit = sqrt(mod$var_tau))
   } else if (which=="imputed") {
     # Idem, using the imputed time totals instead
     imp <- .index(x$tt_imp, x$var_tt_imp, base)
@@ -101,8 +101,8 @@ index <- function(x, which=c("imputed","model","both"), base=1) {
     mod <- .index(x$tt_mod, x$var_tt_mod, base)
     imp <- .index(x$tt_imp, x$var_tt_imp, base)
     out = data.frame(time    = x$time.id,
-                     model   = mod$tau,
-                     se_mod  = sqrt(mod$var_tau),
+                     fitted   = mod$tau,
+                     se_fit  = sqrt(mod$var_tau),
                      imputed = imp$tau,
                      se_imp  = sqrt(imp$var_tau))
   } else stop("Can't happen") # because other cases are catched by match.arg()
