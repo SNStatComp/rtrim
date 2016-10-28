@@ -280,10 +280,14 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       changepoints <- 1L        # but internally use them nevertheless
     } else {
       use.changepoints <- TRUE
+      years <- as.integer(levels(time.id))
+      if (all(changepoints %in% years)) {
+        # Convert changepoints in years  to 1..J
+        changepoints <- match(changepoints, years)
+      }
       stopifnot(all(changepoints>=1L))
       stopifnot(all(changepoints<ntime))
       stopifnot(all(diff(changepoints)>0))
-      #if (changepoints[1]!=1L) changepoints = c(1L, changepoints)
     }
   }
 

@@ -237,6 +237,7 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
     , stepwise = stepwise
     , autodelete = autodelete
     , weights = weights
+    , ...
   )
 }
 
@@ -249,7 +250,7 @@ trim.formula <- function(x, data, model=c(1,2,3), weights=numeric(0)
   stopifnot(inherits(data,"data.frame"))
   trim.data.frame(x=data, formula=x, model=model, weights=weights
       , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints
-      , stepwise=stepwise, autodelete=autodelete)
+      , stepwise=stepwise, autodelete=autodelete, ...)
 }
 
 

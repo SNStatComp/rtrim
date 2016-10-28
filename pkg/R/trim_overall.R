@@ -46,10 +46,13 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
 
+  # Handle automatic selection of changepoints based on the model
   if (is.character(changepoints) && changepoints=="model") {
     changepoints <- x$changepoints
   }
-  str(changepoints)
+
+  # Convert year-based changepoints if required
+  if (all(changepoints %in% x$time.id)) changepoints <- match(changepoints, x$time.id)
 
   # extract vars from TRIM output
   tt_mod <- x$tt_mod
