@@ -1151,8 +1151,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   z$time.totals <- data.frame(
     time    = time.id,
-    model   = round(tt_mod),
-    se_mod  = se_tt_mod,
+    fitted  = round(tt_mod),
+    se_fit  = se_tt_mod,
     imputed = round(tt_imp),
     se_imp  = se_tt_imp
   )

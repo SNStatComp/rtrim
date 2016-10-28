@@ -199,8 +199,8 @@ coef.trim <- function(object,
 #' @param which select what totals to compute (see \code{Details} section).
 #'
 #' @return a \code{data.frame} with subclass \code{trim.totals}
-#'  (for pretty-printing). The columns are \code{time}, \code{model}
-#'  and \code{se_mod} (for standard error), and/or \code{imputed}
+#'  (for pretty-printing). The columns are \code{time}, \code{fitted}
+#'  and \code{se_fit} (for standard error), and/or \code{imputed}
 #'  and \code{se_imp}, depending on the selection.
 #'
 #' @section Details:
@@ -211,7 +211,7 @@ coef.trim <- function(object,
 #'
 #' \itemize{
 #' \item{\code{"imputed"}: Time totals are computed after replacing missing values with values predicted by the model}.
-#' \item{\code{"model"}: Time totals are computed after replacing both missing values and observed values with
+#' \item{\code{"fitted"}: Time totals are computed after replacing both missing values and observed values with
 #' values predicted by the model.}
 #' }
 #'
@@ -228,13 +228,13 @@ coef.trim <- function(object,
 #'
 #' totals(z, "both") # mimics classic TRIM
 #'
-totals <- function(x, which=c("imputed","model","both")) {
+totals <- function(x, which=c("imputed","fitted","both")) {
   stopifnot(class(x)=="trim")
 
   # Select output columns from the pre-computed time totals
   which <- match.arg(which)
   totals <- switch(which
-    , model   = x$time.totals[c(1,2,3)]
+    , fitted  = x$time.totals[c(1,2,3)]
     , imputed = x$time.totals[c(1,4,5)]
     , both    = x$time.totals
   )
@@ -258,21 +258,6 @@ export.trim.totals <- function(x, species, stratum) {
   df = cbind(df1, df2)
   print(df, row.names=FALSE)
 }
-
-#------------------------------------------------------------------- Print ----
-
-#' Print method for trim time totals
-#'
-#' @param tt \code{trim.totals} object
-#' @param ... currently unused
-#'
-#' @export
-#' @keywords internal
-print.trim.totals <- function(x,...) {
-  printf("Time totals\n")
-  print.data.frame(x, row.names=FALSE)
-}
-
 
 # ============================================== Variance-Covariance matrix ====
 
