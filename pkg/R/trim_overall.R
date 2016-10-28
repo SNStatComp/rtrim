@@ -11,11 +11,11 @@
 #' @param cp \code{[numeric]} Change points for which to compute the overall slope.
 #'
 #' @section Details:
-#' 
+#'
 #' The overall slope represents the mean growth or decline over a period of time.
 #' This can be determined over the whole time period for which the modelis fitted (this is the default)
 #' or may be computed over time slices that can be defined with the \code{cp} parameter.
-#' The values for \code{cp} do not depend on \code{changepoints} that were used when 
+#' The values for \code{cp} do not depend on \code{changepoints} that were used when
 #' specifying the \code{trim} model (See also the example below).
 #'
 #'
@@ -26,18 +26,18 @@
 #'
 #' @family analyses
 #' @examples
-#' 
+#'
 #' # obtain the overall slope accross all change points.
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2)
 #' overall(z)
 #' plot(overall(z))
-#' 
+#'
 #' # Overall is a list, you can get information out if it using the $ syntax,
 #' # for example
 #' L <- overall(z)
 #' L$coef
-#' 
+#'
 #' # Obtain the slope from changepoint to changepoint
 #' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
 #' # slope from time point 1 to 5
@@ -73,10 +73,34 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
   #     var_tt_mod <- var_tt_imp <- diag(var_tau)
   # }
 
+  .meaning <- function(bhat, berr, df) {
+    if (df<=0) return("Unknown (df<=0)")
+    alpha = c(0.05, 0.001)
+    stopifnot(df>0)
+    tval <- qt((1-alpha/2), df)
+    blo <- bhat - tval * berr
+    bhi <- bhat + tval * berr
+    if (blo[2] > 1.05) return("Strong increase (p<0.001)")
+    if (bhi[2] < 0.95) return("Strong decrease (p<0.001)")
+    if (blo[1] > 1.05) return("Strong increase (p<0.05)")
+    if (bhi[1] < 0.95) return("Strong decrease (p<0.05)")
+
+    if (blo[2] > 1.0) return("Moderate increase (p<0.001)")
+    if (bhi[2] < 1.0) return("Moderate decrease (p<0.001)")
+    if (blo[1] > 1.0) return("Moderate increase (p<0.05)")
+    if (bhi[1] < 1.0) return("Moderate decrease (p<0.05)")
+
+    # TO discuss: order of evaluation matters. What's more important?
+    # - strong increase p<0.05 or
+    # - moderate increase p<0.001
+
+    if (blo[1]>0.95 && bhi[1]<1.05) return("Stable")
+
+    return("Uncertain")
+}
 
   # The overall slope is computed for both the modeled and the imputed $\Mu$'s.
   # So we define a function to do the actual work
-
   .compute.overall.slope <- function(tt, var_tt, src) {
     # tpt = time points, either 1..J or year1..yearn
     J <- length(tt)
@@ -116,14 +140,19 @@ overall <- function(x, which=c("imputed","model"), cp=numeric(0)) {
     SSR <- b_err[2]^2 * D * (J-2)
 
     # Export the results
-    df <- data.frame(
+    z <- data.frame(
       add       = bhat,
       se_add    = b_err,
       mul       = exp(bhat),
       se_mul    = exp(bhat) * b_err,
       row.names = c("intercept","slope")
     )
-    list(src=src, coef=df,p=p, effect=effect, J=J, tt=tt, err=sqrt(diag(var_tt)), SSR=SSR)
+
+    z$t = z$mul / z$se_mul
+    z$p = if (df>0) 2 * pt(abs(z$t), df, lower.tail=FALSE)
+          else      NA
+    z$meaning   = c("<none>", .meaning(z$mul[2], z$se_mul[2], J-2))
+    list(src=src, coef=z,p=p, effect=effect, J=J, tt=tt, err=sqrt(diag(var_tt)), SSR=SSR)
   }
 
   if (which=="imputed") {
@@ -197,18 +226,18 @@ print.trim.overall <- function(x,...) {
 #'
 #' Creates a plot of the overall slope, its 95\% confidence band, the
 #' total population per time and their 95\% confidence intervals.
-#' 
+#'
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
 #' @param imputed Toggle to show imputed counts
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @family analyses
-#' 
-#' @examples 
+#'
+#' @examples
 #' data(skylark)
 #' m <- trim(count ~ time + site, data=skylark, model=2)
 #' plot(overall(m))
-#' 
+#'
 #' @export
 plot.trim.overall <- function(x, imputed=TRUE, ...) {
   X <- x
@@ -248,9 +277,13 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   yhi <- exp(a + b*x + dy)
   yconf <- c(ylo, rev(yhi))
 
-  # Compute the total range of all plot elements
+  # Compute the total range of all plot elements (but limit the impact of the confidence band)
   xrange = range(xcont)
-  yrange = range(range(yconf), range(y0), range(y1))
+  yrange1 = range(range(y0), range(y1))
+  yrange2 = range(range(yconf))
+  yrange = range(yrange1, yrange2)
+  ylim = 2 * yrange1[2]
+  if (yrange[2] > ylim) yrange[2] = ylim
 
   # Now plot layer-by-layer (using ColorBrewer colors)
   cbred <- rgb(228,26,28, maxColorValue = 255)

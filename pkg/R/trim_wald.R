@@ -247,8 +247,9 @@ wald.trim <- function(x)
       var_theta <- var_beta[idx, idx]
       W = t(theta) %*% solve(var_theta) %*% theta
       wald$covar$W[i]     <- W
-      wald$covar$df[i]    <- nbeta0
-      wald$covar$p[i]     <- 1 - pchisq(W, df=nbeta0)
+      df = length(theta)
+      wald$covar$df[i]    <- df
+      wald$covar$p[i]     <- 1 - pchisq(W, df=df)
     }
   }
 

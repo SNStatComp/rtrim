@@ -10,14 +10,14 @@
 #' based on a set of counts \eqn{f_{ij}} at sites \eqn{i=1,2,\ldots,I}
 #' and times \eqn{j=1,2,\ldots,J}. If no count data is available at
 #' site and time \eqn{(i,j)}, a value \eqn{\mu_{ij}} will be imputed.
-#' 
+#'
 #' In \bold{Model 2}, the imputed values are modeled as
-#' 
+#'
 #' \eqn{\ln\mu_{ij} = \alpha_i + \beta\times(j-1).}
 #'
 #' Here, \eqn{\alpha_i} is the log-count of site \eqn{i} averaged over time and
 #' \eqn{\beta} is the mean growth factor that is shared by all sites over all of
-#' time. The assumption of a constant growth rate may be relaxed by passing 
+#' time. The assumption of a constant growth rate may be relaxed by passing
 #' a number of \code{changepoints} that indicate at what times the growth
 #' rate is allowed to change. Using a \code{\link[=wald.trim]{wald}} test
 #' one can investigate whether the changes in slope at the changepoints are
@@ -25,65 +25,65 @@
 #' remove changepoints where the slope does not change significantly.
 #'
 #' In \bold{Model 3}, the imputed values are modeled as
-#' 
+#'
 #' \eqn{\ln\mu_{ij}=\alpha_i + \gamma_j},
 #'
-#' where \eqn{\gamma_j} is the deviatiation of log-counts at time \eqn{j}, 
-#' averaged over all sites. To make this model identifiable, the value of 
-#' \eqn{\gamma_1=0} by definition. Model 3 can be shown to be equivalent to 
-#' Model 2 with a changepoint at every time point. Using a 
-#' \code{\link[=wald.trim]{wald}} test, one can estimate whether the collection 
+#' where \eqn{\gamma_j} is the deviatiation of log-counts at time \eqn{j},
+#' averaged over all sites. To make this model identifiable, the value of
+#' \eqn{\gamma_1=0} by definition. Model 3 can be shown to be equivalent to
+#' Model 2 with a changepoint at every time point. Using a
+#' \code{\link[=wald.trim]{wald}} test, one can estimate whether the collection
 #' of deviations \eqn{\gamma_i} make the model differ significantly from an
 #' overall linear trend (Model 2 without changepoints).
-#' 
+#'
 #' The parameters \eqn{\alpha_i}, \eqn{\beta} and \eqn{\gamma_j} are referred to
 #' as the \emph{additive representation} of the coefficients. Once computed,
-#' they can be represented and extracted in several representations, using the 
+#' they can be represented and extracted in several representations, using the
 #' \code{\link[=coef.trim]{coefficients}} function. (See also the examples
-#' below). 
-#' 
+#' below).
+#'
 #' Other model parameters can be extracted using functions such as
 #' \code{\link{gof}} (for goodness of fit), \code{\link[=summary.trim]{summary}}
 #' or \code{\link{totals}}. Refer to the `See also' section for an overview.
 #'
 #'
 #' @section {Using covariates}:
-#' 
+#'
 #' In the basic case of Models 2 and 3, the growth parameter \eqn{\beta} does
 #' not vary accross sites. If auxiliary information is available (for instance
 #' a classification of the type of soil or vegetation), the effect of these
 #' variables on the per-site growth rate can be taken into account.
-#' 
+#'
 #' For \bold{Model 2 with covariates} the growth factor \eqn{\beta} is
 #' replaced with a factor
 #'
 #' \eqn{\beta_0 + \sum_{k=1}^K z_{ijk}\beta_k}.
-#' 
-#' Here, \eqn{\beta_0} is referred to as the \emph{baseline} and \eqn{z_{ijk}} is a 
-#' dummy variable that combines dummy variables for all covariates. Since a 
-#' covariate with \eqn{L} classes is modeled by \eqn{L-1} dummy variables, the 
-#' value of \eqn{K} is equal to the sum of the numbers of categories for all 
+#'
+#' Here, \eqn{\beta_0} is referred to as the \emph{baseline} and \eqn{z_{ijk}} is a
+#' dummy variable that combines dummy variables for all covariates. Since a
+#' covariate with \eqn{L} classes is modeled by \eqn{L-1} dummy variables, the
+#' value of \eqn{K} is equal to the sum of the numbers of categories for all
 #' covariates minus the number of covariates. Observe that this model allows for
-#' a covariate to change over time at a certain sites. It is therefore possible 
-#' to include situations for example where a site turns from farmland to rural 
-#' area. The \code{\link[=coef.trim]{coefficients}} function will report every 
-#' individual value of \eqn{\beta}. With a \code{\link[=wald.trim]{wald}} test, 
+#' a covariate to change over time at a certain sites. It is therefore possible
+#' to include situations for example where a site turns from farmland to rural
+#' area. The \code{\link[=coef.trim]{coefficients}} function will report every
+#' individual value of \eqn{\beta}. With a \code{\link[=wald.trim]{wald}} test,
 #' the significance of contributions of covariates can be tested.
-#' 
+#'
 #' For \bold{Model 3 with covariates} the parameter \eqn{\gamma_j} is replaced by
-#' 
+#'
 #' \eqn{\gamma_{j0} + \sum_{k=1}^Kz_{ijk}\gamma_{jk}.}
-#' 
-#' Again, the \eqn{\gamma_{j0}} are referred to as baseline parameters and the 
+#'
+#' Again, the \eqn{\gamma_{j0}} are referred to as baseline parameters and the
 #' \eqn{\gamma_{jk}} record mean differences in log-counts within a set of sites
 #' with equal values for the covariates. All coefficients can be extracted with
 #' \code{\link[=coef.trim]{coefficients}} and the significance of covariates can
 #' be investigated with the \code{\link[=wald.trim]{wald}} test.
-#' 
+#'
 #'
 #' @section Estimation options:
-#' 
-#' In the simplest case, the counts at different times and sites are considered 
+#'
+#' In the simplest case, the counts at different times and sites are considered
 #' independently Poisson distributed. The (often too strict) assumption that
 #' counts are independent over time may be dropped, so correlation between time
 #' points at a certain site can be taken into account. The assumption of being
@@ -97,7 +97,7 @@
 #' where \eqn{\sigma} is called the \emph{overdispersion}, \eqn{\mu_{ij}} is
 #' the estimated count for site \eqn{i}, time \eqn{j} and \eqn{\rho} is called
 #' the \emph{serial correlation}.
-#' 
+#'
 #' If \eqn{\sigma=1}, a pure Poisson distribution is assumed to model the
 #' counts. Setting \code{overdispersion = TRUE} makes \code{trim} relax this
 #' condition. Setting  \code{serialcor=TRUE} allows \code{trim} to assume a
@@ -118,9 +118,9 @@
 #' \item{For model 3 with covariates there must be at least one observation for
 #'   every value of each covariate, at each time point.}
 #' }
-#' 
-#' The function \code{\link{check_observations}} identifies cases where too few 
-#' observations are present to compute a model. Setting the option 
+#'
+#' The function \code{\link{check_observations}} identifies cases where too few
+#' observations are present to compute a model. Setting the option
 #' \code{autodelete=TRUE} (Model 2 only) makes \code{trim} remove changepoints
 #' such that at each time piece sufficient counts are available to estimate the
 #' model.
@@ -135,7 +135,7 @@
 #'
 #' @family analyses
 #' @family modelspec
-#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \code{\link{summary.trim}}, 
+#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \code{\link{summary.trim}},
 #' \code{\link{coef.trim}}.
 #'
 #' @examples
@@ -151,8 +151,8 @@
 #' weights <- w[skylark$site]
 #' # run model
 #' m <- trim(count ~ time + site, data=skylark, model=3, weights=weights)
-#' 
-#' 
+#'
+#'
 #' # An example using change points, a covariate, and overdispersion
 #' # 1 is added as cp automatically
 #' cp <- c(2,6)
@@ -174,7 +174,7 @@ trim.trimcommand <- function(x,...){
   covars <- x$labels[x$covariates]
 
   if (isTRUE(x$weighting)) { wgt <- dat$weight }
-  else             { wgt <- numeric(0) }
+  else                     { wgt <- numeric(0) }
 
   if (isTRUE(x$covin)) covin <- read_icv(x)
   else                 covin <- list()
@@ -211,11 +211,13 @@ trim.trimcommand <- function(x,...){
 #' @export
 trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
   , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
-  , autodelete=FALSE, ...){
+  , autodelete=FALSE, ...) {
+
+  if (nrow(x)==0) stop("Empty data frame")
 
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
-  
+
   stopifnot(is.numeric(model),model %in% 2:3)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
@@ -261,7 +263,7 @@ parse_formula <- function(x, vars){
   all_vars <- c(lhs,rhs)
   valid_vars <- all_vars %in% vars
   if (!all(valid_vars)){
-    stop(sprintf("Variables %s not found in data"),pr(all_vars[!valid_vars]))
+    stop(sprintf("Variables %s not found in data", pr(all_vars[!valid_vars])))
   }
   list(count = lhs, time = rhs[1], site=rhs[2], cov=rhs[-(1:2)])
 }

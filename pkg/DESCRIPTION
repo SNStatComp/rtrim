@@ -5,13 +5,13 @@ Title: Trends and Indices for Monitoring Data
 LazyData: no
 Type: Package
 LazyLoad: yes
-Authors@R: c( person("Patrick","Bogaart",role="aut"), person("Mark", "van der Loo", role=c("aut","cre"),email="mark.vanderloo@gmail.com"), person("Jeroen", "Pannekoek", role="aut"))
-Description: Reimplementation of the TRIM software of J. Pannekoek. 
-Version: 0.0.3.2
+Authors@R: c( person("Patrick","Bogaart",role="aut",email="pwbogaart@gmail.com"), person("Mark", "van der Loo", role=c("aut","cre"),email="mark.vanderloo@gmail.com"), person("Jeroen", "Pannekoek", role="aut"))
+Description: Reimplementation of the TRIM software of J. Pannekoek.
+Version: 0.0.4.0
 Imports: methods, utils, stats, graphics, grDevices
 URL: https://github.com/markvanderloo/rtrim
 BugReports: https://github.com/markvanderloo/rtrim/issues
-Date: 2016-10-17
+Date: 2016-10-28
 Suggests:
     testthat,
     knitr,

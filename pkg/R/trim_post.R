@@ -16,7 +16,7 @@
 #'   created the object, the model code, the coefficients (in additive and
 #'   multiplicative form) , the goodness of fit parameters,the overdispersion
 #'   and the serial correlation parameters (if computed).
-#'   
+#'
 #' @export
 #'
 #' @family analyses
@@ -41,7 +41,7 @@ summary.trim <- function(object,...) {
 #' @export
 #' @keywords internal
 print.trim.summary <- function(x,...){
-  
+
   cl <- paste(capture.output(print(x$call)),collapse="\n")
   printf("Call:\n%s\n",cl)
 
@@ -93,22 +93,22 @@ overdispersion <- function(x){
 #' Extract TRIM model coefficients.
 #'
 #' @section Details:
-#' 
+#'
 #' Extract the site, growth or time effect parameters computed with
 #' \code{\link{trim}}.
-#' 
+#'
 #' @section Additive versus multiplicative representation:
-#' 
+#'
 #' In the simplest cases (no covariates, no change points), the trim
 #' Model 2 and Model 3 can be summarized as follows:
-#' 
+#'
 #' \itemize{
 #' \item{Model 2: \eqn{\ln\mu_{ij}=\alpha_i + \beta\times(j-1)} }
 #' \item{Model 3: \eqn{\ln\mu_{ij}=\alpha_i + \gamma_j}.}
 #' }
-#' 
-#' Here, \eqn{\mu_{ij}} is the estimated number of counts at site \eqn{i}, time 
-#' \eqn{j}. The parameters \eqn{\alpha_i}, \eqn{\beta} and \eqn{\gamma_j} are 
+#'
+#' Here, \eqn{\mu_{ij}} is the estimated number of counts at site \eqn{i}, time
+#' \eqn{j}. The parameters \eqn{\alpha_i}, \eqn{\beta} and \eqn{\gamma_j} are
 #' refererred to as coefficients in the additive representation. By
 #' exponentiating both sides of the above equations, alternative representations
 #' can be written down. Explicitly, one can show that
@@ -120,18 +120,18 @@ overdispersion <- function(x){
 #'
 #' The parameters \eqn{a_i}, \eqn{b} and \eqn{c_j} are referred to as
 #' coefficients in the \emph{multiplicative form}.
-#' 
+#'
 #' @section Trend and deviation (Model 3 only):
-#' 
+#'
 #' The equation for Model 3
-#' 
+#'
 #' \eqn{\ln\mu_{ij}  = \alpha_i + \gamma_j},
-#' 
+#'
 #' can also be written as an overall slope resulting from a linear regression of
 #' the \eqn{\mu_{ij}} over time,  plus site- and time effects that
-#' record deviations from this overall slope.  In such a reparametrisation 
+#' record deviations from this overall slope.  In such a reparametrisation
 #' the previous equation can be written as
-#' 
+#'
 #' \eqn{\ln\mu_{ij} = \alpha_i^* + \beta^*d_j + \gamma_j^*,}
 #'
 #' where \eqn{d_j} equals \eqn{j} minus the mean over all \eqn{j} (i.e. if \eqn{j=1,2,\ldots,J}
@@ -143,11 +143,11 @@ overdispersion <- function(x){
 #' The coefficients \eqn{\alpha_i^*} and \eqn{\gamma_j^*} are obtained by
 #' setting \code{representation="deviations"}. If \code{representation="trend"},
 #' the overall trend parameters \eqn{\beta^*} and \eqn{\alpha^*} from the overall
-#' slope defined by \eqn{\alpha^* + \beta^*d_j} is returned. 
-#' 
+#' slope defined by \eqn{\alpha^* + \beta^*d_j} is returned.
+#'
 #' Finally, note that both the overall slope and the deviations can be written
 #' in multiplicative format.
-#' 
+#'
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param representation \code{[character]} Choose the coefficient
@@ -164,12 +164,12 @@ overdispersion <- function(x){
 #' data(skylark)
 #' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
 #' coefficients(z)
-coef.trim <- function(object, 
+coef.trim <- function(object,
     representation=c("standard","trend","deviations"),...) {
 
-  
+
   representation <- match.arg(representation)
-  
+
   if (representation %in% c("deviations","trend") && object$model != 3){
     stop(
       sprintf("Cannot extract  %s from TRIM model %d\n",representation,object$model)
@@ -181,7 +181,7 @@ coef.trim <- function(object,
     , "deviations" = setNames(object$deviations,c("time","add","se_add","mul","se_mul"))
     , "trend" = setNames(object$linear.trend,c("add","se_add","mul","se_mul"))
   )
-  
+
 }
 
 
@@ -194,26 +194,26 @@ coef.trim <- function(object,
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which select what totals to compute (see \code{Details} section).
 #'
-#' @return a \code{data.frame} with subclass \code{trim.totals} 
+#' @return a \code{data.frame} with subclass \code{trim.totals}
 #'  (for pretty-printing). The columns are \code{time}, \code{model}
 #'  and \code{se_mod} (for standard error), and/or \code{imputed}
 #'  and \code{se_imp}, depending on the selection.
-#' 
+#'
 #' @section Details:
-#' 
+#'
 #' The idea of \code{TRIM} is to impute those site-time combinations where
-#' no counts are available. Time-totals (i.e. summed over sites) can be obtained 
+#' no counts are available. Time-totals (i.e. summed over sites) can be obtained
 #' for two cases:
-#' 
+#'
 #' \itemize{
 #' \item{\code{"imputed"}: Time totals are computed after replacing missing values with values predicted by the model}.
 #' \item{\code{"model"}: Time totals are computed after replacing both missing values and observed values with
 #' values predicted by the model.}
 #' }
-#' 
-#' 
+#'
+#'
 #' @return A \code{data.frame} with time totals and their standard errors.
-#' 
+#'
 #' @export
 #'
 #' @family analyses
@@ -221,9 +221,9 @@ coef.trim <- function(object,
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2,cp=c(3,5))
 #' totals(z)
-#' 
+#'
 #' totals(z, "both") # mimics classic TRIM
-#' 
+#'
 totals <- function(x, which=c("imputed","model","both")) {
   stopifnot(class(x)=="trim")
 
@@ -276,7 +276,7 @@ print.trim.totals <- function(x,...) {
 
 #' Extract variance-covariance matrix from TRIM output
 #'
-#' @param x TRIM output structure (i.e., output of a call to \code{trim})
+#' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which Selector to distinguish between variance-covariance based on the
 #' imputed data (default), or the modelled data.
 #'
@@ -288,15 +288,15 @@ print.trim.totals <- function(x,...) {
 #' data(skylark)
 #' z <- trim(count ~ time + site, data=skylark, model=2);
 #' totals(z)
-#' vcv1 <- varcovar(z)       # Use imputed data
-#' vcv2 <- varcovar(z,"mod") # Use modelled data
-varcovar <- function(x, which=c("imputed","model")) {
-  stopifnot(inherits(x,"trim"))
+#' vcv1 <- vcov(z)       # Use imputed data
+#' vcv2 <- vcov(z,"mod") # Use modelled data
+vcov.trim <- function(object, which=c("imputed","model")) {
+  stopifnot(inherits(object,"trim"))
 
   which <- match.arg(which)
   vcv <- switch(which
-    , model   = x$var_tt_mod
-    , imputed = x$var_tt_imp
+    , model   = object$var_tt_mod
+    , imputed = object$var_tt_imp
   )
   vcv
 }
@@ -304,5 +304,62 @@ varcovar <- function(x, which=c("imputed","model")) {
 
 
 
+# ================================================================= Results ====
 
+# Function \verb!result()! collects and combines the observed, modelled, and imputed
+# counts. These results are presented as a data frame, which is readily exported to
+# a file by the user.
+
+results <- function(z) {
+  stopifnot(inherits(z,"trim"))
+
+  out <- data.frame(
+    site = rep(z$site.id, each=z$ntime),
+    time = rep(z$time.id, times=z$nsite),
+    observed = as.vector(t(z$f)),
+    fitted   = as.vector(t(z$mu)),
+    imputed  = as.vector(t(z$imputed))
+  )
+  class(out) <- c("trim.results","data.frame")
+  out
+}
+
+plot.trim.results <- function(z, ...) {
+  sites = levels(z$site)
+  nsite = nlevels(z$site)
+  hues = seq(0, 360, length.out = nsite+1)[1:nsite]
+  colors = hcl(hues, 100, 65) # C and L Similar to ggplot
+  # hues = seq(0, 1, length.out = nsite+1)[1:nsite]
+  # colors = hsv(hues, 0.5, 1)
+  xrange = range(z$time)
+  yrange = range(z$observed, z$modelled, na.rm=TRUE)
+  plot(xrange,yrange, type='n', xlab="Time", ylab="Counts")
+  for (i in 1: nsite) {
+    df = subset(z, site==sites[i])
+    points(df$time, df$observed, pch=16, col=colors[i])
+    lines(df$time, df$modelled, col=colors[i])
+  }
+}
+
+# ================================================================== Advice ====
+
+now_what <- function(z) {
+  stopifnot(inherits(z,"trim"))
+  Wald <- wald(z)
+  advice_given <- FALSE
+
+  if (!is.null(Wald$dslope)) {
+    p = Wald$dslope$p
+    if (any(p > 0.2)) {
+      ntot = length(p)
+      ndel = sum(p > 0.2)
+      worst = which.max(p)
+      rprintf("%d out of %d changepoints appear to be insignificant;", ndel, ntot)
+      rprintf("changepoint #%d would be the first candidate to remove.\n", worst)
+      advice_given <- TRUE
+    }
+  }
+
+  if (!advice_given) rprintf("Model appears to be adequate; no suggestions for further improvement.\n")
+}
 

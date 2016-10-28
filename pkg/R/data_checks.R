@@ -109,8 +109,8 @@ assert_increasing <- function(x, varname){
 
 
 # sufficient data per index (index=time for model 3, pieces for model 2)
-assert_sufficient_counts <- function(count, index){
-  time_totals <- tapply(X = count, INDEX = index, FUN = sum, na.rm=TRUE)
+assert_sufficient_counts <- function(count, index) {
+  time_totals <- tapply(X=count, INDEX=index, FUN=sum, na.rm=TRUE)
   assert_positive(time_totals, names(index))
 }
 
@@ -139,8 +139,9 @@ assert_plt_model <- function(count, time, changepoints, covars){
   if (length(changepoints)==0) changepoints <- 1
   # label the pieces in piecewise linear regression
   pieces <- pieces_from_changepoints(time, changepoints)
+  ok = pieces>0 # Allow zero observations for changepoint 0
   if (length(covars)==0){
-    assert_sufficient_counts(count, list(changepoint=pieces))
+    assert_sufficient_counts(count[ok], list(changepoint=pieces[ok]))
   } else {
     assert_covariate_counts(count, pieces, covars, timename="changepoint")
   }
@@ -193,8 +194,8 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 # Return the first changepoint to delete (if any).
 # returns the value of the CP, or -1 when nothing
 # needs to be deleted.
-get_deletion <- function(count, time, changepoints, covars){
-  if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
+get_deletion <- function(count, time, changepoints, covars) {
+  # if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
   out <- -1
   if (length(changepoints)==1) return(out) # Never propose to delete a lonely changepoint
   pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
@@ -216,7 +217,7 @@ get_deletion <- function(count, time, changepoints, covars){
   out
 }
 
-autodelete <- function(count, time, changepoints, covars){
+autodelete <- function(count, time, changepoints, covars) {
   out <- get_deletion(count, time, changepoints, covars)
   while (out > 0) {
     cp = as.integer(out)

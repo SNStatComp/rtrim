@@ -96,7 +96,7 @@ trimtest <- function(m, to, tc, vcv=NULL) {
 
   # Variance-covariance
   if (!is.null(vcv)) {
-    src = varcovar(m,"imputed")
+    src = vcov(m,"imputed")
     expect_equal(src, vcv, tol=1e-3, info="Variance-covariance")
   }
 }
@@ -269,7 +269,7 @@ test_that("testing skylark-2a",{
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7,autodelete=TRUE)
   trimtest(m,to,tc)
-  
+
 
 })
 
@@ -287,13 +287,13 @@ test_that("invalid model specs",{
          ,changepoints=c(3,5))
     , regexp = "Changepoints cannot be specified for model 3"
   )
-    
+
 })
 
 
 
 test_that("tcf checker",{
-  
+
   # bug reported by Henk Sierdsema (SOVON)
 x <- "
 FILE trim_15720_V.txt

@@ -4,7 +4,7 @@
 
 alpha_method <- 1
 graph_debug <- FALSE
-compatible <- TRUE
+compatible <- FALSE
 
 # ##################################################### Estimation function ####
 
@@ -197,6 +197,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   if (any(class(time.id) %in% c("integer","numeric"))) time.id <- ordered(time.id)
   ntime = length(levels(time.id))
 
+  #org.site.id <- site.id # Remember the original values for output purposes.
   if (class(site.id) %in% c("integer","numeric")) site.id <- factor(site.id)
   nsite = length(levels(site.id))
 
@@ -204,12 +205,26 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # Convert the data from a vector representation to a matrix representation.
   # It's OK to have missing site/time combinations; these will automatically
   # translate to NA values.
-  f <- matrix(0, nsite, ntime) # ??? check if we shoud not use NA instead of 0!!!
+  f <- matrix(0, nsite, ntime) # ??? check if we should not use NA instead of 0!!!
   rows <- as.integer(site.id) # `site.id' is a factor, thus this results in $1\ldots I$.
   cols <- as.integer(time.id) # idem, $1 \ldots J$.
   idx <- (cols-1)*nsite+rows   # Create column-major linear index from row/column subscripts.
   f[idx] <- count    # ... such that we can paste all data into the right positions
   ff = f # allow browser() inspection
+
+  # TRIM is not intended for extrapolation. Therefore, issue a warning if the first or last
+  # time points do not contain positive observations.
+  totals <- colSums(f, na.rm=TRUE)
+  if (sum(totals)==0) stop("No positive observations in the data.")
+  if (totals[1]==0) {
+    n = which(totals>0)[1] - 1
+    warning(sprintf("Data starts with %d years without positive observations.", n))
+  }
+  totals <- rev(totals)
+  if (totals[1]==0) {
+    n = which(totals>0)[1] - 1
+    warning(sprintf("Data ends with %d years without positive observations.", n))
+  }
 
   # Create similar matrices for all covariates
   if (use.covars) {
@@ -237,8 +252,16 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   nobs <- rowSums(observed) # Number of actual observations per site
   npos <- rowSums(positive) # Number of useful ($f_{i,j}>0$) observations per site.
 
-  # For model 2, we do not allow for changepoints $<1$ or $\geq J$. At the same time,
-  # a changepoint $1$ must be present
+  # Check if the covin matrices all have the right size.
+  if (use.covin) {
+    for (i in 1:nsite) {
+      stopifnot(nrow(covin[[i]])==nobs[i])
+      stopifnot(ncol(covin[[i]])==nobs[i])
+    }
+  }
+
+  # For model 2, we do not allow for changepoints $<1$ or $\geq J$.
+  # At the same time, a changepoint $1$ must be present
   if (model==2) {
     if (length(changepoints)==0) {
       use.changepoints <- FALSE # Pretend we're not using changepoints at all
@@ -248,7 +271,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       stopifnot(all(changepoints>=1L))
       stopifnot(all(changepoints<ntime))
       stopifnot(all(diff(changepoints)>0))
-      if (changepoints[1]!=1L) changepoints = c(1L, changepoints)
+      #if (changepoints[1]!=1L) changepoints = c(1L, changepoints)
     }
   }
 
@@ -282,7 +305,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     B <- B[ ,-1]     # Remove first column
   }
 
-  # For some purposed (varcovar...), we do need a dummy first column in B
+  # For some purposes (e.g. vcov() ), we do need a dummy first column in B
   Bfull <- cbind(0, B)
 
   # optionally add covariates. Each covar class (except class 1) adds an extra copy of $B$,
@@ -808,8 +831,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   # Convert time point back to their original (numerical) values
   time.id <- as.numeric(levels(time.id))
+  site.id <- factor(levels(site.id))
 
   z <- list(title=title, f=f, nsite=nsite, ntime=ntime, time.id=time.id,
+            site.id = site.id,
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints, converged=converged,
             mu=mu, imputed=imputed, alpha=alpha, beta=beta, var_beta=var_beta)
@@ -1017,27 +1042,22 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       GFminH <- GF - H
 
       # All building blocks are ready. Use them to compute the variance
-      var_tt_mod <- GddG + GFminH %*% solve(E) %*% t(GFminH)
+      V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
     } else { # Use input covariance
-
       # First loop op sites to compute $GF - H$.
       GFminH = matrix(0, ntime, nbeta)
       for (i in 1:nsite) { # First loop
         u <-  mu[i, ]
         wu <- wt[i, ] * mu[i, ]
-
         obs <- observed[i, ] # observed j's
+        if (observed_only) wu[!obs] <- 0.0
         w <- mu[i, obs]
-
         d <- sum(w)
-
         Bi = make.B(i)
         Bo = Bi[obs, ]
-
         w_mat = rep.cols(w, nbeta)
         F = colSums(Bo * w_mat / d)
-
         wu_mat <- rep.cols(wu, nbeta)
         F_mat <- rep.rows(F, ntime)
         GFminH <- GFminH + wu_mat * (F_mat - Bi)
@@ -1045,10 +1065,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       M2 <- GFminH %*% E_inv
 
       # second loop
-      var_tt_mod <- matrix(0, ntime, ntime)
+      V <- matrix(0, ntime, ntime)
       for (i in 1:nsite) {
-        wu = wt[i, ] * mu[i, ]
+        u <-  mu[i, ]
+        wu <- wt[i, ] * mu[i, ]
         obs <- observed[i, ] # observed j's
+        if (observed_only) wu[!obs] <- 0.0
         w <- mu[i, obs]
         d <- sum(w)
         M1 <- rep.cols(wu/d, nobs[i])
@@ -1056,21 +1078,17 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
         Bo = Bi[obs, ]
         w_mat = rep.cols(w, nbeta)
         F = colSums(Bo * w_mat / d)
-
         F_mat <- rep.rows(F, nobs[i])
         M3 <- t(F_mat - Bo)
-
         M4 = M1 + M2 %*% M3
-
-        dvar <- M4 %*% covin[[i]] %*% t(M4)
-        var_tt_mod <- var_tt_mod + dvar
+        Vi <- M4 %*% covin[[i]] %*% t(M4)
+        V <- V + Vi
       }
     }
-
-    var_tt_mod
+    V
   }
 
-  var_tt_mod <- var_model_tt(FALSE)
+  var_tt_mod <- var_model_tt(observed_only = FALSE)
 
   # To compute the variance of the time totals of the imputed data, we first
   # substract the contribution due to te observations, as computed by above scheme,
@@ -1079,30 +1097,29 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   var_observed_tt <- function() {
     # Variance due to observations
-    var_tt_obs_new = matrix(0, ntime, ntime)
+    V = matrix(0, ntime, ntime)
     if (!use.covin) {
       wwmu <- if (use.weights) wt * wt * mu else mu
       wwmu[!observed] <- 0 # # erase estimated $\mu$'s
       for (i in 1:nsite) {
         if (serialcor) {
           srdu = sqrt(diag(wwmu[i, ]))
-          V = sig2 * srdu %*% Rg %*% srdu
+          Vi = sig2 * srdu %*% Rg %*% srdu
         } else {
-          V = sig2 * diag(wwmu[i, ])
+          Vi = sig2 * diag(wwmu[i, ])
         }
-        var_tt_obs_new = var_tt_obs_new + V
+        V = V + Vi
       }
     } else {
       for (i in 1:nsite) {
-        V = covin[[i]]
-        for (j1 in 1:ntime) for (j2 in 1:ntime) {
-          if (observed[i,j1] && observed[i,j2]) {
-            var_tt_obs_new[j1,j2] <- var_tt_obs_new[j1,j2] + wt[i,j1] * wt[i,j2] * V[j1,j2]
-          }
-        }
+        Vi = covin[[i]]
+        obs <- observed[i, ]
+        wt1 = rep.rows(wt[i, obs], nobs[i])
+        wt2 = rep.cols(wt[i, obs], nobs[i])
+        V[obs,obs] <- V[obs,obs] + wt1 * wt2 * Vi
       }
     }
-    var_tt_obs_new
+    V
   }
 
   # Combine
