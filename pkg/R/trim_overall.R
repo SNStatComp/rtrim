@@ -8,14 +8,15 @@
 #' @param x an object of class \code{\link{trim}}.
 #' @param which \code{[character]} Choose between \code{"imputed"} or
 #'   \code{"fitted"} counts.
-#' @param cp \code{[numeric]} Change points for which to compute the overall slope.
+#' @param changepoints \code{[numeric]} Change points for which to compute the overall slope,
+#'   or "model", in which case the changepoints from the model are used (if any)
 #'
 #' @section Details:
 #'
 #' The overall slope represents the mean growth or decline over a period of time.
 #' This can be determined over the whole time period for which the modelis fitted (this is the default)
 #' or may be computed over time slices that can be defined with the \code{cp} parameter.
-#' The values for \code{cp} do not depend on \code{changepoints} that were used when
+#' The values for \code{changepoints} do not depend on \code{changepoints} that were used when
 #' specifying the \code{trim} model (See also the example below).
 #'
 #'
@@ -40,10 +41,15 @@
 #' # Obtain the slope from changepoint to changepoint
 #' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
 #' # slope from time point 1 to 5
-#' overall(z,cp=c(1,5,7))
-overall <- function(x, which=c("imputed","fitted"), cp=numeric(0)) {
+#' overall(z,changepoints=c(1,5,7))
+overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
+
+  if (is.character(changepoints) && changepoints=="model") {
+    changepoints <- x$changepoints
+  }
+  str(changepoints)
 
   # extract vars from TRIM output
   tt_mod <- x$tt_mod
@@ -165,17 +171,17 @@ overall <- function(x, which=c("imputed","fitted"), cp=numeric(0)) {
   }
 
   J = length(tt)
-  if (length(cp)==0) {
+  if (length(changepoints)==0) {
     # Normal overall slope
     out <- .compute.overall.slope(1:J, tt, var_tt, src)
     out$type <- "normal" # mark output as 'normal' overall slope
   } else {
     # overall slope per changepoint. First some checks.
-    stopifnot(min(cp)>=1)
-    stopifnot(max(cp)<J)
-    stopifnot(all(diff(cp)>0))
-    ncp <- length(cp)
-    cpx <- c(cp, J) # Extend list of overall changepoints with final year
+    stopifnot(min(changepoints)>=1)
+    stopifnot(max(changepoints)<J)
+    stopifnot(all(diff(changepoints)>0))
+    ncp <- length(changepoints)
+    cpx <- c(changepoints, J) # Extend list of overall changepoints with final year
     coef.collector = data.frame()
     int.collector  = data.frame() # here go the intercepts
     SSR.collector = numeric(ncp)
@@ -298,8 +304,8 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
       # Trend line
       a <- X$intercept[i,3] # intercept
       b <- X$coef[i,3] # slope
-      from <- X$coef[i,1]
-      upto <- X$coef[i,2]
+      from <- which(tpt==X$coef[i,1]) # convert year -> time
+      upto <- which(tpt==X$coef[i,2])
       delta = (upto-from)*10
       x      <- seq(from, upto, length.out=delta) # continue timepoint 1..J
       ytrend <- exp(a + b*x)

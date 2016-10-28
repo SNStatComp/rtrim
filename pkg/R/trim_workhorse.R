@@ -34,6 +34,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
                          , ...)
 {
   call <- sys.call(1)
+
   # kick out missing/zero sites
   useful <- count>0
   ok = rep(TRUE, length(count))
@@ -57,8 +58,19 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
             ifelse(nkickout==1, "site","sites"), paste0(del.sites, collapse=", "))
   }
 
+  # Handle "auto" changepoints
+  print("HELLOE ****")
+  str(changepoints)
+  if (is.character(changepoints)) {
+    if (changepoints %in% c("all","auto")) {
+      if (changepoints == "auto") stepwise=TRUE
+      J <- length(unique(time.id))
+      changepoints <- 1 : (J-1)
+    }
+  }
+
   if (isTRUE(stepwise) && model != 2){
-    stop(sprintf("stepwise removal only works for model 2"), call.=FALSE)
+    stop(sprintf("Stepwise removal only works for model 2"), call.=FALSE)
   }
 
   t1 <- Sys.time()
