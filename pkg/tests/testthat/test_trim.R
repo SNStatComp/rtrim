@@ -279,7 +279,7 @@ test_that("invalid model specs",{
   expect_error(
     trim(count ~ time + site, data=skylark, model=3
          ,changepoints=c(3,5),stepwise = TRUE)
-    , regexp = "stepwise removal only works for model 2"
+    , regexp = "Stepwise removal only works for model 2"
   )
 
   expect_error(

@@ -259,6 +259,7 @@ print.trim.overall <- function(x,...) {
 #'
 #' @export
 plot.trim.overall <- function(x, imputed=TRUE, ...) {
+  #browser()
   X <- x
   title <- if (is.null(list(...)$main)){
     attr(X, "title")
@@ -267,6 +268,7 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   }
 
   tpt = X$timept
+  J <- X$J
 
   # Collect all data for plotting: time-totals
   ydata <- X$tt
@@ -275,7 +277,8 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   y0 = ydata - X$err
   y1 = ydata + X$err
 
-  conf.band <- NULL # Initialize, so it does exist - sort of
+  trend.line <- NULL
+  conf.band  <- NULL
 
   if (X$type=="normal") {
     # Trend line
@@ -289,7 +292,6 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
     # Confidence band
     xconf <- c(xtrend, rev(xtrend))
     alpha <- 0.05
-    J = X$J
     df <- J - 2
     t <- qt((1-alpha/2), df)
     j = 1:J

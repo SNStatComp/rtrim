@@ -223,7 +223,7 @@ coef.trim <- function(object,
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2,cp=c(3,5))
+#' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(3,5))
 #' totals(z)
 #'
 #' totals(z, "both") # mimics classic TRIM

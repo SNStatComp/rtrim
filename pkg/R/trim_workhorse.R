@@ -59,8 +59,6 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
   }
 
   # Handle "auto" changepoints
-  print("HELLOE ****")
-  str(changepoints)
   if (is.character(changepoints)) {
     if (changepoints %in% c("all","auto")) {
       if (changepoints == "auto") stepwise=TRUE
