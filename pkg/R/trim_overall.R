@@ -92,10 +92,11 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
     if (blo[1] > 1.05) return("Strong increase (p<0.05)")
     if (bhi[1] < 0.95) return("Strong decrease (p<0.05)")
 
-    if (blo[2] > 1.0) return("Moderate increase (p<0.001)")
-    if (bhi[2] < 1.0) return("Moderate decrease (p<0.001)")
-    if (blo[1] > 1.0) return("Moderate increase (p<0.05)")
-    if (bhi[1] < 1.0) return("Moderate decrease (p<0.05)")
+    eps = 1e-7 # required to get a correct interpretation for slope=0.0 (Stable)
+    if (blo[2] > 1.0+eps) return("Moderate increase (p<0.001)")
+    if (bhi[2] < 1.0-eps) return("Moderate decrease (p<0.001)")
+    if (blo[1] > 1.0+eps) return("Moderate increase (p<0.05)")
+    if (bhi[1] < 1.0-eps) return("Moderate decrease (p<0.05)")
 
     # TO discuss: order of evaluation matters. What's more important?
     # - strong increase p<0.05 or

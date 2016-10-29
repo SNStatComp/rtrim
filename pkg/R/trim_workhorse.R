@@ -14,7 +14,7 @@ compatible <- FALSE
 #' @param time.id a numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
 #' @param covars an optional data frame withcovariates
-#' @param model a model type selector
+#' @param model a model type selector (1, 2 or 3)
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
 #' @param changepoints a numerical vector change points (only for Model 2)
@@ -189,10 +189,6 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   # \verb!model! should be in the range 1 to 3
   stopifnot(model %in% 1:3)
-  if (model==1){
-    message("Alas, Model 1 is not implemented yet. Returning zippedidooda (NULL)")
-    return(NULL)
-  }
 
   # Weights should be either absent, or aligned with the counts
   if (length(weights)>0) {
@@ -289,7 +285,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     }
   }
 
-  if (model==3 && length(changepoints) > 0) stop("Changepoints cannot be specified for model 3")
+  if (model!=2 && length(changepoints) > 0) stop(sprintf("Changepoints cannot be specified for model %d", model))
 
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
@@ -299,7 +295,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # smaller matrix that is valid for any site, and $A$ is not used at all.
 
   # Create matrix $B$, which is model-dependent.
-  if (model==2) {
+  if (model==1) {
+    # Model 1 has not really any beta's, but the code runs easier if we have a fake beta
+    # with a fioxed value of 1. Therefore, create a corresponding B
+    J <- ntime
+    B <- matrix(0, J, 1)
+  } else if (model==2) {
     ncp  <-  length(changepoints)
     J <- ntime
     B <- matrix(0, J, ncp)
@@ -347,25 +348,20 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   rm(B)
   make.B <- function(i, debug=FALSE) {
     if (debug) { printf("make.B(%i): B0:", i); str(B0) }
-    if (model==2 || model==3) {
-      if (use.covars) {
-        # Model 2 with covariates. Add a copy of B for each covar class
-        Bfinal <- B0
-        for (cv in ncovar) {
-          if (debug) printf("adding covar %d\n", cv)
-          for (cls in 2:nclass[cv]) {
-            if (debug) printf("adding class %d\n", cls)
-            Btmp <- B0
-            mask <- cvmask[[cv]][[cls]][[i]]
-            if (length(mask)>0) Btmp[mask, ] = 0
-            Bfinal <- cbind(Bfinal, Btmp)
-          }
+    if (use.covars) {
+      # Model 2 with covariates. Add a copy of B for each covar class
+      Bfinal <- B0
+      for (cv in ncovar) {
+        if (debug) printf("adding covar %d\n", cv)
+        for (cls in 2:nclass[cv]) {
+          if (debug) printf("adding class %d\n", cls)
+          Btmp <- B0
+          mask <- cvmask[[cv]][[cls]][[i]]
+          if (length(mask)>0) Btmp[mask, ] = 0
+          Bfinal <- cbind(Bfinal, Btmp)
         }
-      } else {
-        # Model 2 without covariates. Just the normal B
-        Bfinal = B0
       }
-    } else if (model==3) {
+    } else {
       Bfinal = B0
     }
     if (debug) { printf("make.B(%i): Bfinal:", i); str(Bfinal)}
@@ -380,7 +376,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # alpha <- matrix(log(rowMeans(f*wt, na.rm=TRUE)));
 
   # Parameter $\beta$ is model dependent.
-  if (model==2) {
+  if (model==1) {
+    nbeta <- 1
+  } else if (model==2) {
     # For model 2 we have one $\beta$ per change points
     nbeta <- length(changepoints)
   } else if (model==3) {
@@ -401,29 +399,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     if (soft) return(list(error=msg)) else stop(msg, call.=FALSE)
   }
 
-
-  # All $\beta_j$ are initialized at 0, to reflect no trend (model 2) or no time effects (model 3)
+  # All $\beta_j$ are initialized at 0, to reflect no trend (model 1 or 2) or no time effects (model 3)
   beta <- matrix(0, nbeta,1) # Store as column vector
-
-  # innovative code to compute initial beta
-  # lfwt = log(colSums(f * wt, na.rm=TRUE))
-  # plot(1:19, lfwt, type='b', col="red")
-  # cpt = c(changepoints, ntime+1)
-  # for (i in 1:length(changepoints)) {
-  #   t1 = cpt[i]
-  #   t2 = cpt[i+1]
-  #   x = t1:t2
-  #   y = lfwt[t1:t2]
-  #   ok = is.finite(y)
-  #   x = x[ok]
-  #   y = y[ok]
-  #   printf("\n*** i=%d t1=%d t2=%d\n", i, t1, t2)
-  #   print(x)
-  #   print(y)
-  #   fit = lm(y ~ x)
-  #   print(fit)
-  #   beta[i] = as.numeric(coef(fit)[2])
-  # }
 
   # Variable $\mu$ holds the estimated counts.
   mu <- matrix(0, nsite, ntime)
@@ -460,7 +437,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
           mu_i = mu[site==i & observed]
           z_t <- mu_i %*% V_inv[[i]] # define correlation weights
         } else stop("Can't happen")
-        if (z_t %*% f_i > 0) { # Appliation of method 1 is possible
+        if (z_t %*% f_i > 0) { # Application of method 1 is possible
           alpha[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta - log(wt_i)))
         } else { # Fall back to method 2
           sumf <- sum(f_i)
@@ -500,8 +477,6 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   update_beta <- function(method=c("ML","GEE"))
   {
-    update_U_i() # update Score $U_b$ and Fisher Information $i_b$
-
     # Compute the proposed change in $\beta$.
     dbeta  <-  -solve(i_b) %*% U_b
     max_dbeta <<- max(abs(dbeta))
@@ -766,9 +741,12 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       if (!overdisp) sig2 <- 1.0 # hack
     }
     update_V(method)
-    subiters <- update_beta(method)
-    if (!is.null(err.out)) return(err.out)
-    rprintf(", %d subiters", subiters)
+    update_U_i() # update Score $U_b$ and Fisher Information $i_b$
+    if (model>1) {
+      subiters <- update_beta(method)
+      if (!is.null(err.out)) return(err.out)
+      rprintf(", %d subiters", subiters)
+    }
     rprintf(", lik=%.3f", likelihood())
     if (overdisp)  rprintf(", sig^2=%.3f", sig2)
     if (serialcor) rprintf(", rho=%.3f;", rho)
@@ -806,7 +784,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   update_mu(fill=TRUE)
 
   # Covariance matrix
-  V <- -solve(i_b)
+  if (model>1) V <- -solve(i_b)
+
   if (use.covin) {
     UUT <- matrix(0,nbeta,nbeta)
     for (i in 1:nsite) {
@@ -832,7 +811,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   }
 
   # Variance of the $\beta$'s is given by the covariance matrix
-  var_beta = V
+  if (model>1) var_beta = V
 
   # ============================================================ Imputation ====
 
@@ -854,7 +833,11 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
             site.id = site.id,
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints, converged=converged,
-            mu=mu, imputed=imputed, alpha=alpha, beta=beta, var_beta=var_beta)
+            mu=mu, imputed=imputed, alpha=alpha)
+  if (model>1) {
+    z$beta <- beta
+    z$var_beta <- var_beta
+  }
 
   z$method <- ifelse(use.covin, "Pseudo ML", final_method)
   z$convergence <- convergence_msg
@@ -885,6 +868,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   z$rho  <- if (serialcor) rho else  NULL
 
   #-------------------------------------------- Coefficients and uncertainty ---
+
+  if (model==1) {
+    z$coefficients <- NULL
+  }
 
   if (model==2) {
     se_beta  <- sqrt(diag(var_beta))
@@ -1013,7 +1000,6 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
   # Matrices E and F take missings into account
   E <- -ib # replace by covin hessian
-  E_inv = solve(E)
 
   rep.rows <- function(row, n) matrix(rep(row, each=n), nrow=n)
   rep.cols <- function(col, n) matrix(rep(col, times=n), ncol=n)
@@ -1062,7 +1048,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       GFminH <- GF - H
 
       # All building blocks are ready. Use them to compute the variance
-      V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
+      if (model==1) V <- GddG
+      else          V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
     } else { # Use input covariance
       # First loop op sites to compute $GF - H$.
@@ -1082,7 +1069,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
         F_mat <- rep.rows(F, ntime)
         GFminH <- GFminH + wu_mat * (F_mat - Bi)
       }
-      M2 <- GFminH %*% E_inv
+      M2 <- GFminH %*% solve(E)
 
       # second loop
       V <- matrix(0, ntime, ntime)

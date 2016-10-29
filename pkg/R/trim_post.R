@@ -46,12 +46,16 @@ print.trim.summary <- function(x,...){
 
   cl <- paste(capture.output(print(x$call)),collapse="\n")
   printf("Call:\n%s\n",cl)
-
-  printf("\nMethod: %s (%s)\n", x$method, x$convergence)
-
-  printf("\nCoefficients:\n")
-  print(x$coefficients)
   printf("\n")
+
+  printf("Model  : %d\n", x$model)
+  printf("Method : %s (%s)\n", x$method, x$convergence)
+
+  if (x$model>1) {
+    printf("\nCoefficients:\n")
+    print(x$coefficients)
+    printf("\n")
+  }
 
   printf(" Overdispersion     : %.4f\n",x$overdispersion)
   printf(" Serial Correlation : %.4f\n",x$serialcorrelation)

@@ -218,7 +218,7 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
 
-  stopifnot(is.numeric(model),model %in% 2:3)
+  stopifnot(is.numeric(model), model %in% 1:3)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
   stopifnot(isTRUE(stepwise)||!isTRUE(stepwise))
