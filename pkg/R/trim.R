@@ -218,7 +218,7 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
   # argument parsing
   L <- parse_formula(formula,vars=names(x))
 
-  stopifnot(is.numeric(model), model %in% 1:3)
+  stopifnot(is.numeric(model), model %in% 1:4)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
   stopifnot(isTRUE(stepwise)||!isTRUE(stepwise))
@@ -244,7 +244,7 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
 #' @rdname trim
 #' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
 #' @export
-trim.formula <- function(x, data, model=c(1,2,3), weights=numeric(0)
+trim.formula <- function(x, data, model=c(1,2,3,4), weights=numeric(0)
           , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
           , autodelete=FALSE, ...){
   stopifnot(inherits(data,"data.frame"))
