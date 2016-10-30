@@ -336,6 +336,19 @@ plot.trim.results <- function(z, ...) {
 
 # ================================================================== Advice ====
 
+#' Give advice on further refinement of TRIM models
+#'
+#' @param z an object of class \code{\link{trim}}.
+#'
+#' @export
+#'
+#' @family analyses
+#' @seealso \code{\link{trim}}
+#' @examples
+#'
+#' data(skylark)
+#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' now_what(z)
 now_what <- function(z) {
   stopifnot(inherits(z,"trim"))
   Wald <- wald(z)
