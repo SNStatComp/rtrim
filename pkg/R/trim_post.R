@@ -328,7 +328,7 @@ plot.trim.results <- function(z, ...) {
   yrange = range(z$observed, z$modelled, na.rm=TRUE)
   plot(xrange,yrange, type='n', xlab="Time", ylab="Counts")
   for (i in 1: nsite) {
-    df = subset(z, site==sites[i])
+    df = z[z$site == sites[i], ]
     points(df$time, df$observed, pch=16, col=colors[i])
     lines(df$time, df$modelled, col=colors[i])
   }
