@@ -32,9 +32,16 @@
   J <- length(tt)
   var_tau <- numeric(J)
   for (j in 1:J) {
-    d <- matrix(c(-tt[j] / tt[b]^2, 1/tt[b]))
-    V <- var_tt[c(b,j), c(b,j)]
-    var_tau[j] <- t(d) %*% V %*% d
+    if (j==b) {
+      # SE in the base year is always 0. In principle this is also the result
+      # from the algorihtm below applied to $j=b$, but in practice this may result
+      # in very small negative values, causing NaN's when send to sqrt().
+      var_tau[j] <- 0.0
+    } else {
+      d <- matrix(c(-tt[j] / tt[b]^2, 1/tt[b]))
+      V <- var_tt[c(b,j), c(b,j)]
+      var_tau[j] <- t(d) %*% V %*% d
+    }
   }
 
   out <- list(tau=tau, var_tau=var_tau)
