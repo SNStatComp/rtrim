@@ -270,8 +270,9 @@ export.trim.totals <- function(x, species, stratum) {
 #' Extract variance-covariance matrix from TRIM output
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
-#' @param ... Selector to distinguish between variance-covariance based on the
+#' @param which Selector to distinguish between variance-covariance based on the
 #' imputed data (default), or the modelled data.
+#' @param ... Arguments to pass to or from other methods (currently unused)
 #'
 #' @return a JxJ matrix, where J is the number of time points.
 #' @export
@@ -282,10 +283,10 @@ export.trim.totals <- function(x, species, stratum) {
 #' z <- trim(count ~ time + site, data=skylark, model=2);
 #' totals(z)
 #' vcv1 <- vcov(z)       # Use imputed data
-#' vcv2 <- vcov(z,"mod") # Use modelled data
-vcov.trim <- function(object, ...) {
+#' vcv2 <- vcov(z,"model") # Use modelled data
+vcov.trim <- function(object, which = c("imputed","model"), ... ) {
   stopifnot(inherits(object,"trim"))
-  which <-if (length(list(...))) match.arg(..., c("imputed","model")) else "imputed"
+  which <- match.arg(which)
 
   vcv <- switch(which
     , model   = object$var_tt_mod
