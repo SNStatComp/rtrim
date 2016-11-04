@@ -1,4 +1,8 @@
-#' Reimplementation of the TRIM software of Jeroen Pannekoek
+#' Trend and Indices for Monitoring Data
+#' 
+#' Population totals are estimated based on ab
+#'
+#'
 #'
 #' @name rtrim-package
 #' @docType package

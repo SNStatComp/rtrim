@@ -326,4 +326,11 @@ test_that("S3 output printers", {
   expect_output(print(summary(m2)))
 })
 
-
+context("predicted results")
+test_that("results",{
+  data(skylark)
+  m <- trim(count ~ time + site, data=skylark, model=2)
+  out <- as.data.frame(results(m))
+  out$site<- as.integer(as.character(out$site))
+  expect_equal(out, read.csv("outfiles/skylark-model2-f.csv"))
+})
