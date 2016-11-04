@@ -121,7 +121,8 @@ count_summary <- function(x, count.id="count",time.id="time",site.id="site", eps
   
   cnt <- x[,count.id]
   L <- list(
-    sites_without_counts = sites_wout_counts
+     sites = length(unique(x[,site.id]))
+    , sites_without_counts = sites_wout_counts
     , zero_counts = sum(cnt<eps,na.rm=TRUE)
     , positive_counts = sum(cnt>0, na.rm=TRUE)
     , total_observed = sum(!is.na(cnt))
@@ -139,6 +140,7 @@ count_summary <- function(x, count.id="count",time.id="time",site.id="site", eps
 #' @export
 #' @keywords internal
 print.count.summary <- function(x,...){
+  printf("Total number of sites             %8d\n", x$sites)
   printf("Sites without positive counts (%d): %s\n"
          , length(x$sites_without_counts)
          , paste(x$sites_without_counts,collapse=", ")
