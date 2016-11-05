@@ -9,9 +9,9 @@ Reimplementation of [TRIM](https://www.cbs.nl/en-gb/society/nature-and-environme
 ### Install the review version (beta)
 
 
-**Update:** Review version 0.0.3.2 is now (2016-10-24) available.
+**Update:** Review version 0.0.5 is now (2016-11-05) available.
 
-A review release (version 0.0.3.2) can now be installed with the following instructions.
+A review release (version 0.0.5) can now be installed with the following instructions.
 
 
 1. If you are a Windows user, first install [Rtools](https://cran.r-project.org/bin/windows/Rtools/).
@@ -31,9 +31,11 @@ This procedure is necessary while we are still in beta. Once the package is on C
 The current version has most, but not all functionality of the original TRIM
 software. In short, the following features are currently supported.
 
+- Estimate coeefficients for TRIM model 1
 - Estimate coefficients for TRIM model 2
 - Estimate coefficients TRIM model 3
 - Use of covariates
+- Reuse covariance matrix
 - Estimating serial correlation 
 - Estimating overdispersion
 - Manual changepoint specification (model 2)
