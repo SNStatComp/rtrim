@@ -158,12 +158,15 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   ncovar = length(covars)
   use.covars <- ncovar>0
   if (use.covars) {
-    for (i in 1:ncovar) stopifnot(class(covars[[i]]) %in% c("integer","numeric"))
+    # convert to numerical values
+    icovars <- vector("list", ncovar)
+    for (i in 1:ncovar) icovars[[i]] = as.integer((covars[[i]]))
+    #for (i in 1:ncovar) stopifnot(class(covars[[i]]) %in% c("integer","numeric"))
 
     # Also, each covariate $i$ should be a number (ID) ranging $1\ldots nclass_i$
     nclass <- numeric(ncovar)
     for (i in 1:ncovar) {
-      cv <- covars[[i]] # The vector of covariate class ID's
+      cv <- icovars[[i]] # The vector of covariate class ID's
       stopifnot(min(cv)==1) # Assert lower end of range
       nclass[i] = max(cv)  # Upper end of range
       #stopifnot(nclass[i]>1) # Assert upper end
@@ -179,6 +182,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     warning(sprintf("Removing covariate \"%s\" which has only one class.", names(covars)[idx])
             , call. = FALSE)
     covars <-  covars[-idx]
+    icovars <- icovars[-idx]
     nclass <- nclass[-idx]
     ncovar <- ncovar-1
     if (ncovar==0) {
@@ -236,7 +240,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   if (use.covars) {
     cvmat <- list()
     for (i in 1:ncovar) {
-      cv = covars[[i]]
+      cv = icovars[[i]]
       m <- matrix(NA, nsite, ntime)
       m[idx] <- cv
       cvmat[[i]] <- m
