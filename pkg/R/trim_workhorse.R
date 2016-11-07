@@ -13,7 +13,7 @@ compatible <- FALSE
 #' @param count a numerical vector of count data.
 #' @param time.id a numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
-#' @param covars an optional data frame withcovariates
+#' @param covars an optional data frame with covariates
 #' @param model a model type selector (1, 2 or 3)
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.

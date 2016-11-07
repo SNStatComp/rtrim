@@ -141,8 +141,11 @@ Score <- function(z, alpha, beta, changepoints, index) {
   if (ncovar>0) {
     nclass <- numeric(ncovar)
     for (i in 1:ncovar) {
-      cv <- covars[[i]] # The vector of covariate class ID's
-      nclass[i] <- max(cv)  # Upper end of range
+      if (is.factor(covars[[i]])) {
+        nclass[i] <- nlevels(covars[[i]] )
+      } else {
+        nclass[i] <- max(covars[[i]])
+      }
     }
   }
 
