@@ -197,7 +197,8 @@ trim.trimcommand <- function(x,...){
                       , ...)
 }
 
-#'
+
+
 #' @param count.id \code{[character]} name of the column holding species counts
 #' @param time.id \code{[character]} name of the column holding the time of counting
 #' @param site.id \code{[character]} name of the column holding the site id
