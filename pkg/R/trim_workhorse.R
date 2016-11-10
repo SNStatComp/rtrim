@@ -160,8 +160,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   if (use.covars) {
     # convert to numerical values
     icovars <- vector("list", ncovar)
+    for (i in 1:ncovar) if (any(is.na(covars[[i]])))
+      stop(sprintf('NA values not allowed for covariate "%s".', names(covars)[i]), call.=FALSE)
     for (i in 1:ncovar) icovars[[i]] = as.integer((covars[[i]]))
-    #for (i in 1:ncovar) stopifnot(class(covars[[i]]) %in% c("integer","numeric"))
 
     # Also, each covariate $i$ should be a number (ID) ranging $1\ldots nclass_i$
     nclass <- numeric(ncovar)
@@ -243,6 +244,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       cv = icovars[[i]]
       m <- matrix(NA, nsite, ntime)
       m[idx] <- cv
+      if (any(is.na(m))) stop(sprintf('(implicit) NA values in covariate "%s".', names(covars)[i]), call.=FALSE)
       cvmat[[i]] <- m
     }
   } else {
@@ -1008,7 +1010,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   rep.rows <- function(row, n) matrix(rep(row, each=n), nrow=n)
   rep.cols <- function(col, n) matrix(rep(col, times=n), ncol=n)
 
-  var_model_tt <- function(observed_only = FALSE) {
+  var_model_tt <- function(observed_only=FALSE, mask=NULL) {
 
     if (!use.covin) { # use computed covariance
 
@@ -1025,7 +1027,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
 
       # Matrices G and H are for all (weighted) mu's
       wmu <- if (use.weights) wt * mu else mu
+      # Zero-out unobserved $i,j$ to facilitate the computation of the variance of the imputed counts
       if (observed_only) wmu[!observed] = 0.0
+      # Zero-out unselected sites to facilitate the computation of the variance of covariate categories
+      if (!is.null(mask)) wmu[!mask]     = 0.0
 
       GddG <- matrix(0, ntime,ntime)
       for (i in 1:nsite) {
@@ -1056,6 +1061,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       else          V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
     } else { # Use input covariance
+      if (!is.null(mask)) stop("Alas, covariates+upscaling not implemented yet.");
       # First loop op sites to compute $GF - H$.
       GFminH = matrix(0, ntime, nbeta)
       for (i in 1:nsite) { # First loop
@@ -1106,12 +1112,13 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # and replace it by the contribution due to the observations, as resulting from the
   # covariance matrix.
 
-  var_observed_tt <- function() {
+  var_observed_tt <- function(mask=NULL) {
     # Variance due to observations
     V = matrix(0, ntime, ntime)
     if (!use.covin) {
       wwmu <- if (use.weights) wt * wt * mu else mu
       wwmu[!observed] <- 0 # # erase estimated $\mu$'s
+      if (!is.null(mask)) wmu[!mask] <- 0.0 # Erase 'other' covariate categories also.
       for (i in 1:nsite) {
         if (serialcor) {
           srdu = sqrt(diag(wwmu[i, ]))
@@ -1162,9 +1169,38 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     se_imp  = se_tt_imp
   )
 
+  # Indices for covariates. First baseline
+  if (use.covars) {
+    z$covar_tt <- list()
+    for (i in 1:ncovar) {
+      cvname <- names(covars)[i]
+      cvtt = vector("list", nclass[i])
+      for (j in 1:nclass[i]) {
+        classname <- ifelse(is.factor(covars[[i]]), levels(covars[[i]])[j], j)
+        mask <- cvmat[[i]]==j
+        # Time totals (fitted)
+        mux <- mu
+        mux[!mask] <- 0.0
+        tt_mod <- colSums(mux)
+        # Corresponding variance
+        var_tt_mod <- var_model_tt(mask=mask)
+        # Time-total (imputed)
+        impx <- imputed
+        impx[!mask] <- 0.0
+        tt_imp <- colSums(impx)
+        # Variance
+        var_tt_obs_old <- var_model_tt(observed_only=TRUE, mask=mask)
+        var_tt_obs_new <- var_observed_tt(mask)
+        var_tt_imp = var_tt_mod - var_tt_obs_old + var_tt_obs_new
+        # Store
+        df <- list(covariate=cvname, class=j, mod=tt_mod, var_mod=var_tt_mod, imp=tt_imp, var_imp=var_tt_imp)
+        cvtt[[j]] <- df
+      }
+      z$covar_tt[[cvname]] <- cvtt
+    }
+  } else z$covar_tt <- NULL
 
-
-  #------------------------------------------ Reparameterisation of Model 3 ----
+  # ----------------------------------------- Reparameterisation of Model 3 ----
 
   # Here we consider the reparameterization of the time-effects model in terms of
   # a model with a linear trend and deviations from this linear trend for each time point.
