@@ -25,7 +25,7 @@
 #' @family analyses
 #' @examples 
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site, model=2)
+#' z <- trim(count ~ time + site, data=skylark, model=2)
 #' # prettyprint GOF information
 #' gof(z)
 #' 

@@ -128,6 +128,10 @@
 #'
 #'
 #' @param x a \code{\link{trimcommand}}, a \code{data.frame}, or a \code{formula}
+#'  If \code{x} is a \code{formula}, the dependent variable (left-hand-side)
+#'  is treated as the 'counts' variable. The first and second independent variable
+#'  are treated as the 'time' and 'site' variable, \bold{in that specific order}. All
+#'  other variables are treated as covariates.
 #' @param ... Currently unused
 #'
 #'
@@ -193,10 +197,12 @@ trim.trimcommand <- function(x,...){
                       , ...)
 }
 
-#' @param formula \code{[formula]} The dependent variable (left-hand-side)
-#'  is treated as the 'counts' variable. The first and second independent variable
-#'  are treated as the 'time' and 'site' variable, in that specific order. All
-#'  other variables are treated as covariates.
+
+
+#' @param count.id \code{[character]} name of the column holding species counts
+#' @param time.id \code{[character]} name of the column holding the time of counting
+#' @param site.id \code{[character]} name of the column holding the site id
+#' @param covars \code{[character]} name(s) of column(s) holding covariates
 #' @param model \code{[numeric]} TRIM model type 1, 2, or 3.
 #' @param weights \code{[numeric]} Optional vector of site weights. The length of
 #' \code{weights} must be equal to the number of rows in the data.
@@ -209,14 +215,12 @@ trim.trimcommand <- function(x,...){
 #'
 #' @rdname trim
 #' @export
-trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
+trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time"
+                            , covars=character(0),  model = 2, weights=numeric(0)
   , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
   , autodelete=FALSE, ...) {
 
   if (nrow(x)==0) stop("Empty data frame")
-
-  # argument parsing
-  L <- parse_formula(formula,vars=names(x))
 
   stopifnot(is.numeric(model), model %in% 1:3)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
@@ -226,10 +230,10 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
 
   # estimate the model and return
   m <- trim_estimate(
-    count = x[[L$count]]
-    , time.id = x[[L$time]]
-    , site.id = x[[L$site]]
-    , covars = x[L$cov]
+    count = x[,count.id]
+    , time.id = x[,time.id]
+    , site.id = x[,site.id]
+    , covars = x[covars]
     , model = model
     , serialcor=serialcor
     , overdisp=overdisp
@@ -248,7 +252,10 @@ trim.formula <- function(x, data, model=c(1,2,3), weights=numeric(0)
           , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
           , autodelete=FALSE, ...){
   stopifnot(inherits(data,"data.frame"))
-  trim.data.frame(x=data, formula=x, model=model, weights=weights
+  L <- parse_formula(x, names(data))
+  trim.data.frame(x=data
+      , count.id=L$count, time.id=L$time, site.id=L$site, covars = L$cov
+      , model=model, weights=weights
       , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints
       , stepwise=stepwise, autodelete=autodelete, ...)
 }

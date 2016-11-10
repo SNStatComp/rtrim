@@ -44,6 +44,10 @@ The central function for computing TRIM models is called `trim`. Calling this fu
 ```{r}
 m1 <- trim(count ~ time + site, data=skylark,model=2)
 ```
+**Note** Since `time` and `site` are treated differently by the model, the order matters (see also [model specification](#modelspec)). Alternatively, one can do this:
+```{r}
+m1 <- trim(skylark, count.id="count", time.id="time", site.id="site", model=2)
+```
 The result is an object of class `trim`. Just like with objects of class `lm`, its various components can be extracted using specialized functions. Here are some examples.
 ```{r}
 # summarize the model
@@ -72,7 +76,7 @@ These are just a few of of the functions that can be used to analyse the model. 
 
 
 
-## Model specification
+## Model specification {#modelspec}
 
 The names of variables in the dataset are not important and neither is their order. However, since TRIM models
 are designed to estimate the number of counts at counting sites, the formula specifying the model

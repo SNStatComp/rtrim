@@ -265,7 +265,8 @@ test_that("testing skylark-2a",{
   # formula-data interface
   trimtest(m,to,tc)
   # data-formula interface: note: nothing should be auto-deleted.
-  m <- trim(dat, formula = count ~ time + site + Habitat
+  m <- trim(dat, count.id="count", time.id="time", site.id="site"
+            , covars="Habitat"
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7,autodelete=TRUE)
   trimtest(m,to,tc)

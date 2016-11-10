@@ -1,7 +1,15 @@
 #' Trend and Indices for Monitoring Data
 #'
-#' Population totals are estimated based on ab
+#' The TRIIM model is used to estimate species populations based on frequent
+#' (anual) counts at fixed sites. The current package is a complete
+#' re-implementation of the \code{Delphi} based
+#' \href{https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--}{TRIM}
+#' software by J. Pannekoek.
 #'
+#'
+#' @section Getting started:
+#'
+#' Users of the original TRIM software can get started by following the \href{../doc/rtrim_for_TRIM_users.html}{rtrim for trim users} manual.
 #'
 #'
 #' @name rtrim-package
