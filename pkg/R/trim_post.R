@@ -24,7 +24,8 @@
 #' @examples
 #'
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' z <- trim(count ~ time + site,data=skylark,model=2,overdisp=TRUE)
+#' 
 #' summary(z)
 summary.trim <- function(object,...) {
 
@@ -170,7 +171,7 @@ overdispersion <- function(x){
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' z <- trim(count ~ time + site, data=skylark, model=2,overdisp=TRUE)
 #' coefficients(z)
 coef.trim <- function(object,
     representation=c("standard","trend","deviations"),...) {
@@ -348,7 +349,7 @@ plot.trim.results <- function(z, ...) {
 #' @examples
 #'
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' z <- trim(count ~ time + site,data=skylark,model=2,overdisp=TRUE)
 #' now_what(z)
 now_what <- function(z) {
   stopifnot(inherits(z,"trim"))

@@ -34,7 +34,8 @@ check_observations <- function(x,...){
 #' for which insufficients counts are encountered. Each element is a two-column \code{data.frame}. The
 #' first column indicates the time point, the second column indicates for what covariate value insufficient
 #' counts are found.}
-#' \item{Model 2: TODO}
+#' \item{For Model 2, \code{$errors} is a list with a single element \code{changepoints}. It
+#' points out what changepoint lead to a time slice with zero observations.}
 #' }
 #'
 #'
