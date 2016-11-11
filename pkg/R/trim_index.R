@@ -57,7 +57,7 @@
 
 #' Extract time-indices from trim output
 #'
-#' @param z an object of class \code{\link{trim}}
+#' @param x an object of class \code{\link{trim}}
 #' @param which Selector to distinguish between time indices based on the imputed data (default),
 #' the fitted model, or both.
 #' @param covars Switch to compute indices for covariate categories as well.
@@ -88,12 +88,12 @@
 #' z <- trim(count ~ time + site + Habitat, data=skylark, model=2)
 #' index(z, covars=TRUE)
 #'
-index <- function(z, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
-  stopifnot(inherits(z,"trim"))
+index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
+  stopifnot(inherits(x,"trim"))
 
   # Match base to actual time points
-  if (base %in% z$time.id) {
-    base = which(base == z$time.id)
+  if (base %in% x$time.id) {
+    base = which(base == x$time.id)
     stopifnot(length(base)==1)
   }
 
@@ -102,22 +102,22 @@ index <- function(z, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
   which <- match.arg(which)
   if (which=="fitted") {
     # Call workhorse function to do the actual computation
-    mod <- .index(z$tt_mod, z$var_tt_mod, base)
+    mod <- .index(x$tt_mod, x$var_tt_mod, base)
     # Store results in a data frame
-    out <- data.frame(time  = z$time.id,
+    out <- data.frame(time  = x$time.id,
                       fitted = mod$tau,
                       se_fit = sqrt(mod$var_tau))
   } else if (which=="imputed") {
     # Idem, using the imputed time totals instead
-    imp <- .index(z$tt_imp, z$var_tt_imp, base)
-    out = data.frame(time    = z$time.id,
+    imp <- .index(x$tt_imp, x$var_tt_imp, base)
+    out = data.frame(time    = x$time.id,
                      imputed = imp$tau,
                      se_imp  = sqrt(imp$var_tau))
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
-    mod <- .index(z$tt_mod, z$var_tt_mod, base)
-    imp <- .index(z$tt_imp, z$var_tt_imp, base)
-    out = data.frame(time    = z$time.id,
+    mod <- .index(x$tt_mod, x$var_tt_mod, base)
+    imp <- .index(x$tt_imp, x$var_tt_imp, base)
+    out = data.frame(time    = x$time.id,
                      fitted   = mod$tau,
                      se_fit  = sqrt(mod$var_tau),
                      imputed = imp$tau,
@@ -128,7 +128,7 @@ index <- function(z, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
   if (covars) {
     out <- cbind(data.frame(covariate="Overall", category=0), out)
 
-    tt <- z$covar_tt
+    tt <- x$covar_tt
     index <- list()
     ncovar <- length(tt)
     for (i in seq_len(ncovar)) {
@@ -138,7 +138,7 @@ index <- function(z, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
       index[[name]] <- vector("list", nclass)
       for (j in seq_len(nclass)) {
         ttij <- tti[[j]]
-        df = data.frame(covariate=ttij$covariate, category=ttij$class, time=z$time.id)
+        df = data.frame(covariate=ttij$covariate, category=ttij$class, time=x$time.id)
         # Compute model index+variance
         if (which %in% c("fitted","both")) {
           idx <- .index(ttij$mod, ttij$var_mod, base)
