@@ -1,11 +1,29 @@
 # ########################################### TRIM postprocessing functions ####
 
+# ================================================================= Print ======
+
+
+#' print a 'trim' object
+#'
+#' @param x a \code{\link{trim}} object
+#' @param ... currently unused
+#'
+#' @export
+#' @keywords internal
+print.trim <- function(x,...){
+  cat("Call:\n")
+  print(x$call)
+  cat("\n",x$convergence,"\n")
+  cat("\nCoefficients:\n")
+  print(coef.trim(x))
+}
+
 # ================================================================= Summary ====
 
 # ----------------------------------------------------------------- extract ----
 
 
-#' Print summary information for a TRIM job
+#' Summary information for a TRIM job
 #'
 #' Print a summary of a \code{\link{trim}} object.
 #'
@@ -40,6 +58,7 @@ summary.trim <- function(object,...) {
     , convergence = object$convergence
   ),class="trim.summary")
 }
+
 
 #' @export
 #' @keywords internal
