@@ -3,7 +3,7 @@
 # This Section describes the core TRIM function, which estimates the TRIM parameters.
 
 alpha_method <- 1
-graph_debug <- FALSE
+graph_debug <- TRUE
 compatible <- FALSE
 
 # ##################################################### Estimation function ####
@@ -495,6 +495,8 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     for (subiter in 1:max_sub_step) {
       beta  <<- beta0 + stepsize*dbeta
       if (any(!is.finite(beta))) stop("non-finite beta problem")
+      if (any(beta >  7)) stop("Model non-estimable due to excessive high beta values", call.=FALSE)
+      if (any(beta < -7)) stop("Model non-estimable due to excessive small beta values", call.=FALSE)
 
       update_mu(fill=FALSE)
       update_alpha(method)
@@ -539,6 +541,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
         R_i <- Rg[idx,idx]
         V_i <- sig2 * sqrt(d_mu_i) %*% R_i %*% sqrt(d_mu_i)
       } else stop("Can't happen")
+      if (any(abs(diag(V_i))<1e-12)) browser()
       V_inv[[i]] <<- solve(V_i) # Store $V^{-1}# for later use
       Omega[[i]] <<- d_mu_i %*% V_inv[[i]] %*% d_mu_i # idem for $\Omega_i$
     }
@@ -631,6 +634,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # \end{equation}
   i_b <- 0
   U_b <- 0
+
+
+
   update_U_i <- function() {
     i_b <<- 0 # Also store in outer environment for later retrieval
     U_b <<- 0
@@ -645,6 +651,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
+    if (any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
   }
 
   # ------------------------------------------------------- Count estimates ----
@@ -732,6 +739,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   if (use.covin) final_method <- "ML" # fall back during upscaling
 
   update_mu(fill=FALSE)
+  # browser()
 
   for (iter in 1:max_iter) {
     if (compatible && iter==4) method <- final_method
