@@ -97,9 +97,9 @@ snifreport <- function(file, colclasses){
 #' 
 #' @param x A \code{data.frame} with anual counts per site.
 #' @param eps Numbers smaller then \code{eps} are treated a zero.
-#' @param count.id name of the column containing the counts
-#' @param time.id name of the column containing the time codes
-#' @param site.id name of the column containing the site id's
+#' @param count.id \code{[character|numeric]}  index of the column containing the counts
+#' @param time.id \code{[character|numeric]}  index of the column containing the time codes
+#' @param site.id \code{[character|numeric]}  index of the column containing the site id's
 #' 
 #' @return A \code{list} of class \code{count.summary} containing individual names.
 #' @export

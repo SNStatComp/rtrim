@@ -183,18 +183,18 @@ trim.trimcommand <- function(x,...){
   if (isTRUE(x$covin)) covin <- read_icv(x)
   else                 covin <- list()
 
-  out <- trim_estimate(count=dat$count
-                      , time.id = dat$time
-                      , site.id = dat$site
-                      , covars = dat[covars]
-                      , model = x$model
-                      , serialcor = x$serialcor
-                      , overdisp = x$overdisp
-                      , changepoints = x$changepoints
-                      , stepwise = x$stepwise
-                      , weights = wgt
-                      , covin = covin
-                      , ...)
+  trim_estimate(count=dat$count
+      , time.id = dat$time
+      , site.id = dat$site
+      , covars = dat[covars]
+      , model = x$model
+      , serialcor = x$serialcor
+      , overdisp = x$overdisp
+      , changepoints = x$changepoints
+      , stepwise = x$stepwise
+      , weights = wgt
+      , covin = covin
+      , ...)
 }
 
 
@@ -229,7 +229,7 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
   stopifnot(all(weights>0), length(weights) == 0  || length(weights) == nrow(x))
 
   # estimate the model and return
-  m <- trim_estimate(
+  trim_estimate(
     count = x[,count.id]
     , time.id = x[,time.id]
     , site.id = x[,site.id]
@@ -248,7 +248,7 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
 #' @rdname trim
 #' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
 #' @export
-trim.formula <- function(x, data, model=c(1,2,3), weights=numeric(0)
+trim.formula <- function(x, data, model=2, weights=numeric(0)
           , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
           , autodelete=FALSE, ...){
   stopifnot(inherits(data,"data.frame"))

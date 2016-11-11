@@ -1,11 +1,29 @@
 # ########################################### TRIM postprocessing functions ####
 
+# ================================================================= Print ======
+
+
+#' print a 'trim' object
+#'
+#' @param x a \code{\link{trim}} object
+#' @param ... currently unused
+#'
+#' @export
+#' @keywords internal
+print.trim <- function(x,...){
+  cat("Call:\n")
+  print(x$call)
+  cat("\n",x$convergence,"\n")
+  cat("\nCoefficients:\n")
+  print(coef.trim(x))
+}
+
 # ================================================================= Summary ====
 
 # ----------------------------------------------------------------- extract ----
 
 
-#' Print summary information for a TRIM job
+#' Summary information for a TRIM job
 #'
 #' Print a summary of a \code{\link{trim}} object.
 #'
@@ -40,6 +58,7 @@ summary.trim <- function(object,...) {
     , convergence = object$convergence
   ),class="trim.summary")
 }
+
 
 #' @export
 #' @keywords internal
@@ -155,12 +174,12 @@ overdispersion <- function(x){
 #' slope defined by \eqn{\alpha^* + \beta^*d_j} is returned.
 #'
 #' Finally, note that both the overall slope and the deviations can be written
-#' in multiplicative format.
+#' in multiplicative form as well.
 #'
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param representation \code{[character]} Choose the coefficient
-#'   representation \code{"trend"} and \code{"deviations"} are for model 3 only.
+#'   representation. Options \code{"trend"} and \code{"deviations"} are for model 3 only.
 #' @param ... currently unused
 #'
 #' @return A \code{data.frame} containing coefficients and their standard errors,
