@@ -174,12 +174,12 @@ overdispersion <- function(x){
 #' slope defined by \eqn{\alpha^* + \beta^*d_j} is returned.
 #'
 #' Finally, note that both the overall slope and the deviations can be written
-#' in multiplicative format.
+#' in multiplicative form as well.
 #'
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param representation \code{[character]} Choose the coefficient
-#'   representation \code{"trend"} and \code{"deviations"} are for model 3 only.
+#'   representation. Options \code{"trend"} and \code{"deviations"} are for model 3 only.
 #' @param ... currently unused
 #'
 #' @return A \code{data.frame} containing coefficients and their standard errors,
