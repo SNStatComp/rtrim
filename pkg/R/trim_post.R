@@ -305,6 +305,21 @@ vcov.trim <- function(object, which = c("imputed","model"), ... ) {
 # counts. These results are presented as a data frame, which is readily exported to
 # a file by the user.
 
+#' collect observed, modelled and imputed counts from TRIM output
+#'
+#' @param z TRIM output structure (i.e., output of a call to \code{trim})
+#'
+#' @return a data.frame, one row per site-time combination, with columns for
+#' site, time, observed counts, modelled counts and imputed counts.
+#' Missing observations are marked as NA
+#'
+#' @export
+#'
+#' @family analyses
+#' @examples
+#' data(skylark)
+#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' out <- results(z)
 results <- function(z) {
   stopifnot(inherits(z,"trim"))
 
