@@ -3,7 +3,7 @@
 # This Section describes the core TRIM function, which estimates the TRIM parameters.
 
 alpha_method <- 1
-graph_debug <- TRUE
+graph_debug <- FALSE
 compatible <- FALSE
 
 # ##################################################### Estimation function ####

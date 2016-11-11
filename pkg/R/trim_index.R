@@ -189,6 +189,7 @@ plot.trim.index <- function(x, covar="auto", ...) {
   for (i in 2:9) aqua[i] <- adjustcolor(aqua[i], 0.1)
 
   # Use covariates in *this* plot?
+  if (covar=="auto" && !"covariate" %in% names(z)) covar <- "none"
   use.covars <- covar!="none"
   if (use.covars) {
     if (!"covariate" %in% names(z))
@@ -270,5 +271,6 @@ plot.trim.index <- function(x, covar="auto", ...) {
   segments(x,ylo1, x,yhi1, col="white", lwd=1)
   points(x,y1, col=opaque[1], pch=16, cex=1)
 
-  legend("topleft", legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
+  if (use.covars)
+    legend("topleft", legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
 }
