@@ -130,7 +130,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
                          changepoints=integer(0), weights=numeric(0),
                          covin = list(),
                          conv_crit=1e-5, max_iter=200, max_sub_step=7,
-                         soft=FALSE)
+                         soft=FALSE, debug=FALSE)
 {
 
   # =========================================================== Preparation ====
@@ -357,7 +357,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     if (use.covars) {
       # Model 2 with covariates. Add a copy of B for each covar class
       Bfinal <- B0
-      for (cv in ncovar) {
+      for (cv in 1:ncovar) {
         if (debug) printf("adding covar %d\n", cv)
         for (cls in 2:nclass[cv]) {
           if (debug) printf("adding class %d\n", cls)
@@ -652,6 +652,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
     if (any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
+    # invertable <- class(try(solve(i_b), silent=T))=="matrix"
+    # if (!invertable) {
+    #   browser()
+    # }
   }
 
   # ------------------------------------------------------- Count estimates ----
