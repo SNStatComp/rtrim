@@ -1191,13 +1191,13 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
         classname <- ifelse(is.factor(covars[[i]]), levels(covars[[i]])[j], j)
         mask <- cvmat[[i]]==j
         # Time totals (fitted)
-        mux <- mu
+        mux <- wmu
         mux[!mask] <- 0.0
         tt_mod <- colSums(mux)
         # Corresponding variance
         var_tt_mod <- var_model_tt(mask=mask)
         # Time-total (imputed)
-        impx <- imputed
+        impx <- wimp
         impx[!mask] <- 0.0
         tt_imp <- colSums(impx)
         # Variance
