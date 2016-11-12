@@ -11,19 +11,32 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.width  = 7,
+  fig.height = 5
+)
+```
+
 ## Introduction
 
-The `rtrim` package is an complete reimplementation of the [original TRIM](https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--) software developed by Jeroen Pannekoek and Arko van Strien from the 1990's onwards. The current manual demonstrates the R-based workflow for computing TRIM models. To use legacy TRIM command files and TRIM data files, see the [vignette on tcf files](Working_with_tcf.html).
+The `rtrim` package is an complete reimplementation of the [original TRIM](https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--) software developed by Jeroen Pannekoek and Arco van Strien from the 1990's onwards. The current manual demonstrates the R-based workflow for computing TRIM models. To use legacy TRIM command files and TRIM data files, see the [vignette on tcf files](Working_with_tcf.html).
 
 TRIM was developed to estimate animal populations, based on repeated counts at various sites while counts may be missing for certain sites at certain times. Estimation is based on a model-based imputation method.
 
 We assume that the reader is already familiar with the methodology behind TRIM but in short, TRIM estimates a piecewise loglinear growth model to compute imputations. There are three variants of this model which differ by their basic assumptions.
 
 - **Model 1:** Populations vary accross sites, but not over time.
-- **Model 2:** Populations vary accross sites, but show the same growth everywhere
-- **Model 3:** Growth and population vary over sites and time.
+- **Model 2:** Populations vary accross sites, but show the same growth everywhere.
+               Growth rates are constant during specifief time intervals
+- **Model 3:** Similar, but time effects are independent for each time point.
 
-For each variant it is possible to include categorical covariates in the model. To keep computations tractable for large numbers of sites, the sites are treated as independent from each other so model parameters are estimated for each site separately.
+Note that both Model 1 and Model 3 can be seen as special cases of Model 2 (Model 1 is equivalent with Model 2 when where time effects or growth rate is set to zero; Model 3 is equivalent with Model 2 when growth rates are assumed to change every time point).
+
+For each variant it is possible to include categorical covariates in the model, or to weight sites.
+# To keep computations tractable for large numbers of sites, the sites are treated as independent from each other so model parameters are estimated for each site separately.
+
+## Note: Er wordt één set parameters berekend; De bijdrages van de sites aan de parameterwaarden worden wel apart berekend.
 
 A detailed description of the methodology can be found in the [original TRIM3 manual](https://www.cbs.nl/-/media/imported/onze%20diensten/methoden/trim/documents/2006/13/trim3man.pdf).
 
@@ -37,7 +50,6 @@ data(skylark)
 head(skylark,3)
 ```
 Here, `skylark` is a regular R `data.frame`.
-
 
 The central function for computing TRIM models is called `trim`. Calling this function is very similar to calling basic R modeling functions like `lm`. Here, we compute TRIM model 2.
 
@@ -110,6 +122,8 @@ m3$changepoints
 ```
 In this case, no change points are deleted.
 
+In this example, the data sets consists of 8 time points, so time points 1 to 7 are explicitly specified as change point. This notation, which requires the prior identification of the number of time points present within the data, can be replaced by the more convenient expression `changepoints="all"`.
+
 Alternatively the `stepwise` algorithm can be used. This algorithm removes changepoints
 when the slope does not change significantly from before to after a changepoint, yielding a
 simpler (more robust) model.
@@ -119,8 +133,5 @@ m4 <- trim(count ~ time + site + Habitat, data=skylark, model=2
 m4$changepoints
 ```
 
-
-
-
-
+Again, the explicit setting of initial changepoints can be replaced by the more convenient `changepoints="auto"`, which combines `changepoints="all"` with `stepwise=TRUE`.
 
