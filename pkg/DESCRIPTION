@@ -8,7 +8,7 @@ LazyLoad: yes
 Authors@R: c( person("Patrick","Bogaart",role="aut",email="pwbogaart@gmail.com"), person("Mark", "van der Loo", role=c("aut","cre"),email="mark.vanderloo@gmail.com"), person("Jeroen", "Pannekoek", role="aut"))
 Description: The TRIM model is widely used for estimating growth and decline of animal populations
     based on (possibly sparsly available) count data. The current package is a reimplementation of the 
-    original TRIM software of J. Pannekoek.
+    original TRIM software developed at Statistics Netherlands by Jeroen Pannekoek.
 Version: 1.0.0
 Imports: methods, utils, stats, graphics, grDevices
 URL: https://github.com/markvanderloo/rtrim

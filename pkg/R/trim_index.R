@@ -61,13 +61,16 @@
 #' @param which Selector to distinguish between time indices based on the imputed data (default),
 #' the fitted model, or both.
 #' @param covars Switch to compute indices for covariate categories as well.
-#' @param base Base time point, for which the index is 1
+#' @param base Base time point, for which the index is 1. If the data contains J time points,
+#' the base time point can be given in the interval 1...J, or,
+#' if the time points are proper years, say year1...yearn, the base year can be given.
+#' So, if the data range 2000...2016, \code{base=2} and \code{base=2001} are equivalent.
 #'
-#' @return a data frame containing indices and their uncertainty expressed as
+#' @return A data frame containing indices and their uncertainty expressed as
 #'   standard error. Depending on the chosen output, columns \code{fitted}
 #'   and \code{se_fit}, and/or \code{imputed} and \code{se_imp} are present.
-#'   If \code{covars} is \code{TRUE}, indices are not only computed both for the overall data set,
-#'   and the individual covariate categories. In this case additional columns
+#'   If \code{covars} is \code{TRUE}, additional indices are computed for the
+#'   individual covariate categories. In this case additional columns
 #'   \code{covariate} and \code{category} are present. The overall indices are
 #'   marked as covariate `Overall' and category 0.
 #'

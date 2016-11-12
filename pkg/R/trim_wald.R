@@ -46,7 +46,7 @@
 #'
 #' @param x TRIM output structure (i.e., output of a call to \code{\link{trim}})
 #'
-#' @return a model-dependent list of Wald statistics
+#' @return A model-dependent list of Wald statistics
 #' @export
 #'
 #' @family analyses

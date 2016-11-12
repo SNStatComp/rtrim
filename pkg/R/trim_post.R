@@ -43,7 +43,7 @@ print.trim <- function(x,...){
 #'
 #' data(skylark)
 #' z <- trim(count ~ time + site,data=skylark,model=2,overdisp=TRUE)
-#' 
+#'
 #' summary(z)
 summary.trim <- function(object,...) {
 
@@ -222,7 +222,7 @@ coef.trim <- function(object,
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which select what totals to compute (see \code{Details} section).
 #'
-#' @return a \code{data.frame} with subclass \code{trim.totals}
+#' @return A \code{data.frame} with subclass \code{trim.totals}
 #'  (for pretty-printing). The columns are \code{time}, \code{fitted}
 #'  and \code{se_fit} (for standard error), and/or \code{imputed}
 #'  and \code{se_imp}, depending on the selection.
@@ -238,9 +238,6 @@ coef.trim <- function(object,
 #' \item{\code{"fitted"}: Time totals are computed after replacing both missing values and observed values with
 #' values predicted by the model.}
 #' }
-#'
-#'
-#' @return A \code{data.frame} with time totals and their standard errors.
 #'
 #' @export
 #'
@@ -328,7 +325,7 @@ vcov.trim <- function(object, which = c("imputed","model"), ... ) {
 #'
 #' @param z TRIM output structure (i.e., output of a call to \code{trim})
 #'
-#' @return a data.frame, one row per site-time combination, with columns for
+#' @return A data.frame, one row per site-time combination, with columns for
 #' site, time, observed counts, modelled counts and imputed counts.
 #' Missing observations are marked as NA
 #'
