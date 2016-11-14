@@ -20,7 +20,16 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-The `rtrim` package is an complete reimplementation of the [original TRIM](https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--) software developed by Jeroen Pannekoek and Arco van Strien from the 1990's onwards. The current manual demonstrates the R-based workflow for computing TRIM models. To use legacy TRIM command files and TRIM data files, see the [vignette on tcf files](Working_with_tcf.html).
+The `rtrim` package is an complete reimplementation of the [original
+TRIM](https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--)
+software developed by Jeroen Pannekoek and Arco van Strien from the 1990's
+onwards. This vignette provides a quick getting started manual that demonstrates
+the R-based workflow for computing TRIM models.
+
+- An extensive introduction showing all the options can be found in the [trim by example](Skylark_example.html) vignette.
+- To use legacy TRIM command files and TRIM data files, see the [vignette on tcf files](Working_with_tcf.html).
+
+
 
 TRIM was developed to estimate animal populations, based on repeated counts at various sites while counts may be missing for certain sites at certain times. Estimation is based on a model-based imputation method.
 
@@ -33,12 +42,11 @@ We assume that the reader is already familiar with the methodology behind TRIM b
 
 Note that both Model 1 and Model 3 can be seen as special cases of Model 2 (Model 1 is equivalent with Model 2 when where time effects or growth rate is set to zero; Model 3 is equivalent with Model 2 when growth rates are assumed to change every time point).
 
-For each variant it is possible to include categorical covariates in the model, or to weight sites.
-# To keep computations tractable for large numbers of sites, the sites are treated as independent from each other so model parameters are estimated for each site separately.
-
-## Note: Er wordt één set parameters berekend; De bijdrages van de sites aan de parameterwaarden worden wel apart berekend.
-
-A detailed description of the methodology can be found in the [original TRIM3 manual](https://www.cbs.nl/-/media/imported/onze%20diensten/methoden/trim/documents/2006/13/trim3man.pdf).
+For each variant it is possible to include categorical covariates in the model, 
+or to weight sites. Certain simplifying assumptions are made to keep
+computations tractable. A detailed description of the methodology can be found
+in the [original TRIM3 
+manual](https://www.cbs.nl/-/media/imported/onze%20diensten/methoden/trim/documents/2006/13/trim3man.pdf).
 
 ## Computing TRIM models
 
