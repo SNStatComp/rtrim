@@ -122,8 +122,8 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
 Score <- function(z, alpha, beta, changepoints, index) {
   # Unpack TRIM variables
   f  <- z$f
-  rho <- z$rho
-  sig2 <- z$sig2
+  rho   <- ifelse(is.null(z$rho),  0.0, z$rho)
+  sig2  <- ifelse(is.null(z$sig2), 1.0, z$sig2)
   covars <- z$covars
   cvmat <- z$cvmat
   nsite <- z$nsite
