@@ -15,7 +15,7 @@
 #'   \item Akaike Information content
 #' }
 #'
-#' @param x an object of class \code{\link{trim}}. 
+#' @param x an object of class \code{\link{trim}} (as returned by \code{\link{trim}})
 #'
 #' @return a list of type "trim.gof", containing elements \code{chi2}, \code{LR}
 #' and \code{AIC}, for Chi-squared, Likelihoof Ratio and Akaike informatiuon content,

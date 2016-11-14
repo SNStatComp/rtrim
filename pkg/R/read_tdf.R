@@ -89,14 +89,16 @@ snifreport <- function(file, colclasses){
 }
 
 #' Compute a summary of counts
+#'
 #' 
-#' Sites without counts are removed before further counting takes place (since
-#' these will not be used when calling \code{\link{trim}}). For the remaining
-#' records, the total number of zero-counts, positive counts, total number of 
-#' observed counts and the total number of missings are reported.
+#' Summarize counts over a trim input dataset. Sites without counts are removed
+#' before any counting takes place (since these will not be used when calling
+#' \code{\link{trim}}). For the remaining records, the total number of
+#' zero-counts, positive counts, total number of observed counts and the total
+#' number of missings are reported.
 #' 
-#' @param x A \code{data.frame} with anual counts per site.
-#' @param eps Numbers smaller then \code{eps} are treated a zero.
+#' @param x A \code{data.frame} with annual counts per site.
+#' @param eps \code{[numeric]} Numbers smaller then \code{eps} are treated a zero.
 #' @param count.id \code{[character|numeric]}  index of the column containing the counts
 #' @param time.id \code{[character|numeric]}  index of the column containing the time codes
 #' @param site.id \code{[character|numeric]}  index of the column containing the site id's

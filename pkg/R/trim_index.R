@@ -58,10 +58,10 @@
 #' Extract time-indices from trim output
 #'
 #' @param x an object of class \code{\link{trim}}
-#' @param which Selector to distinguish between time indices based on the imputed data (default),
+#' @param which \code{[character]} Selector to distinguish between time indices based on the imputed data (default),
 #' the fitted model, or both.
-#' @param covars Switch to compute indices for covariate categories as well.
-#' @param base Base time point, for which the index is 1. If the data contains J time points,
+#' @param covars \code{[logical]} Switch to compute indices for covariate categories as well.
+#' @param base \code{[integer|numeric]} Base time point, for which the index is 1. If the data contains J time points,
 #' the base time point can be given in the interval 1...J, or,
 #' if the time points are proper years, say year1...yearn, the base year can be given.
 #' So, if the data range 2000...2016, \code{base=2} and \code{base=2001} are equivalent.
@@ -89,8 +89,8 @@
 #' SE <- index(z,"imputed")$se_mod
 #' # Include covariates
 #' z <- trim(count ~ time + site + Habitat, data=skylark, model=2)
-#' index(z, covars=TRUE)
-#'
+#' ind <- index(z, covars=TRUE)
+#' plot(ind)
 index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
   stopifnot(inherits(x,"trim"))
 
@@ -166,7 +166,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
 #' Plot time-indices from trim output
 #'
 #' @param x an object of class \code{trim.index}, as resulting from e.g. a call to \code{\link{index}}.
-#' @param covar the name of a covariate to include in the plot.
+#' @param covar \code{[character]} the name of a covariate to include in the plot.
 #'   If set to \code{"auto"} (the default), the first (or only) covariate is used.
 #'   If set to \code{"none"} plotting of covariates is suppressed and only the overall index is shown.
 #' @param ... Further options passed to \code{\link[graphics]{plot}}

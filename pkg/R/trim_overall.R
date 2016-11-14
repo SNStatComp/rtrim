@@ -14,7 +14,7 @@
 #' @section Details:
 #'
 #' The overall slope represents the mean growth or decline over a period of time.
-#' This can be determined over the whole time period for which the modelis fitted (this is the default)
+#' This can be determined over the whole time period for which the model is fitted (this is the default)
 #' or may be computed over time slices that can be defined with the \code{cp} parameter.
 #' The values for \code{changepoints} do not depend on \code{changepoints} that were used when
 #' specifying the \code{trim} model (See also the example below).
@@ -248,7 +248,7 @@ print.trim.overall <- function(x,...) {
 #' total population per time and their 95\% confidence intervals.
 #'
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
-#' @param imputed Toggle to show imputed counts
+#' @param imputed \code{[logical]} Toggle to show imputed counts
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @family analyses

@@ -1,8 +1,8 @@
 #' Estimate TRIM model parameters
 #'
 #'
-#' Compute TRIM model parameters as specified in the
-#' \href{https://www.cbs.nl/NR/rdonlyres/2E9912EB-534B-4A32-AD22-17A73402C083/0/trim3man.pdf}{TRIM3 manual}.
+#' Compute TRIM model parameters.
+#' 
 #'
 #' @section Models:
 #'
@@ -10,6 +10,14 @@
 #' based on a set of counts \eqn{f_{ij}} at sites \eqn{i=1,2,\ldots,I}
 #' and times \eqn{j=1,2,\ldots,J}. If no count data is available at
 #' site and time \eqn{(i,j)}, a value \eqn{\mu_{ij}} will be imputed.
+#'
+#' In \bold{Model 1}, the imputed values are modeled as
+#'
+#' \eqn{\ln\mu_{ij} = \alpha_i,}
+#' 
+#' where \eqn{\alpha_i} is the site effect. This model implies that the counts 
+#' vary accross sites, not over time. The model-based \link[=totals]{time totals} are equal to
+#' each time point and the model-based \link[=index]{indices} are all equal to one.
 #'
 #' In \bold{Model 2}, the imputed values are modeled as
 #'
@@ -139,8 +147,7 @@
 #'
 #' @family analyses
 #' @family modelspec
-#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \code{\link{summary.trim}},
-#' \code{\link{coef.trim}}.
+#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \href{../doc/Skylark_example.html}{TRIM by example}
 #'
 #' @examples
 #' data(skylark)

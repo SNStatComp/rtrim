@@ -287,7 +287,7 @@ export.trim.totals <- function(x, species, stratum) {
 #' Extract variance-covariance matrix from TRIM output
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
-#' @param which Selector to distinguish between variance-covariance based on the
+#' @param which \code{[character]} Selector to distinguish between variance-covariance based on the
 #' imputed data (default), or the modelled data.
 #' @param ... Arguments to pass to or from other methods (currently unused)
 #'
@@ -321,13 +321,13 @@ vcov.trim <- function(object, which = c("imputed","model"), ... ) {
 # counts. These results are presented as a data frame, which is readily exported to
 # a file by the user.
 
-#' collect observed, modelled and imputed counts from TRIM output
+#' collect observed, modelled, and imputed counts from TRIM output
 #'
 #' @param z TRIM output structure (i.e., output of a call to \code{trim})
 #'
-#' @return A data.frame, one row per site-time combination, with columns for
+#' @return A \code{data.frame}, one row per site-time combination, with columns for
 #' site, time, observed counts, modelled counts and imputed counts.
-#' Missing observations are marked as NA
+#' Missing observations are marked as \code{NA}.
 #'
 #' @export
 #'
