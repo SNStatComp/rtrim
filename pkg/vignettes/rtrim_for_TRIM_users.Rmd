@@ -135,3 +135,30 @@ m4$changepoints
 
 Again, the explicit setting of initial changepoints can be replaced by the more convenient `changepoints="auto"`, which combines `changepoints="all"` with `stepwise=TRUE`.
 
+## Utility functions
+
+An overview of count data can be obtained with the function `count_summary`
+```{r}
+data(skylark)
+count_summary(skylark)
+
+```
+The result is an overview similar to the one that used to be printed at the start of TRIM output files.
+
+The TRIM model can only be computed when sufficient data is present. With the function
+`check_observations` one can check if a certain model can be computed.
+```{r}
+check_observations(skylark, model=2, changepoints=c(1,4))
+```
+The result is a `list` with booean element `sufficient`. If `sufficient==FALSE`, the element `errors`
+contains a `data.frame` with the sites/times/covariates with insuffiecient counts.
+
+
+
+
+
+
+
+
+
+
