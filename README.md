@@ -8,12 +8,15 @@ Reimplementation of [TRIM](https://www.cbs.nl/en-gb/society/nature-and-environme
 
 
 
-### Install the review version (beta)
+### Install the prerelease
+
+Prerelease version 0.9.0 is now available!
 
 
-**Update:** Review version 0.0.5 is now (2016-11-05) available.
+This version is close to being submitted to [CRAN](https://cran.r-project.org). We are
+only setting up some infrastructure so it is easy to contact us at us once it is published.
 
-A review release (version 0.0.5) can now be installed with the following instructions.
+To use the prerelease version, please use the following instructions.
 
 
 1. If you are a Windows user, first install [Rtools](https://cran.r-project.org/bin/windows/Rtools/).
@@ -28,10 +31,10 @@ install.packages('rtrim',type='source')
 ```
 This procedure is necessary while we are still in beta. Once the package is on CRAN, installation neither `Rtools` nor `drat` will be required.
 
-#### What is in the review version?
+#### What is in the prerelease version?
 
-The current version has most, but not all functionality of the original TRIM
-software. In short, the following features are currently supported.
+Everything. The current version is fully compatible with the original TRIM software.
+
 
 - Estimate coeefficients for TRIM model 1
 - Estimate coefficients for TRIM model 2
@@ -49,13 +52,8 @@ software. In short, the following features are currently supported.
 - Computing overall slope (slope over multiple pieces of the piecewise linear model)
 - read instructions TRIM command files (for backward compatibility with TRIM)
 - read TRIM data files (for backward compatibility with TRIM)
+- Extracting and reusing covariance matrices
 
-
-#### What is not (yet) in the review version?
-
-- Estimate coefficients for TRIM model 1
-- The `AUTODELETE` function has known problems
-- Writing, reading and reusing covariance matrices
 
 
 ### Getting started
@@ -67,12 +65,28 @@ library(rtrim)
 vignette("rtrim_for_TRIM_users")
 ```
 
-After working through the vignette, we advise users to have a look at the help
-file of `rtrim`'s main function by typing `?trim`. Also, to get a feel of how
-the package works one can browse through the help files by following the links
-under the `see also` sections in each help file.
+An extended introduction showing all options can be opened as follows:
+```r
+library(rtrim)
+vignette("Skylark_example")
+```
+
+After working through one of these vignettes, we advise users to have a look at
+the help file of `rtrim`'s main function by typing `?trim`. Also, to get a feel
+of how the package works one can browse through the help files by following the
+links under the `see also` sections in each help file.
 
 
+### Note
+
+The current package has been tested at two institutes and we have compared
+numerical outcomes of hundreds of production jobs with outcomes of the original
+TRIM software. We find that most results are reproducible to about `1E-4` or
+better.  Nevertheless, since this software has not been tried and tested for
+over 25 years like TRIM has, you can still expect to bump into a rare bug or
+difference.
+
+We would really appreciate it if you let us know using the following instructions.
 
 
 ### Telling us what works and what doesn't
@@ -84,16 +98,6 @@ send an e-mail to `mark dot vanderloo @ gmail dot com`.
 
 When reporting bugs, it helps us a lot if you can create an  as small as possible example
 that demonstrates the error. Some good general guidelines for reporting bugs are given [here](https://sifterapp.com/blog/2012/08/tips-for-effectively-reporting-bugs-and-issues/)
-
-
-### A fair warning
-
-Although we are close to a first formal release, this is a beta version.
-In particular this means that you may expect 
-
-- Running into bugs. Don't panic - this is normal at this stage of development.
-- The final versions of functions (naming of parameters etc) may still change a little in the official release. 
-
 
 
 
