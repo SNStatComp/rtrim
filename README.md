@@ -14,7 +14,7 @@ Prerelease version 0.9.0 is now available!
 
 
 This version is close to being submitted to [CRAN](https://cran.r-project.org). We are
-only setting up some infrastructure so it is easy to contact us at us once it is published.
+only setting up some maintainance infrastructure so it is easier for you to contact us once it is published.
 
 To use the prerelease version, please use the following instructions.
 
@@ -29,7 +29,7 @@ drat::addRepo('markvanderloo')
 # install as usual
 install.packages('rtrim',type='source')
 ```
-This procedure is necessary while we are still in beta. Once the package is on CRAN, installation neither `Rtools` nor `drat` will be required.
+This procedure is necessary for the prerelease version. Once the package is on CRAN, installation of neither `Rtools` nor `drat` will be required.
 
 #### What is in the prerelease version?
 
