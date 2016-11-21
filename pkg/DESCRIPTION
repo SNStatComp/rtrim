@@ -1,11 +1,11 @@
 Package: rtrim
+Author: Patrick Bogaart, Mark van der Loo, and Jeroen Pannekoek
 Maintainer: Adriaan Gmelig Meyling <rtrim@cbs.nl>
 License: EUPL
 Title: Trends and Indices for Monitoring Data
 LazyData: no
 Type: Package
 LazyLoad: yes
-Authors@R: c( person("Patrick","Bogaart",role="aut",email="pwbogaart@gmail.com"), person("Mark", "van der Loo", role=c("aut","cre"),email="mark.vanderloo@gmail.com"), person("Jeroen", "Pannekoek", role="aut"))
 Description: The TRIM model is widely used for estimating growth and decline of animal populations
     based on (possibly sparsly available) count data. The current package is a reimplementation of the 
     original TRIM software developed at Statistics Netherlands by Jeroen Pannekoek.
