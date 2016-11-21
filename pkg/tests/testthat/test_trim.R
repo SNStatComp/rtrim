@@ -32,9 +32,9 @@ trimtest <- function(m, to, tc, vcv=NULL) {
 
   # Overall slope
   tgt <- get_overal_imputed_slope(to)
-  out <- overall(m,"imputed")$coef[2,] # Slope coefs are in second row
+  out <- overall(m,"imputed")$slope[1,]
   for (i in seq_len(ncol(tgt))) {
-    expect_true(max(abs(out[,i] - tgt[,i])) < 1e-4,
+    expect_true(max(abs(out[,i+2] - tgt[,i])) < 1e-4,
                 info = sprintf("Overall slope column %d", i))
   }
 
@@ -43,7 +43,7 @@ trimtest <- function(m, to, tc, vcv=NULL) {
     tgt <- get_overal_cp_imputed_slope(to)
     out <- overall(m, "imputed", tc$overallchangepoints)
     for (i in seq_len(ncol(tgt))) {
-      expect_true(max(abs(out$coef[,i]-tgt[,i]), na.rm=TRUE) < 1e-4,
+      expect_true(max(abs(out$slope[,i]-tgt[,i]), na.rm=TRUE) < 1e-4,
                   info=sprintf("Overall slope (changepts) column %d",i))
     }
   }
