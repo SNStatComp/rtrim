@@ -432,15 +432,16 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
 
   update_alpha <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
+      obs = observed[i, ]
       if (alpha_method==1) {
         B = make.B(i)
-        f_i <- matrix(f[site==i & observed]) # cast as column vector
-        wt_i <- matrix(wt[site==i & observed]) # caset as column vector
-        B_i <- B[observed[site==i], , drop=FALSE]
+        f_i <- matrix(f[i, obs]) # cast as column vector
+        wt_i <- matrix(wt[i, obs]) # caset as column vector
+        B_i <- B[obs, , drop=FALSE]
         if (method=="ML") { # no covariance; $V_i = \diag{mu}$
           z_t <- matrix(1, 1, nobs[i])
         } else if (method=="GEE") { # Use covariance
-          mu_i = mu[site==i & observed]
+          mu_i = mu[i, obs]
           z_t <- mu_i %*% V_inv[[i]] # define correlation weights
         } else stop("Can't happen")
         if (z_t %*% f_i > 0) { # Application of method 1 is possible
@@ -453,8 +454,8 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
         }
         #if (z_t %*% f_i < 0) z_t = matrix(1, 1, nobs[i]) # alternative hack
       } else { #method 2: classic TRIM
-        f_i <- f[site==i & observed]
-        mu_i <- mu[site==i & observed]
+        f_i <- f[i, obs]
+        mu_i <- mu[i, obs]
         sumf <- sum(f_i)
         sumu <- sum(mu_i)
         dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
@@ -531,13 +532,14 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
 
   update_V <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
-      mu_i <- mu[site==i & observed]
-      f_i  <- f[site==i & observed]
+      obs <- observed[i, ]
+      mu_i <- mu[i, obs]
+      f_i  <- f[i, obs]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
       if (method=="ML") {
         V_i <- sig2 * d_mu_i
       } else if (method=="GEE") {
-        idx <- which(observed[i, ])
+        idx <- which(obs)
         R_i <- Rg[idx,idx]
         V_i <- sig2 * sqrt(d_mu_i) %*% R_i %*% sqrt(d_mu_i)
       } else stop("Can't happen")
@@ -641,13 +643,14 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
     i_b <<- 0 # Also store in outer environment for later retrieval
     U_b <<- 0
     for (i in 1:nsite) {
+      obs <- observed[i, ]
       B = make.B(i)
-      mu_i <- mu[site==i & observed]
-      f_i  <- f[site==i & observed]
+      mu_i <- mu[i, obs]
+      f_i  <- f[i, obs]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
       ones <- matrix(1, nobs[i], 1)
       d_i <- as.numeric(t(ones) %*% Omega[[i]] %*% ones) # Could use sum(Omega) as well...
-      B_i <- B[observed[site==i], ,drop=FALSE] # recyle index for e.g. covariates in $B$
+      B_i <- B[obs, ,drop=FALSE] # recyle index for e.g. covariates in $B$
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
