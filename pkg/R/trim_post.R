@@ -42,7 +42,7 @@ print.trim <- function(x,...){
 #' @examples
 #'
 #' data(skylark)
-#' z <- trim(count ~ time + site,data=skylark,model=2,overdisp=TRUE)
+#' z <- trim(count ~ site + time, data=skylark, model=2, overdisp=TRUE)
 #'
 #' summary(z)
 summary.trim <- function(object,...) {
@@ -190,7 +190,7 @@ overdispersion <- function(x){
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2,overdisp=TRUE)
+#' z <- trim(count ~ site + time, data=skylark, model=2, overdisp=TRUE)
 #' coefficients(z)
 coef.trim <- function(object,
     representation=c("standard","trend","deviations"),...) {
@@ -244,7 +244,7 @@ coef.trim <- function(object,
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(3,5))
+#' z <- trim(count ~ site + time, data=skylark, model=2, changepoints=c(3,5))
 #' totals(z)
 #'
 #' totals(z, "both") # mimics classic TRIM
@@ -297,7 +297,7 @@ export.trim.totals <- function(x, species, stratum) {
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' z <- trim(count ~ site + time, data=skylark, model=2);
 #' totals(z)
 #' vcv1 <- vcov(z)       # Use imputed data
 #' vcv2 <- vcov(z,"model") # Use modelled data
@@ -334,7 +334,7 @@ vcov.trim <- function(object, which = c("imputed","model"), ... ) {
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' z <- trim(count ~ site + time, data=skylark, model=2);
 #' out <- results(z)
 results <- function(z) {
   stopifnot(inherits(z,"trim"))
@@ -380,7 +380,7 @@ plot.trim.results <- function(z, ...) {
 #' @examples
 #'
 #' data(skylark)
-#' z <- trim(count ~ time + site,data=skylark,model=2,overdisp=TRUE)
+#' z <- trim(count ~ site + time, data=skylark, model=2, overdisp=TRUE)
 #' now_what(z)
 now_what <- function(z) {
   stopifnot(inherits(z,"trim"))

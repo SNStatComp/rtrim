@@ -53,10 +53,10 @@
 #'
 #' @examples
 #' data(skylark)
-#' z2 <- trim(count ~ time + site, data=skylark, model=2)
+#' z2 <- trim(count ~ site + time, data=skylark, model=2)
 #' # print info on significance of slope parameters
 #' print(z2)
-#' z3 <- trim(count ~ time + site, data=skylark, model=3)
+#' z3 <- trim(count ~ site + time, data=skylark, model=3)
 #' # print info on significance of deviations from linear trend
 #' wald(z3)
 wald <- function(x) UseMethod("wald")

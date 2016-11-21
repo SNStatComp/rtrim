@@ -11,8 +11,8 @@ compatible <- FALSE
 #' TRIM estimation function
 #'
 #' @param count a numerical vector of count data.
-#' @param time.id a numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
+#' @param time.id a numerical vector time points for each count data point.
 #' @param covars an optional data frame with covariates
 #' @param model a model type selector (1, 2 or 3)
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
@@ -26,7 +26,7 @@ compatible <- FALSE
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_estimate <- function(count, time.id, site.id, covars=data.frame()
+trim_estimate <- function(count, site.id, time.id, covars=data.frame()
                          , model=2, serialcor=FALSE, overdisp=FALSE
                          , changepoints=integer(0)
                          , autodelete=TRUE, weights=numeric(0)
@@ -51,8 +51,8 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
   }
   if (nkickout>0) {
     count = count[ok]
-    time.id = time.id[ok]
     site.id = site.id[ok]
+    time.id = time.id[ok]
     if (length(weights)>0) weights = weights[ok]
     rprintf("Removed %d %s without observations: (%s)\n", nkickout,
             ifelse(nkickout==1, "site","sites"), paste0(del.sites, collapse=", "))
@@ -73,7 +73,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
 
   t1 <- Sys.time()
   if (isTRUE(stepwise)) {
-    m <- trim_refine(count, time.id, site.id, covars, model, serialcor
+    m <- trim_refine(count, site.id, time.id, covars, model, serialcor
           , overdisp, changepoints, weights)
   } else {
     # data input checks: throw error if not enough counts available.
@@ -90,7 +90,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
     }
 
     # compute actual model
-    m <- trim_workhorse(count, time.id, site.id, covars, model
+    m <- trim_workhorse(count, site.id, time.id, covars, model
           , serialcor, overdisp, changepoints, weights, covin
           , ...)
   }
@@ -107,8 +107,8 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
 #' TRIM workhorse function
 #'
 #' @param count a numerical vector of count data.
-#' @param time.id an numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
+#' @param time.id an numerical vector time points for each count data point.
 #' @param covars an optional data frame with covariates
 #' @param model a model type selector
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
@@ -125,7 +125,7 @@ trim_estimate <- function(count, time.id, site.id, covars=data.frame()
 #'
 #'
 #' @keywords internal
-trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
+trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
                          model=2, serialcor=FALSE, overdisp=FALSE,
                          changepoints=integer(0), weights=numeric(0),
                          covin = list(),
@@ -139,6 +139,10 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   stopifnot(class(count) %in% c("integer","numeric"))
   n = length(count)
 
+  # \verb!site.id! should be a vector of numbers, strings or factors
+  stopifnot(class(site.id) %in% c("integer","character","factor"))
+  stopifnot(length(site.id)==n)
+
   # \verb!time.id! should be an ordered factor, or a vector of consecutive years or numbers
   # Note the use of "any" because of multiple classes for ordered factors
   stopifnot(any(class(time.id) %in% c("integer","numeric","factor")))
@@ -148,10 +152,6 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   }
   stopifnot(length(time.id)==n)
   # Convert the time points to a factor
-
-  # \verb!site.id! should be a vector of numbers, strings or factors
-  stopifnot(class(site.id) %in% c("integer","character","factor"))
-  stopifnot(length(site.id)==n)
 
   # \verb!covars! should be a list where each element (if any) is a vector
   stopifnot(class(covars)=="data.frame")
@@ -204,7 +204,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # User-specified covariance
   use.covin <- length(covin)>0
 
-  # Convert time and site to factors, if they're not yet
+  # Convert site and time to factors, if they're not yet
   if (any(class(time.id) %in% c("integer","numeric"))) time.id <- ordered(time.id)
   ntime = length(levels(time.id))
 
@@ -693,8 +693,9 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
   # The parameter estimation algorithm iterates until convergence is reached.
   # `convergence' here is defined in a multivariate way: we demand convergence in
   # model paramaters $\alpha$ and $\beta$, model estimates $\mu$ and likelihood measure $L$.
-  new_par <- new_cnt <- new_lik <- new_rho <- NULL
-  old_par <- old_cnt <- old_lik <- old_rho <- NULL
+  new_par <- new_cnt <- new_lik <- new_rho <- new_sig <- NULL
+  old_par <- old_cnt <- old_lik <- old_rho <- old_sig <- NULL
+
   check_convergence <- function(iter) {
 
     # Collect new data for convergence test
@@ -703,22 +704,25 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     new_cnt <<- as.vector(mu)
     new_lik <<- likelihood()
     new_rho <<- rho
+    new_sig <<- sig2
 
     if (iter>1) {
       max_par_change <- max(abs(new_par - old_par))
       max_cnt_change <- max(abs(new_cnt - old_cnt))
       max_lik_change <- max(abs(new_lik - old_lik))
       rho_change <- abs(new_rho - old_rho)
+      sig_change <- abs(new_sig - old_sig)
       beta_change <- max_dbeta
       conv_par <- max_par_change < conv_crit
       conv_cnt <- max_cnt_change < conv_crit
       conv_lik <- max_lik_change < conv_crit
       conv_rho <- rho_change < conv_crit
+      conv_sig <- sig_change < conv_crit
       conv_beta <- beta_change < conv_crit
       # convergence <- conv_par && conv_cnt && conv_lik
-      convergence <- conv_rho && conv_beta
+      convergence <- conv_rho && conv_sig && conv_beta
       # rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
-      rprintf(" Max change: %10e %10e ", rho_change, beta_change)
+      rprintf(" Max change: %10e %10e %10e ", rho_change, sig_change, beta_change)
     } else {
       convergence = FALSE
     }
@@ -728,6 +732,7 @@ trim_workhorse <- function(count, time.id, site.id, covars=data.frame(),
     old_cnt <<- new_cnt
     old_lik <<- new_lik
     old_rho <<- new_rho
+    old_sig <<- new_sig
 
     convergence
   }

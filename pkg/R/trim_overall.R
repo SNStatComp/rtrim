@@ -29,7 +29,7 @@
 #'
 #' # obtain the overall slope accross all change points.
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2)
+#' z <- trim(count ~ site + time, data=skylark, model=2)
 #' overall(z)
 #' plot(overall(z))
 #'
@@ -39,7 +39,7 @@
 #' L$coef
 #'
 #' # Obtain the slope from changepoint to changepoint
-#' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
+#' z <- trim(count ~ site + time, data=skylark, model=2,changepoints=c(1,4,6))
 #' # slope from time point 1 to 5
 #' overall(z,changepoints=c(1,5,7))
 overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
@@ -255,7 +255,7 @@ print.trim.overall <- function(x,...) {
 #'
 #' @examples
 #' data(skylark)
-#' m <- trim(count ~ time + site, data=skylark, model=2)
+#' m <- trim(count ~ site + time, data=skylark, model=2)
 #' plot(overall(m))
 #'
 #' @export

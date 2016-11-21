@@ -21,18 +21,18 @@
 #' and \code{AIC}, for Chi-squared, Likelihoof Ratio and Akaike informatiuon content,
 #' respectively.
 #' @export
-#' 
+#'
 #' @family analyses
-#' @examples 
+#' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2)
+#' z <- trim(count ~ site + time, data=skylark, model=2)
 #' # prettyprint GOF information
 #' gof(z)
-#' 
+#'
 #' # get individual elements, e.g. p-value
 #' L <- gof(z)
 #' LR_p <- L$LR$p # get p-value for likelihood ratio
-#' 
+#'
 gof <- function(x) UseMethod("gof")
 
 # Here is a simple wrapper function for TRIM output lists.

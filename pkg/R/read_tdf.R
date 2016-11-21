@@ -90,29 +90,29 @@ snifreport <- function(file, colclasses){
 
 #' Compute a summary of counts
 #'
-#' 
+#'
 #' Summarize counts over a trim input dataset. Sites without counts are removed
 #' before any counting takes place (since these will not be used when calling
 #' \code{\link{trim}}). For the remaining records, the total number of
 #' zero-counts, positive counts, total number of observed counts and the total
 #' number of missings are reported.
-#' 
+#'
 #' @param x A \code{data.frame} with annual counts per site.
 #' @param eps \code{[numeric]} Numbers smaller then \code{eps} are treated a zero.
-#' @param count.id \code{[character|numeric]}  index of the column containing the counts
-#' @param time.id \code{[character|numeric]}  index of the column containing the time codes
 #' @param site.id \code{[character|numeric]}  index of the column containing the site id's
-#' 
+#' @param time.id \code{[character|numeric]}  index of the column containing the time codes
+#' @param count.id \code{[character|numeric]}  index of the column containing the counts
+#'
 #' @return A \code{list} of class \code{count.summary} containing individual names.
 #' @export
 #' @examples
 #' data(skylark)
 #' count_summary(skylark)
-#' 
+#'
 #' s <- count_summary(skylark)
 #' s$zero_counts # obtain number of zero counts
-count_summary <- function(x, count.id="count",time.id="time",site.id="site", eps=1e-8){
-  
+count_summary <- function(x, count.id="count", site.id="site", time.id="time", eps=1e-8){
+
   site_count <- tapply(X = x[,count.id], INDEX = x[site.id], FUN=sum, na.rm=TRUE)
   ii <- abs(site_count) < eps
   sites_wout_counts <- character(0)
@@ -120,7 +120,7 @@ count_summary <- function(x, count.id="count",time.id="time",site.id="site", eps
     sites_wout_counts <- names(site_count[ii])
     x <- x[!x[,site.id] %in% sites_wout_counts,,drop=FALSE]
   }
-  
+
   cnt <- x[,count.id]
   L <- list(
      sites = length(unique(x[,site.id]))
@@ -135,10 +135,10 @@ count_summary <- function(x, count.id="count",time.id="time",site.id="site", eps
 }
 
 #' print a count summary
-#' 
+#'
 #' @param x An R object
 #' @param ... unused
-#' 
+#'
 #' @export
 #' @keywords internal
 print.count.summary <- function(x,...){
@@ -152,7 +152,7 @@ print.count.summary <- function(x,...){
   printf("Total number of observed counts    %8d\n",x$total_observed)
   printf("Number of missing counts           %8d\n",x$missing_counts)
   printf("Total number of counts             %8d\n",x$total_counts)
-  
+
 }
 
 

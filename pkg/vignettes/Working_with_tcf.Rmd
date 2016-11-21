@@ -65,8 +65,3 @@ tc
 ## TRIM data files
 
 TRIM data files are basically space-separated, tabular tekstfiles where the order and type of columns is fixed by a few parameters. Given such a specification, a file can be read with `read_tdf`. 
-
-
-
-
-

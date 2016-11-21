@@ -26,10 +26,8 @@ software developed by Jeroen Pannekoek and Arco van Strien from the 1990's
 onwards. This vignette provides a quick getting started manual that demonstrates
 the R-based workflow for computing TRIM models.
 
-- An extensive introduction showing all the options can be found in the [trim by example](Skylark_example.html) vignette.
+- An extensive introduction showing many of the options can be found in the [trim by example](Skylark_example.html) vignette.
 - To use legacy TRIM command files and TRIM data files, see the [vignette on tcf files](Working_with_tcf.html).
-
-
 
 TRIM was developed to estimate animal populations, based on repeated counts at various sites while counts may be missing for certain sites at certain times. Estimation is based on a model-based imputation method.
 
@@ -62,11 +60,11 @@ Here, `skylark` is a regular R `data.frame`.
 The central function for computing TRIM models is called `trim`. Calling this function is very similar to calling basic R modeling functions like `lm`. Here, we compute TRIM model 2.
 
 ```{r}
-m1 <- trim(count ~ time + site, data=skylark,model=2)
+m1 <- trim(count ~ site + time, data=skylark,model=2)
 ```
-**Note** Since `time` and `site` are treated differently by the model, the order matters (see also [model specification](#modelspec)). Alternatively, one can do this:
+**Note** Since `site` and `time` are treated differently by the model, the order matters (see also [model specification](#modelspec)). Alternatively, one can do this:
 ```{r}
-m1 <- trim(skylark, count.id="count", time.id="time", site.id="site", model=2)
+m1 <- trim(skylark, count.id="count", site.id="site", time.id="time", model=2)
 ```
 The result is an object of class `trim`. Just like with objects of class `lm`, its various components can be extracted using specialized functions. Here are some examples.
 ```{r}
@@ -103,14 +101,14 @@ are designed to estimate the number of counts at counting sites, the formula spe
 has to satisfy certain rules.
 
 - The single variable at the left-hand side must represent the number of counts.
-- The **first variable** on the right-hand side must represent the **time** variable.
-- The **second variable** on the right-hand side must represent the **site** identifier.
+- The **first variable** on the right-hand side must represent the **site** variable.
+- The **second variable** on the right-hand side must represent the **time** identifier.
 - All other variables on the right-hand-side are interpreted as covariates.
 
 For example, to use the variable `Habitat` as covariate when analysing the `skylark` dataset (under model 2) one does the following.
 
 ```{r}
-m2 <- trim(count ~ time + site + Habitat, data=skylark, model=2)
+m2 <- trim(count ~ site + time + Habitat, data=skylark, model=2)
 ```
 
 It is also possible to specify weights by passing `trim` a `weights` argument.
@@ -124,7 +122,7 @@ to be estimated. See `?trim` for a precise description of all options. Below is 
 we specify the maximum number of changepoints and let `trim` delete change
 points where necessary.
 ```{r}
-m3 <- trim(count ~ time + site + Habitat, data=skylark, model=2
+m3 <- trim(count ~ site + time + Habitat, data=skylark, model=2
      , overdisp = TRUE, serialcor = TRUE, changepoints=1:7, autodelete=TRUE)
 m3$changepoints
 ```
@@ -136,7 +134,7 @@ Alternatively the `stepwise` algorithm can be used. This algorithm removes chang
 when the slope does not change significantly from before to after a changepoint, yielding a
 simpler (more robust) model.
 ```{r}
-m4 <- trim(count ~ time + site + Habitat, data=skylark, model=2
+m4 <- trim(count ~ site + time + Habitat, data=skylark, model=2
      , overdisp = TRUE, serialcor = TRUE, changepoints=1:7, stepwise = TRUE)
 m4$changepoints
 ```
@@ -160,13 +158,3 @@ check_observations(skylark, model=2, changepoints=c(1,4))
 ```
 The result is a `list` with booean element `sufficient`. If `sufficient==FALSE`, the element `errors`
 contains a `data.frame` with the sites/times/covariates with insuffiecient counts.
-
-
-
-
-
-
-
-
-
-
