@@ -10,6 +10,7 @@
 #'   \code{"fitted"} counts.
 #' @param changepoints \code{[numeric]} Change points for which to compute the overall slope,
 #'   or "model", in which case the changepoints from the model are used (if any)
+#' @param bc flag to set backwards compatability with TRIM with respect to trend interpretation.
 #'
 #' @section Details:
 #'
@@ -42,7 +43,7 @@
 #' z <- trim(count ~ site + time, data=skylark, model=2,changepoints=c(1,4,6))
 #' # slope from time point 1 to 5
 #' overall(z,changepoints=c(1,5,7))
-overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
+overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0), bc=FALSE) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
 
@@ -87,9 +88,16 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
     if (df<=0) return("Unknown (df<=0)")
     alpha = c(0.05, 0.001)
     stopifnot(df>0)
-    tval <- qt((1-alpha/2), df)
+    if (bc) {
+      # Backwards compatbility, not recommended
+      tval <- qnorm((1-alpha/2))
+    } else {
+      tval <- qt((1-alpha/2), df)
+    }
     blo <- bhat - tval * berr
     bhi <- bhat + tval * berr
+    print(blo)
+    print(bhi)
 
     # First priority: evidece for a strong trend?
     if (blo[2] > 1.05) return("Strong increase (p<0.001)")
