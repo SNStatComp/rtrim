@@ -118,6 +118,7 @@ trim_estimate <- function(count, site.id, time.id, covars=data.frame()
 #' @param covin ...
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
+#' @param max_beta maximum value for beta parameters
 #' @param soft: specifies if trim on error returns an error code (TRUE) or just stops with a message (FALSE)
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
@@ -129,7 +130,7 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
                          model=2, serialcor=FALSE, overdisp=FALSE,
                          changepoints=integer(0), weights=numeric(0),
                          covin = list(),
-                         conv_crit=1e-5, max_iter=200, max_sub_step=7,
+                         conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
                          soft=FALSE, debug=FALSE)
 {
 
@@ -496,8 +497,8 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
     for (subiter in 1:max_sub_step) {
       beta  <<- beta0 + stepsize*dbeta
       if (any(!is.finite(beta))) stop("non-finite beta problem")
-      if (any(beta >  7)) stop("Model non-estimable due to excessive high beta values", call.=FALSE)
-      if (any(beta < -7)) stop("Model non-estimable due to excessive small beta values", call.=FALSE)
+      if (any(beta >  max_beta)) stop("Model non-estimable due to excessive high beta values", call.=FALSE)
+      if (any(beta < -max_beta)) stop("Model non-estimable due to excessive small beta values", call.=FALSE)
 
       update_mu(fill=FALSE)
       update_alpha(method)
