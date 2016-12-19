@@ -140,6 +140,9 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
   stopifnot(class(count) %in% c("integer","numeric"))
   n = length(count)
 
+  # Negative counts are not allowed
+  if (isTRUE(any(count < 0))) stop("Counts contain negative values; consider the use of NA to mark missing data", call. = FALSE)
+
   # \verb!site.id! should be a vector of numbers, strings or factors
   stopifnot(class(site.id) %in% c("integer","character","factor"))
   stopifnot(length(site.id)==n)
@@ -148,8 +151,16 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
   # Note the use of "any" because of multiple classes for ordered factors
   stopifnot(any(class(time.id) %in% c("integer","numeric","factor")))
   if (any(class(time.id) %in% c("integer","numeric"))) {
-    check = unique(diff(sort(unique(time.id))))
-    stopifnot(check==1 && length(check)==1)
+    # Check for consecutiveness
+    timepts <- sort(unique(time.id)) # faster than unique(sort(...))
+    dtimepts <- diff(timepts)
+    intervals <- unique(dtimepts)
+    if (length(intervals)>1) {
+      msg <- sprintf("Multiple time-point intervals found (%s) where only a single interval is allowed.", paste0(intervals, collapse=","))
+      stop(msg, call. = FALSE)
+    }
+    #check = unique(diff(sort(unique(time.id))))
+    # stopifnot(check==1 && length(check)==1)
   }
   stopifnot(length(time.id)==n)
   # Convert the time points to a factor
@@ -436,13 +447,13 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
       obs = observed[i, ]
       if (alpha_method==1) {
         B = make.B(i)
-        f_i <- matrix(f[i, obs]) # cast as column vector
-        wt_i <- matrix(wt[i, obs]) # caset as column vector
+        f_i  <- matrix(f[i, obs]) # cast as column vector
+        mu_i <- mu[i, obs]
+        wt_i <- matrix(wt[i, obs])
         B_i <- B[obs, , drop=FALSE]
         if (method=="ML") { # no covariance; $V_i = \diag{mu}$
           z_t <- matrix(1, 1, nobs[i])
         } else if (method=="GEE") { # Use covariance
-          mu_i = mu[i, obs]
           z_t <- mu_i %*% V_inv[[i]] # define correlation weights
         } else stop("Can't happen")
         if (z_t %*% f_i > 0) { # Application of method 1 is possible
