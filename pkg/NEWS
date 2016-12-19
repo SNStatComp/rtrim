@@ -1,0 +1,5 @@
+version 1.0.2
+- Limit on regression parameters now equal to original TRIM (thanks to Lars Petterson)
+
+version 1.0.1
+- initial CRAN release
