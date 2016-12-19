@@ -96,8 +96,6 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0), bc=
     }
     blo <- bhat - tval * berr
     bhi <- bhat + tval * berr
-    print(blo)
-    print(bhi)
 
     # First priority: evidece for a strong trend?
     if (blo[2] > 1.05) return("Strong increase (p<0.001)")
