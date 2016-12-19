@@ -21,7 +21,7 @@
 #' @importFrom utils read.table head tail str capture.output
 #' @importFrom grDevices  gray rgb hcl adjustcolor
 #' @importFrom graphics lines plot points polygon segments title abline legend par
-#' @importFrom stats pchisq pt qt time setNames
+#' @importFrom stats pchisq pt qt qnorm time setNames
 #'
 {}
 
