@@ -12,7 +12,7 @@ Description: The TRIM model is widely used for estimating growth and decline of
     at Statistics Netherlands by Jeroen Pannekoek. See
     <https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim-->
     for more information about TRIM.
-Version: 1.0.1
+Version: 1.0.2
 Imports: methods, utils, stats, graphics, grDevices
 URL: https://github.com/markvanderloo/rtrim
 BugReports: https://github.com/markvanderloo/rtrim/issues

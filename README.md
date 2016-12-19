@@ -26,9 +26,21 @@ vignette("Skylark_example")
 ```
 After working through one of these vignettes, we advise users to have a look atthe help file of `rtrim`'s main function by typing `?trim`. Also, to get a feel of how the package works one can browse through the help files by following thelinks under the `see also` sections in each help file.
 
+### Release planning
+
+Version 1.0.2 will be uploaded to CRAN on 31 march 2017.
+
+See the [NEWS](pkg/NEWS) file for a list of updates.
+
+
 ### Install the development version
 
-Sometimes we release a beta version for public testing. Beta versions can be installed as follows.
+Sometimes we release a beta version for public testing. 
+
+**Current Beta Version:** 1.02
+
+
+Beta versions can be installed as follows.
 
 1. If you are a Windows user, first install [Rtools](https://cran.r-project.org/bin/windows/Rtools/).
 2. Open an R session, and issue the following commands.
