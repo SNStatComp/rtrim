@@ -5,8 +5,8 @@
 #' TRIM stepwise refinement
 #'
 #' @param count a numerical vector of count data.
-#' @param time.id a numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
+#' @param time.id a numerical vector time points for each count data point.
 #' @param covars an optional list of covariates
 #' @param model a model type selector
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
@@ -17,7 +17,7 @@
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_refine <- function(count, time.id, site.id, covars=list(),
+trim_refine <- function(count, site.id, time.id, covars=list(),
                         model=2, serialcor=FALSE, overdisp=FALSE,
                         changepoints=integer(0),weights=numeric(0))
 {
@@ -27,13 +27,13 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
 
   # Always start with an estimation using all proposed changepoints
   cur_cp <- org_cp
-  z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp, weights)
+  z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp, weights)
 
   # # Hack: remove all except the first changepoints
   # n <- length(org_cp)
   # active[2:n] <- FALSE
   # cur_cp <- org_cp[active]
-  # z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp)
+  # z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp)
 
   for (iter in 1:100) {
     # Phase 1: can one of the changepoints be removed?
@@ -56,7 +56,7 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
     # If a changepoint has been removed, we'll need to re-estimate the model
     if (removed) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Phase 2: try to re-insert previously removed changepoints
@@ -103,7 +103,7 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
     # If a changepoint has been re-inserted, we'll need to re-estimate the model
     if (added) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, time.id, site.id, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Finished refinement?
@@ -122,8 +122,8 @@ trim_refine <- function(count, time.id, site.id, covars=list(),
 Score <- function(z, alpha, beta, changepoints, index) {
   # Unpack TRIM variables
   f  <- z$f
-  rho <- z$rho
-  sig2 <- z$sig2
+  rho   <- ifelse(is.null(z$rho),  0.0, z$rho)
+  sig2  <- ifelse(is.null(z$sig2), 1.0, z$sig2)
   covars <- z$covars
   cvmat <- z$cvmat
   nsite <- z$nsite
@@ -141,8 +141,11 @@ Score <- function(z, alpha, beta, changepoints, index) {
   if (ncovar>0) {
     nclass <- numeric(ncovar)
     for (i in 1:ncovar) {
-      cv <- covars[[i]] # The vector of covariate class ID's
-      nclass[i] <- max(cv)  # Upper end of range
+      if (is.factor(covars[[i]])) {
+        nclass[i] <- nlevels(covars[[i]] )
+      } else {
+        nclass[i] <- max(covars[[i]])
+      }
     }
   }
 

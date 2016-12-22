@@ -16,7 +16,7 @@ check_observations <- function(x,...){
 }
 
 #' @param model \code{[numeric]} Model 1, 2 or 3?
-#' @param covar \code{[character|numeric]} column index of covariates in \code{x}
+#' @param covars \code{[character|numeric]} column index of covariates in \code{x}
 #' @param time.id \code{[character|numeric]} column index of time points in \code{x}
 #' @param count.id \code{[character|numeric]} column index of the counts in \code{x}
 #' @param changepoints \code{[numeric]} Changepoints (model 2 only)
@@ -32,35 +32,48 @@ check_observations <- function(x,...){
 #' points with insufficient counts}.
 #' \item{For model 3 with covariates, \code{$errors} is a named list with an element for each covariate
 #' for which insufficients counts are encountered. Each element is a two-column \code{data.frame}. The
-#' first column indicates the time point, the second column indicates for what covariate value insufficient
+#' first column indicates the time point, the second column indicates for which covariate value insufficient
 #' counts are found.}
-#' \item{Model 2: TODO}
+#' \item{For Model 2, without covariates \code{$errors} is a list with a single
+#' element \code{changepoints}. It points out what changepoints lead to a time
+#' slice with zero observations.}
+#' \item{For Model 2, with covariates \code{$errors} is a named list with an
+#' element for each covariate for which inssufficients counts are encountered.
+#' Each element is a two-column \code{data.frame}, The first colum indicates the
+#' changepoint, the second column indicates for which covariate value
+#' insufficient counts are found.}
 #' }
 #'
 #'
 #'
 #' @export
 #' @rdname check_observations
-check_observations.data.frame <- function(x, model, covar = list()
+check_observations.data.frame <- function(x, model, covars = list()
   , changepoints = numeric(0), time.id="time",count.id="count", eps=1e-8, ...){
 
   stopifnot(model %in% 1:3)
 
   out <- list()
-  if (model==3 && length(covar) == 0 ){
+  if (model==3 && length(covars) == 0 ){
     time_totals <- tapply(X = x[,count.id], INDEX = x[,time.id], FUN = sum, na.rm=TRUE)
     ii <- time_totals <= eps
     out$sufficient <- !any(ii)
     out$errors <- setNames(list(x[ii,time.id]),time.id)
-  } else if (model == 3 && length(covar>0)) {
-    out$errors <- get_cov_count_errlist(x[,count.id],x[,time.id],covars=x[covar],timename=time.id)
+  } else if (model == 3 && length(covars>0)) {
+    out$errors <- get_cov_count_errlist(x[,count.id],x[,time.id],covars=x[covars],timename=time.id)
     out$sufficient <- length(out$errors) == 0
-  } else if (model == 2 && length(covar) == 0) {
+  } else if ( model == 2 ) {
     pieces <- pieces_from_changepoints(x[,time.id],changepoints)
-    time_totals <- tapply(X=x[,count.id],INDEX=pieces, FUN = sum, na.rm=TRUE)
-    ii <- time_totals <= eps
-    out$sufficient <- !any(ii)
-    out$errors <- list(changepoint = as.numeric(names(time_totals))[ii])
+    ok <- pieces > 0 # allow zero counts for changepoint 0
+    if ( length(covars) == 0){
+      time_totals <- tapply(X=x[ok,count.id],INDEX=pieces[ok], FUN = sum, na.rm=TRUE)
+      ii <- time_totals <= eps
+      out$sufficient <- !any(ii)
+      out$errors <- list(changepoint = as.numeric(names(time_totals))[ii])
+    } else {
+      out$errors <- get_cov_count_errlist(x[ok,count.id], pieces[ok], x[ok,covars,drop=FALSE], timename="changepoint")
+      out$sufficient <- length(out$errors) == 0
+    }
   }
 
   out
@@ -71,13 +84,13 @@ check_observations.data.frame <- function(x, model, covar = list()
 #' @rdname check_observations
 check_observations.trimcommand <- function(x,...){
   dat <- read_tdf(x$file)
-  check_observations.data.frame(x=dat,model=x$model, covar=x$labels[x$covariates]
+  check_observations.data.frame(x=dat,model=x$model, covars=x$labels[x$covariates]
                                 , changepoints = x$changepoints)
 }
 
 #' @export
 #' @rdname check_observations
-check_observarions.character <- function(x,...){
+check_observations.character <- function(x,...){
   tc <- read_tcf(x)
   check_observations.trimcommand(tc,...)
 }
@@ -168,7 +181,7 @@ get_cov_count_errlist <- function(count, time, covars, timename="time"){
     # CP0 = levels(df$time)[1]
     # err <- df[df$Freq==0 & df$time!=CP0, 1:2]
     err <- df[df$Freq==0, 1:2]
-
+    row.names(err) <- NULL
     if (nrow(err) > 0){
       names(err)[2] <- covname
       ERR[[covname]] <- err

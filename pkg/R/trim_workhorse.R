@@ -121,6 +121,7 @@ trim_estimate <- function(count, time.id, site.id, month=NULL, covars=data.frame
 #' @param covin ...
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
+#' @param max_beta maximum value for beta parameters
 #' @param soft: specifies if trim on error returns an error code (TRUE) or just stops with a message (FALSE)
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
@@ -132,8 +133,8 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
                          model=2, serialcor=FALSE, overdisp=FALSE,
                          changepoints=integer(0), weights=numeric(0),
                          covin = list(),
-                         conv_crit=1e-5, max_iter=200, max_sub_step=7,
-                         soft=FALSE)
+                         conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
+                         soft=FALSE, debug=FALSE)
 {
 
   # =========================================================== Preparation ====
@@ -164,12 +165,16 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   ncovar = length(covars)
   use.covars <- ncovar>0
   if (use.covars) {
-    for (i in 1:ncovar) stopifnot(class(covars[[i]]) %in% c("integer","numeric"))
+    # convert to numerical values
+    icovars <- vector("list", ncovar)
+    for (i in 1:ncovar) if (any(is.na(covars[[i]])))
+      stop(sprintf('NA values not allowed for covariate "%s".', names(covars)[i]), call.=FALSE)
+    for (i in 1:ncovar) icovars[[i]] = as.integer((covars[[i]]))
 
     # Also, each covariate $i$ should be a number (ID) ranging $1\ldots nclass_i$
     nclass <- numeric(ncovar)
     for (i in 1:ncovar) {
-      cv <- covars[[i]] # The vector of covariate class ID's
+      cv <- icovars[[i]] # The vector of covariate class ID's
       stopifnot(min(cv)==1) # Assert lower end of range
       nclass[i] = max(cv)  # Upper end of range
       #stopifnot(nclass[i]>1) # Assert upper end
@@ -185,6 +190,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     warning(sprintf("Removing covariate \"%s\" which has only one class.", names(covars)[idx])
             , call. = FALSE)
     covars <-  covars[-idx]
+    icovars <- icovars[-idx]
     nclass <- nclass[-idx]
     ncovar <- ncovar-1
     if (ncovar==0) {
@@ -263,9 +269,12 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   if (use.covars) {
     cvmat <- list()
     for (i in 1:ncovar) {
+      cv = icovars[[i]]
+      m <- matrix(NA, nsite, ntime)
       cv = covars[[i]]
       m <- matrix(NA, nsite, nyear)
       m[idx] <- cv
+      if (any(is.na(m))) stop(sprintf('(implicit) NA values in covariate "%s".', names(covars)[i]), call.=FALSE)
       cvmat[[i]] <- m
     }
   } else {
@@ -388,7 +397,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     if (use.covars) {
       # Model 2 with covariates. Add a copy of B for each covar class
       Bfinal <- B0
-      for (cv in ncovar) {
+      for (cv in 1:ncovar) {
         if (debug) printf("adding covar %d\n", cv)
         for (cls in 2:nclass[cv]) {
           if (debug) printf("adding class %d\n", cls)
@@ -466,15 +475,16 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
 
   update_alpha <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
+      obs = observed[i, ]
       if (alpha_method==1) {
         B = make.B(i)
-        f_i <- matrix(f[site==i & observed]) # cast as column vector
-        wt_i <- matrix(wt[site==i & observed]) # caset as column vector
-        B_i <- B[observed[site==i], , drop=FALSE]
+        f_i <- matrix(f[i, obs]) # cast as column vector
+        wt_i <- matrix(wt[i, obs]) # caset as column vector
+        B_i <- B[obs, , drop=FALSE]
         if (method=="ML") { # no covariance; $V_i = \diag{mu}$
           z_t <- matrix(1, 1, nobs[i])
         } else if (method=="GEE") { # Use covariance
-          mu_i = mu[site==i & observed]
+          mu_i = mu[i, obs]
           z_t <- mu_i %*% V_inv[[i]] # define correlation weights
         } else stop("Can't happen")
         if (z_t %*% f_i > 0) { # Application of method 1 is possible
@@ -487,8 +497,8 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
         }
         #if (z_t %*% f_i < 0) z_t = matrix(1, 1, nobs[i]) # alternative hack
       } else { #method 2: classic TRIM
-        f_i <- f[site==i & observed]
-        mu_i <- mu[site==i & observed]
+        f_i <- f[i, obs]
+        mu_i <- mu[i, obs]
         sumf <- sum(f_i)
         sumu <- sum(mu_i)
         dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
@@ -529,6 +539,8 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     for (subiter in 1:max_sub_step) {
       beta  <<- beta0 + stepsize*dbeta
       if (any(!is.finite(beta))) stop("non-finite beta problem")
+      if (any(beta >  max_beta)) stop("Model non-estimable due to excessive high beta values", call.=FALSE)
+      if (any(beta < -max_beta)) stop("Model non-estimable due to excessive small beta values", call.=FALSE)
 
       update_mu(fill=FALSE)
       update_alpha(method)
@@ -563,16 +575,18 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
 
   update_V <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
-      mu_i <- mu[site==i & observed]
-      f_i  <- f[site==i & observed]
+      obs <- observed[i, ]
+      mu_i <- mu[i, obs]
+      f_i  <- f[i, obs]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
       if (method=="ML") {
         V_i <- sig2 * d_mu_i
       } else if (method=="GEE") {
-        idx <- which(observed[i, ])
+        idx <- which(obs)
         R_i <- Rg[idx,idx]
         V_i <- sig2 * sqrt(d_mu_i) %*% R_i %*% sqrt(d_mu_i)
       } else stop("Can't happen")
+      if (any(abs(diag(V_i))<1e-12)) browser()
       V_inv[[i]] <<- solve(V_i) # Store $V^{-1}# for later use
       Omega[[i]] <<- d_mu_i %*% V_inv[[i]] %*% d_mu_i # idem for $\Omega_i$
     }
@@ -669,16 +683,22 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     i_b <<- 0 # Also store in outer environment for later retrieval
     U_b <<- 0
     for (i in 1:nsite) {
+      obs <- observed[i, ]
       B = make.B(i)
-      mu_i <- mu[site==i & observed]
-      f_i  <- f[site==i & observed]
+      mu_i <- mu[i, obs]
+      f_i  <- f[i, obs]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
       ones <- matrix(1, nobs[i], 1)
       d_i <- as.numeric(t(ones) %*% Omega[[i]] %*% ones) # Could use sum(Omega) as well...
-      B_i <- B[observed[site==i], ,drop=FALSE] # recyle index for e.g. covariates in $B$
+      B_i <- B[obs, ,drop=FALSE] # recyle index for e.g. covariates in $B$
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
+    if (any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
+    # invertable <- class(try(solve(i_b), silent=T))=="matrix"
+    # if (!invertable) {
+    #   browser()
+    # }
   }
 
   # ------------------------------------------------------- Count estimates ----
@@ -715,8 +735,9 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   # The parameter estimation algorithm iterates until convergence is reached.
   # `convergence' here is defined in a multivariate way: we demand convergence in
   # model paramaters $\alpha$ and $\beta$, model estimates $\mu$ and likelihood measure $L$.
-  new_par <- new_cnt <- new_lik <- new_rho <- NULL
-  old_par <- old_cnt <- old_lik <- old_rho <- NULL
+  new_par <- new_cnt <- new_lik <- new_rho <- new_sig <- NULL
+  old_par <- old_cnt <- old_lik <- old_rho <- old_sig <- NULL
+
   check_convergence <- function(iter) {
 
     # Collect new data for convergence test
@@ -725,22 +746,25 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     new_cnt <<- as.vector(mu)
     new_lik <<- likelihood()
     new_rho <<- rho
+    new_sig <<- sig2
 
     if (iter>1) {
       max_par_change <- max(abs(new_par - old_par))
       max_cnt_change <- max(abs(new_cnt - old_cnt))
       max_lik_change <- max(abs(new_lik - old_lik))
       rho_change <- abs(new_rho - old_rho)
+      sig_change <- abs(new_sig - old_sig)
       beta_change <- max_dbeta
       conv_par <- max_par_change < conv_crit
       conv_cnt <- max_cnt_change < conv_crit
       conv_lik <- max_lik_change < conv_crit
       conv_rho <- rho_change < conv_crit
+      conv_sig <- sig_change < conv_crit
       conv_beta <- beta_change < conv_crit
       # convergence <- conv_par && conv_cnt && conv_lik
-      convergence <- conv_rho && conv_beta
+      convergence <- conv_rho && conv_sig && conv_beta
       # rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
-      rprintf(" Max change: %10e %10e ", rho_change, beta_change)
+      rprintf(" Max change: %10e %10e %10e ", rho_change, sig_change, beta_change)
     } else {
       convergence = FALSE
     }
@@ -750,6 +774,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     old_cnt <<- new_cnt
     old_lik <<- new_lik
     old_rho <<- new_rho
+    old_sig <<- new_sig
 
     convergence
   }
@@ -1075,7 +1100,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   rep.rows <- function(row, n) matrix(rep(row, each=n), nrow=n)
   rep.cols <- function(col, n) matrix(rep(col, times=n), ncol=n)
 
-  var_model_tt <- function(observed_only = FALSE) {
+  var_model_tt <- function(observed_only=FALSE, mask=NULL) {
 
     if (!use.covin) { # use computed covariance
 
@@ -1092,7 +1117,10 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
 
       # Matrices G and H are for all (weighted) mu's
       wmu <- if (use.weights) wt * mu else mu
+      # Zero-out unobserved $i,j$ to facilitate the computation of the variance of the imputed counts
       if (observed_only) wmu[!observed] = 0.0
+      # Zero-out unselected sites to facilitate the computation of the variance of covariate categories
+      if (!is.null(mask)) wmu[!mask]     = 0.0
 
       GddG <- matrix(0, nyear,nyear)
       for (i in 1:nsite) {
@@ -1123,6 +1151,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
       else          V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
     } else { # Use input covariance
+      if (!is.null(mask)) stop("Alas, covariates+upscaling not implemented yet.");
       # First loop op sites to compute $GF - H$.
       GFminH = matrix(0, nyear, nbeta)
       for (i in 1:nsite) { # First loop
@@ -1174,12 +1203,13 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   # and replace it by the contribution due to the observations, as resulting from the
   # covariance matrix.
 
-  var_observed_tt <- function() {
+  var_observed_tt <- function(mask=NULL) {
     # Variance due to observations
     V = matrix(0, nyear, nyear)
     if (!use.covin) {
       wwmu <- if (use.weights) wt * wt * mu else mu
       wwmu[!observed] <- 0 # # erase estimated $\mu$'s
+      if (!is.null(mask)) wmu[!mask] <- 0.0 # Erase 'other' covariate categories also.
       for (i in 1:nsite) {
         if (serialcor) {
           srdu = sqrt(diag(wwmu[i, ]))
@@ -1233,9 +1263,38 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     se_imp  = se_tt_imp
   )
 
+  # Indices for covariates. First baseline
+  if (use.covars) {
+    z$covar_tt <- list()
+    for (i in 1:ncovar) {
+      cvname <- names(covars)[i]
+      cvtt = vector("list", nclass[i])
+      for (j in 1:nclass[i]) {
+        classname <- ifelse(is.factor(covars[[i]]), levels(covars[[i]])[j], j)
+        mask <- cvmat[[i]]==j
+        # Time totals (fitted)
+        mux <- wmu
+        mux[!mask] <- 0.0
+        tt_mod <- colSums(mux)
+        # Corresponding variance
+        var_tt_mod <- var_model_tt(mask=mask)
+        # Time-total (imputed)
+        impx <- wimp
+        impx[!mask] <- 0.0
+        tt_imp <- colSums(impx)
+        # Variance
+        var_tt_obs_old <- var_model_tt(observed_only=TRUE, mask=mask)
+        var_tt_obs_new <- var_observed_tt(mask)
+        var_tt_imp = var_tt_mod - var_tt_obs_old + var_tt_obs_new
+        # Store
+        df <- list(covariate=cvname, class=j, mod=tt_mod, var_mod=var_tt_mod, imp=tt_imp, var_imp=var_tt_imp)
+        cvtt[[j]] <- df
+      }
+      z$covar_tt[[cvname]] <- cvtt
+    }
+  } else z$covar_tt <- NULL
 
-
-  #------------------------------------------ Reparameterisation of Model 3 ----
+  # ----------------------------------------- Reparameterisation of Model 3 ----
 
   # Here we consider the reparameterization of the time-effects model in terms of
   # a model with a linear trend and deviations from this linear trend for each time point.

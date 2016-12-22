@@ -32,9 +32,9 @@ trimtest <- function(m, to, tc, vcv=NULL) {
 
   # Overall slope
   tgt <- get_overal_imputed_slope(to)
-  out <- overall(m,"imputed")$coef[2,] # Slope coefs are in second row
+  out <- overall(m,"imputed")$slope[1,]
   for (i in seq_len(ncol(tgt))) {
-    expect_true(max(abs(out[,i] - tgt[,i])) < 1e-4,
+    expect_true(max(abs(out[,i+2] - tgt[,i])) < 1e-4,
                 info = sprintf("Overall slope column %d", i))
   }
 
@@ -43,7 +43,7 @@ trimtest <- function(m, to, tc, vcv=NULL) {
     tgt <- get_overal_cp_imputed_slope(to)
     out <- overall(m, "imputed", tc$overallchangepoints)
     for (i in seq_len(ncol(tgt))) {
-      expect_true(max(abs(out$coef[,i]-tgt[,i]), na.rm=TRUE) < 1e-4,
+      expect_true(max(abs(out$slope[,i]-tgt[,i]), na.rm=TRUE) < 1e-4,
                   info=sprintf("Overall slope (changepts) column %d",i))
     }
   }
@@ -258,14 +258,15 @@ test_that("testing skylark-2a",{
   tc <- read_tcf("outfiles/skylark-2a.tcf")
   dat <- read_tdf(tc)
 
-  m <- trim(count ~ time + site + Habitat, data=dat
+  m <- trim(count ~ site + time + Habitat, data=dat
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7, autodelete=FALSE)
   to <- read_tof("outfiles/skylark-2a.out")
   # formula-data interface
   trimtest(m,to,tc)
   # data-formula interface: note: nothing should be auto-deleted.
-  m <- trim(dat, formula = count ~ time + site + Habitat
+  m <- trim(dat, count.id="count", site.id="site", time.id="time"
+            , covars="Habitat"
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7,autodelete=TRUE)
   trimtest(m,to,tc)
@@ -277,13 +278,13 @@ context("Error handling")
 test_that("invalid model specs",{
   data(skylark)
   expect_error(
-    trim(count ~ time + site, data=skylark, model=3
+    trim(count ~ site + time, data=skylark, model=3
          ,changepoints=c(3,5),stepwise = TRUE)
     , regexp = "Stepwise removal only works for model 2"
   )
 
   expect_error(
-    trim(count ~ time + site, data=skylark, model=3
+    trim(count ~ site + time, data=skylark, model=3
          ,changepoints=c(3,5))
     , regexp = "Changepoints cannot be specified for model 3"
   )
@@ -316,7 +317,7 @@ expect_null(check_tcf(x))
 context("Output printers")
 test_that("S3 output printers", {
   data(skylark)
-  m2 <- trim(count ~ time + site, data=skylark, model=2, overdisp=TRUE, serialcor = TRUE)
+  m2 <- trim(count ~ site + time, data=skylark, model=2, overdisp=TRUE, serialcor = TRUE)
   expect_output(print(m2))
   expect_output(print(coef(m2)))
   expect_output(print(wald(m2)))
@@ -326,4 +327,11 @@ test_that("S3 output printers", {
   expect_output(print(summary(m2)))
 })
 
-
+context("predicted results")
+test_that("results",{
+  data(skylark)
+  m <- trim(count ~ site + time, data=skylark, model=2)
+  out <- as.data.frame(results(m))
+  out$site<- as.integer(as.character(out$site))
+  expect_equal(out, read.csv("outfiles/skylark-model2-f.csv"))
+})

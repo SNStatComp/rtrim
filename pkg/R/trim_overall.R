@@ -10,18 +10,19 @@
 #'   \code{"fitted"} counts.
 #' @param changepoints \code{[numeric]} Change points for which to compute the overall slope,
 #'   or "model", in which case the changepoints from the model are used (if any)
+#' @param bc flag to set backwards compatability with TRIM with respect to trend interpretation.
 #'
 #' @section Details:
 #'
 #' The overall slope represents the mean growth or decline over a period of time.
-#' This can be determined over the whole time period for which the modelis fitted (this is the default)
+#' This can be determined over the whole time period for which the model is fitted (this is the default)
 #' or may be computed over time slices that can be defined with the \code{cp} parameter.
 #' The values for \code{changepoints} do not depend on \code{changepoints} that were used when
 #' specifying the \code{trim} model (See also the example below).
 #'
 #'
-#' @return a list of class \code{trim.overall} containing overall slope
-#'   coefficients (\code{coef}), augmented wih p-values and an interpretation).
+#' @return a list of class \code{trim.overall} containing, a.o., overall slope
+#'   coefficients (\code{slope}), augmented wih p-values and an interpretation).
 #' @export
 #'
 #' @family analyses
@@ -29,20 +30,20 @@
 #'
 #' # obtain the overall slope accross all change points.
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2)
+#' z <- trim(count ~ site + time, data=skylark, model=2)
 #' overall(z)
 #' plot(overall(z))
 #'
 #' # Overall is a list, you can get information out if it using the $ syntax,
 #' # for example
 #' L <- overall(z)
-#' L$coef
+#' L$slope
 #'
 #' # Obtain the slope from changepoint to changepoint
-#' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(1,4,6))
+#' z <- trim(count ~ site + time, data=skylark, model=2,changepoints=c(1,4,6))
 #' # slope from time point 1 to 5
 #' overall(z,changepoints=c(1,5,7))
-overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
+overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0), bc=FALSE) {
   stopifnot(class(x)=="trim")
   which = match.arg(which)
 
@@ -59,7 +60,10 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
   tt_imp <- x$tt_imp
   var_tt_mod <- x$var_tt_mod
   var_tt_imp <- x$var_tt_imp
-  ntime <- x$ntime
+  J <- ntime <- x$ntime
+
+  # Set changepoints in case none are given
+  if (length(changepoints)==0) changepoints <- 1
 
   # if (base>0) { # use index instead
   #     browser()
@@ -84,26 +88,32 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
     if (df<=0) return("Unknown (df<=0)")
     alpha = c(0.05, 0.001)
     stopifnot(df>0)
-    tval <- qt((1-alpha/2), df)
+    if (bc) {
+      # Backwards compatbility, not recommended
+      tval <- qnorm((1-alpha/2))
+    } else {
+      tval <- qt((1-alpha/2), df)
+    }
     blo <- bhat - tval * berr
     bhi <- bhat + tval * berr
+
+    # First priority: evidece for a strong trend?
     if (blo[2] > 1.05) return("Strong increase (p<0.001)")
     if (bhi[2] < 0.95) return("Strong decrease (p<0.001)")
     if (blo[1] > 1.05) return("Strong increase (p<0.05)")
     if (bhi[1] < 0.95) return("Strong decrease (p<0.05)")
 
+    # Second prority: evidence for a moderate trend?
     eps = 1e-7 # required to get a correct interpretation for slope=0.0 (Stable)
     if (blo[2] > 1.0+eps) return("Moderate increase (p<0.001)")
     if (bhi[2] < 1.0-eps) return("Moderate decrease (p<0.001)")
     if (blo[1] > 1.0+eps) return("Moderate increase (p<0.05)")
     if (bhi[1] < 1.0-eps) return("Moderate decrease (p<0.05)")
 
-    # TO discuss: order of evaluation matters. What's more important?
-    # - strong increase p<0.05 or
-    # - moderate increase p<0.001
-
+    # Third priority: evidency for stability?
     if (blo[1]>0.95 && bhi[1]<1.05) return("Stable")
 
+    # Leftover category: uncertain
     return("Uncertain")
 }
 
@@ -157,8 +167,8 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
       row.names = c("intercept","slope")
     )
 
-    z$t = z$mul / z$se_mul
-    z$p = if (df>0) 2 * pt(abs(z$t), df, lower.tail=FALSE)
+    tval = z$mul / z$se_mul
+    z$p = if (df>0) 2 * pt(abs(tval), df, lower.tail=FALSE)
           else      NA
     z$meaning   = c("<none>", .meaning(z$mul[2], z$se_mul[2], n-2))
     list(src=src, coef=z, SSR=SSR)
@@ -186,22 +196,20 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
     stopifnot(all(diff(changepoints)>0))
     ncp <- length(changepoints)
     cpx <- c(changepoints, J) # Extend list of overall changepoints with final year
-    coef.collector = data.frame()
-    int.collector  = data.frame() # here go the intercepts
-    SSR.collector = numeric(ncp)
+    int.collector <- data.frame() # Here go the intercepts
+    slp.collector <- data.frame() # Here go the slopes
+    SSR.collector <- numeric(ncp) # Here go the SSR info
     for (i in 1:ncp) {
       idx <- cpx[i] : cpx[i+1]
       tmp <- .compute.overall.slope(idx, tt[idx], var_tt[idx,idx], src)
-      slope <- tmp$coef[2,] # slope is on second row of output dataframe
       prefix <- data.frame(from=x$time.id[cpx[i]], upto=x$time.id[cpx[i+1]])
-      coef.collector <- rbind(coef.collector, cbind(prefix, slope))
-      intercept <- tmp$coef[1,] # slope is on second row of output dataframe
+      intercept <- tmp$coef[1,] # Intercept is on first row of output dataframe
       int.collector <- rbind(int.collector, cbind(prefix, intercept))
+      slope <- tmp$coef[2,] # Slope is on second row of output dataframe
+      slp.collector <- rbind(slp.collector, cbind(prefix, slope))
       SSR.collector[i] = tmp$SSR
     }
-    out <- list(src=src
-                , coef=coef.collector, intercept = int.collector, SSR=SSR.collector
-                , type="changept") #store 'n' mark
+    out <- list(src=src, slope=slp.collector, intercept=int.collector, SSR=SSR.collector)
   }
   out$J = J
   out$tt = tt
@@ -220,24 +228,7 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0)) {
 #' @export
 #' @keywords internal
 print.trim.overall <- function(x,...) {
-  if (x$type=="normal") {
-    # Compute 95\% confidence interval of multiplicative slope
-    bhat <- x$coef[[3]][2] # multiplicative trend (i.e., not log-transformed)
-    berr <- x$coef[[4]][2] # corresponding standard error
-    level <- 0.95
-    alpha <- 1 - level
-    df <- x$J-2
-    tval <- qt((1-alpha/2), df)
-    blo <- bhat - tval * berr
-    bhi <- bhat + tval * berr
-    # Build an informative string
-    info <- sprintf("conf.int (mul; level=%d%%)=[%f, %f]", level*100, blo, bhi)
-    printf("Overall slope (%s): %s\n", x$src, info)
-    print(x$coef, row.names=TRUE)
-  } else if (x$type=="changept") {
-    printf("Overall slope (%s) for changepoints\n", x$src)
-    print(x$coef, row.names=FALSE)
-  } else stop("Can't happen")
+  print(x$slope, row.names=FALSE)
 }
 
 #--------------------------------------------------------------------- Plot ----
@@ -248,14 +239,14 @@ print.trim.overall <- function(x,...) {
 #' total population per time and their 95\% confidence intervals.
 #'
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
-#' @param imputed Toggle to show imputed counts
+#' @param imputed \code{[logical]} Toggle to show imputed counts
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @family analyses
 #'
 #' @examples
 #' data(skylark)
-#' m <- trim(count ~ time + site, data=skylark, model=2)
+#' m <- trim(count ~ site + time, data=skylark, model=2)
 #' plot(overall(m))
 #'
 #' @export
@@ -281,6 +272,7 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   trend.line <- NULL
   conf.band  <- NULL
 
+  X$type <- "changept" # Hack for merging overall/changepts
   if (X$type=="normal") {
     # Trend line
     a <- X$coef[[1]][1] # intercept
@@ -304,14 +296,14 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
     yconf <- c(ylo, rev(yhi))
     conf.band <- cbind(xconf, yconf)
   } else if (X$type=="changept") {
-    nsegment = nrow(X$coef)
+    nsegment = nrow(X$slope)
     for (i in 1:nsegment) {
 
       # Trend line
-      a <- X$intercept[i,3] # intercept
-      b <- X$coef[i,3] # slope
-      from <- which(tpt==X$coef[i,1]) # convert year -> time
-      upto <- which(tpt==X$coef[i,2])
+      a <- X$intercept[i,3]
+      b <- X$slope[i,3]
+      from <- which(tpt==X$slope[i,1]) # convert year -> time
+      upto <- which(tpt==X$slope[i,2])
       delta = (upto-from)*10
       x      <- seq(from, upto, length.out=delta) # continue timepoint 1..J
       ytrend <- exp(a + b*x)

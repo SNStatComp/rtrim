@@ -24,7 +24,7 @@ test_that("check_observations",{
 
   # model 3 with covariates
   d <- data.frame(count = rep(0:1,2), time = rep(1:2,each=2), cov = rep(1:2,2))
-  out <- check_observations(d, model=3,covar="cov")
+  out <- check_observations(d, model=3,covars="cov")
   expect_false(out$sufficient)
   expect_equal(out$errors,list(cov=data.frame(time=factor(1:2),cov=factor(c(1,1),levels=1:2))) )
 
@@ -36,6 +36,15 @@ test_that("check_observations",{
   
   # model 2, with covariates
   
+  d <- data.frame(
+    time=1:4
+    , X = c("A","A","A","B")
+    , count = c(1,1,1,0)
+  )
+  
+  out <- check_observations(d,model=2, covars = "X",changepoints=1)
+  expect_false(out$sufficient)
+  expect_equal(out$errors$X, data.frame(changepoint=factor(1),X=factor("B",levels=c("A","B")) ))
 })
 
 

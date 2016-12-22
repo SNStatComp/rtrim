@@ -1,8 +1,8 @@
 #' Estimate TRIM model parameters
 #'
 #'
-#' Compute TRIM model parameters as specified in the
-#' \href{https://www.cbs.nl/NR/rdonlyres/2E9912EB-534B-4A32-AD22-17A73402C083/0/trim3man.pdf}{TRIM3 manual}.
+#' Compute TRIM model parameters.
+#'
 #'
 #' @section Models:
 #'
@@ -10,6 +10,14 @@
 #' based on a set of counts \eqn{f_{ij}} at sites \eqn{i=1,2,\ldots,I}
 #' and times \eqn{j=1,2,\ldots,J}. If no count data is available at
 #' site and time \eqn{(i,j)}, a value \eqn{\mu_{ij}} will be imputed.
+#'
+#' In \bold{Model 1}, the imputed values are modeled as
+#'
+#' \eqn{\ln\mu_{ij} = \alpha_i,}
+#'
+#' where \eqn{\alpha_i} is the site effect. This model implies that the counts
+#' vary accross sites, not over time. The model-based \link[=totals]{time totals} are equal to
+#' each time point and the model-based \link[=index]{indices} are all equal to one.
 #'
 #' In \bold{Model 2}, the imputed values are modeled as
 #'
@@ -128,6 +136,10 @@
 #'
 #'
 #' @param x a \code{\link{trimcommand}}, a \code{data.frame}, or a \code{formula}
+#'  If \code{x} is a \code{formula}, the dependent variable (left-hand-side)
+#'  is treated as the 'counts' variable. The first and second independent variable
+#'  are treated as the 'site' and 'time' variable, \bold{in that specific order}. All
+#'  other variables are treated as covariates.
 #' @param ... Currently unused
 #'
 #'
@@ -135,12 +147,11 @@
 #'
 #' @family analyses
 #' @family modelspec
-#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \code{\link{summary.trim}},
-#' \code{\link{coef.trim}}.
+#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \href{../doc/Skylark_example.html}{TRIM by example}
 #'
 #' @examples
 #' data(skylark)
-#' m <- trim(count ~ time + site, data=skylark, model=2)
+#' m <- trim(count ~ site + time, data=skylark, model=2)
 #' summary(m)
 #' coefficients(m)
 #'
@@ -150,13 +161,13 @@
 #' # match weights to sites
 #' weights <- w[skylark$site]
 #' # run model
-#' m <- trim(count ~ time + site, data=skylark, model=3, weights=weights)
+#' m <- trim(count ~ site + time, data=skylark, model=3, weights=weights)
 #'
 #'
 #' # An example using change points, a covariate, and overdispersion
 #' # 1 is added as cp automatically
 #' cp <- c(2,6)
-#' m <- trim(count ~ time + site + Habitat, data=skylark, model=2, changepoints=cp, overdisp=TRUE)
+#' m <- trim(count ~ site + time + Habitat, data=skylark, model=2, changepoints=cp, overdisp=TRUE)
 #' coefficients(m)
 #' # check significance of changes in slope
 #' wald(m)
@@ -179,24 +190,26 @@ trim.trimcommand <- function(x,...){
   if (isTRUE(x$covin)) covin <- read_icv(x)
   else                 covin <- list()
 
-  out <- trim_estimate(count=dat$count
-                      , time.id = dat$time
-                      , site.id = dat$site
-                      , covars = dat[covars]
-                      , model = x$model
-                      , serialcor = x$serialcor
-                      , overdisp = x$overdisp
-                      , changepoints = x$changepoints
-                      , stepwise = x$stepwise
-                      , weights = wgt
-                      , covin = covin
-                      , ...)
+  trim_estimate(count=dat$count
+      , site.id = dat$site
+      , time.id = dat$time
+      , covars = dat[covars]
+      , model = x$model
+      , serialcor = x$serialcor
+      , overdisp = x$overdisp
+      , changepoints = x$changepoints
+      , stepwise = x$stepwise
+      , weights = wgt
+      , covin = covin
+      , ...)
 }
 
-#' @param formula \code{[formula]} The dependent variable (left-hand-side)
-#'  is treated as the 'counts' variable. The first and second independent variable
-#'  are treated as the 'time' and 'site' variable, in that specific order. All
-#'  other variables are treated as covariates.
+
+
+#' @param count.id \code{[character]} name of the column holding species counts
+#' @param site.id \code{[character]} name of the column holding the site id
+#' @param time.id \code{[character]} name of the column holding the time of counting
+#' @param covars \code{[character]} name(s) of column(s) holding covariates
 #' @param model \code{[numeric]} TRIM model type 1, 2, or 3.
 #' @param weights \code{[numeric]} Optional vector of site weights. The length of
 #' \code{weights} must be equal to the number of rows in the data.
@@ -209,14 +222,12 @@ trim.trimcommand <- function(x,...){
 #'
 #' @rdname trim
 #' @export
-trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
+trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time"
+                            , covars=character(0),  model = 2, weights=numeric(0)
   , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
   , autodelete=FALSE, ...) {
 
   if (nrow(x)==0) stop("Empty data frame")
-
-  # argument parsing
-  L <- parse_formula(formula,vars=names(x))
 
   stopifnot(is.numeric(model), model %in% 1:4)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
@@ -225,11 +236,11 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
   stopifnot(all(weights>0), length(weights) == 0  || length(weights) == nrow(x))
 
   # estimate the model and return
-  m <- trim_estimate(
-    count = x[[L$count]]
-    , time.id = x[[L$time]]
-    , site.id = x[[L$site]]
-    , covars = x[L$cov]
+  trim_estimate(
+    count = x[,count.id]
+    , site.id = x[,site.id]
+    , time.id = x[,time.id]
+    , covars = x[covars]
     , model = model
     , serialcor=serialcor
     , overdisp=overdisp
@@ -242,13 +253,16 @@ trim.data.frame <- function(x, formula, model = 2, weights=numeric(0)
 }
 
 #' @rdname trim
-#' @param data \code{[data.frame]} Data containing at least counts, times, and sites.
+#' @param data \code{[data.frame]} Data containing at least counts, sites, and times
 #' @export
-trim.formula <- function(x, data, model=c(1,2,3,4), weights=numeric(0)
+trim.formula <- function(x, data, model=2, weights=numeric(0)
           , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
           , autodelete=FALSE, ...){
   stopifnot(inherits(data,"data.frame"))
-  trim.data.frame(x=data, formula=x, model=model, weights=weights
+  L <- parse_formula(x, names(data))
+  trim.data.frame(x=data
+      , count.id=L$count, site.id=L$site, time.id=L$time, covars = L$cov
+      , model=model, weights=weights
       , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints
       , stepwise=stepwise, autodelete=autodelete, ...)
 }
@@ -266,7 +280,7 @@ parse_formula <- function(x, vars){
   if (!all(valid_vars)){
     stop(sprintf("Variables %s not found in data", pr(all_vars[!valid_vars])))
   }
-  list(count = lhs, time = rhs[1], site=rhs[2], cov=rhs[-(1:2)])
+  list(count = lhs, site=rhs[1], time = rhs[2], cov=rhs[-(1:2)])
 }
 
 

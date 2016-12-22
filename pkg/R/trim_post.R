@@ -1,11 +1,29 @@
 # ########################################### TRIM postprocessing functions ####
 
+# ================================================================= Print ======
+
+
+#' print a 'trim' object
+#'
+#' @param x a \code{\link{trim}} object
+#' @param ... currently unused
+#'
+#' @export
+#' @keywords internal
+print.trim <- function(x,...){
+  cat("Call:\n")
+  print(x$call)
+  cat("\n",x$convergence,"\n")
+  cat("\nCoefficients:\n")
+  print(coef.trim(x))
+}
+
 # ================================================================= Summary ====
 
 # ----------------------------------------------------------------- extract ----
 
 
-#' Print summary information for a TRIM job
+#' Summary information for a TRIM job
 #'
 #' Print a summary of a \code{\link{trim}} object.
 #'
@@ -24,7 +42,8 @@
 #' @examples
 #'
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' z <- trim(count ~ site + time, data=skylark, model=2, overdisp=TRUE)
+#'
 #' summary(z)
 summary.trim <- function(object,...) {
 
@@ -39,6 +58,7 @@ summary.trim <- function(object,...) {
     , convergence = object$convergence
   ),class="trim.summary")
 }
+
 
 #' @export
 #' @keywords internal
@@ -154,12 +174,12 @@ overdispersion <- function(x){
 #' slope defined by \eqn{\alpha^* + \beta^*d_j} is returned.
 #'
 #' Finally, note that both the overall slope and the deviations can be written
-#' in multiplicative format.
+#' in multiplicative form as well.
 #'
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param representation \code{[character]} Choose the coefficient
-#'   representation \code{"trend"} and \code{"deviations"} are for model 3 only.
+#'   representation. Options \code{"trend"} and \code{"deviations"} are for model 3 only.
 #' @param ... currently unused
 #'
 #' @return A \code{data.frame} containing coefficients and their standard errors,
@@ -170,7 +190,7 @@ overdispersion <- function(x){
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' z <- trim(count ~ site + time, data=skylark, model=2, overdisp=TRUE)
 #' coefficients(z)
 coef.trim <- function(object,
     representation=c("standard","trend","deviations"),...) {
@@ -202,7 +222,7 @@ coef.trim <- function(object,
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which select what totals to compute (see \code{Details} section).
 #'
-#' @return a \code{data.frame} with subclass \code{trim.totals}
+#' @return A \code{data.frame} with subclass \code{trim.totals}
 #'  (for pretty-printing). The columns are \code{time}, \code{fitted}
 #'  and \code{se_fit} (for standard error), and/or \code{imputed}
 #'  and \code{se_imp}, depending on the selection.
@@ -219,15 +239,12 @@ coef.trim <- function(object,
 #' values predicted by the model.}
 #' }
 #'
-#'
-#' @return A \code{data.frame} with time totals and their standard errors.
-#'
 #' @export
 #'
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2,changepoints=c(3,5))
+#' z <- trim(count ~ site + time, data=skylark, model=2, changepoints=c(3,5))
 #' totals(z)
 #'
 #' totals(z, "both") # mimics classic TRIM
@@ -270,8 +287,9 @@ export.trim.totals <- function(x, species, stratum) {
 #' Extract variance-covariance matrix from TRIM output
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
-#' @param ... Selector to distinguish between variance-covariance based on the
+#' @param which \code{[character]} Selector to distinguish between variance-covariance based on the
 #' imputed data (default), or the modelled data.
+#' @param ... Arguments to pass to or from other methods (currently unused)
 #'
 #' @return a JxJ matrix, where J is the number of time points.
 #' @export
@@ -279,13 +297,13 @@ export.trim.totals <- function(x, species, stratum) {
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ time + site, data=skylark, model=2);
+#' z <- trim(count ~ site + time, data=skylark, model=2);
 #' totals(z)
 #' vcv1 <- vcov(z)       # Use imputed data
-#' vcv2 <- vcov(z,"mod") # Use modelled data
-vcov.trim <- function(object, ...) {
+#' vcv2 <- vcov(z,"model") # Use modelled data
+vcov.trim <- function(object, which = c("imputed","model"), ... ) {
   stopifnot(inherits(object,"trim"))
-  which <-if (length(list(...))) match.arg(..., c("imputed","model")) else "imputed"
+  which <- match.arg(which)
 
   vcv <- switch(which
     , model   = object$var_tt_mod
@@ -303,6 +321,21 @@ vcov.trim <- function(object, ...) {
 # counts. These results are presented as a data frame, which is readily exported to
 # a file by the user.
 
+#' collect observed, modelled, and imputed counts from TRIM output
+#'
+#' @param z TRIM output structure (i.e., output of a call to \code{trim})
+#'
+#' @return A \code{data.frame}, one row per site-time combination, with columns for
+#' site, time, observed counts, modelled counts and imputed counts.
+#' Missing observations are marked as \code{NA}.
+#'
+#' @export
+#'
+#' @family analyses
+#' @examples
+#' data(skylark)
+#' z <- trim(count ~ site + time, data=skylark, model=2);
+#' out <- results(z)
 results <- function(z) {
   stopifnot(inherits(z,"trim"))
 
@@ -328,7 +361,7 @@ plot.trim.results <- function(z, ...) {
   yrange = range(z$observed, z$modelled, na.rm=TRUE)
   plot(xrange,yrange, type='n', xlab="Time", ylab="Counts")
   for (i in 1: nsite) {
-    df = subset(z, site==sites[i])
+    df = z[z$site == sites[i], ]
     points(df$time, df$observed, pch=16, col=colors[i])
     lines(df$time, df$modelled, col=colors[i])
   }
@@ -347,7 +380,7 @@ plot.trim.results <- function(z, ...) {
 #' @examples
 #'
 #' data(skylark)
-#' z <- trim(skylark, count ~ time + site,model=2,overdisp=TRUE)
+#' z <- trim(count ~ site + time, data=skylark, model=2, overdisp=TRUE)
 #' now_what(z)
 now_what <- function(z) {
   stopifnot(inherits(z,"trim"))
