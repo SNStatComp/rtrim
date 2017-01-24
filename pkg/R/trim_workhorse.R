@@ -11,8 +11,8 @@ compatible <- FALSE
 #' TRIM estimation function
 #'
 #' @param count a numerical vector of count data.
-#' @param time.id a numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
+#' @param time.id a numerical vector time points for each count data point.
 #' @param covars an optional data frame withcovariates
 #' @param model a model type selector (1, 2 or 3)
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
@@ -26,7 +26,7 @@ compatible <- FALSE
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_estimate <- function(count, time.id, site.id, month=NULL, covars=data.frame()
+trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame()
                          , model=2, serialcor=FALSE, overdisp=FALSE
                          , changepoints=integer(0)
                          , autodelete=TRUE, weights=numeric(0)
@@ -76,7 +76,7 @@ trim_estimate <- function(count, time.id, site.id, month=NULL, covars=data.frame
 
   t1 <- Sys.time()
   if (isTRUE(stepwise)) {
-    m <- trim_refine(count, year, site.id, month, covars, model, serialcor
+    m <- trim_refine(count, site.id, time.id, month, covars, model, serialcor
           , overdisp, changepoints, weights)
   } else {
     # data input checks: throw error if not enough counts available.
@@ -93,7 +93,7 @@ trim_estimate <- function(count, time.id, site.id, month=NULL, covars=data.frame
     }
 
     # compute actual model
-    m <- trim_workhorse(count, year, site.id, month, covars, model
+    m <- trim_workhorse(count, site.id, year, month, covars, model
           , serialcor, overdisp, changepoints, weights, covin
           , ...)
   }
@@ -110,8 +110,8 @@ trim_estimate <- function(count, time.id, site.id, month=NULL, covars=data.frame
 #' TRIM workhorse function
 #'
 #' @param count a numerical vector of count data.
-#' @param time.id an numerical vector time points for each count data point.
 #' @param site.id a numerical vector time points for each count data point.
+#' @param time.id an numerical vector time points for each count data point.
 #' @param covars an optional data frame with covariates
 #' @param model a model type selector
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
@@ -129,7 +129,7 @@ trim_estimate <- function(count, time.id, site.id, month=NULL, covars=data.frame
 #'
 #'
 #' @keywords internal
-trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame(),
+trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame(),
                          model=2, serialcor=FALSE, overdisp=FALSE,
                          changepoints=integer(0), weights=numeric(0),
                          covin = list(),
@@ -218,7 +218,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   if (use.months) {
     mon <- ordered(month)
     M <- nmonth <- length(levels(mon))
-  } else M=1
+  } else M <- nmonth <- 1
 
   #org.site.id <- site.id # Remember the original values for output purposes.
   if (class(site.id) %in% c("integer","numeric")) site.id <- factor(site.id)
@@ -270,8 +270,6 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     cvmat <- list()
     for (i in 1:ncovar) {
       cv = icovars[[i]]
-      m <- matrix(NA, nsite, ntime)
-      cv = covars[[i]]
       m <- matrix(NA, nsite, nyear)
       m[idx] <- cv
       if (any(is.na(m))) stop(sprintf('(implicit) NA values in covariate "%s".', names(covars)[i]), call.=FALSE)
@@ -296,6 +294,18 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   nobs <- rowSums(observed) # Number of actual observations per site (alwso works with months)
   npos <- rowSums(positive) # Number of useful ($f_{i,j}>0$) observations per site.
 
+  # Store indices for observed counts
+  obsi <- vector("list", nsite)
+  if (use.months) {
+    for (i in 1:nsite) {
+      obsi[[i]] <- as.vector(observed[i, ,]) # use 3D observed
+    }
+  } else {
+    for (i in 1:nsite) {
+      obsi[[i]] <- as.vector(observed[i, ]) # use 2D
+    }
+  }
+
   # Check if the covin matrices all have the right size.
   if (use.covin) {
     for (i in 1:nsite) {
@@ -312,7 +322,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
       changepoints <- 1L        # but internally use them nevertheless
     } else {
       use.changepoints <- TRUE
-      years <- as.integer(levels(time.id))
+      years <- as.integer(levels(timept))
       if (all(changepoints %in% years)) {
         # Convert changepoints in years  to 1..J
         changepoints <- match(changepoints, years)
@@ -475,16 +485,22 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
 
   update_alpha <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
-      obs = observed[i, ]
+      obs <- obsi[[i]] # observed[i, ]
       if (alpha_method==1) {
-        B = make.B(i)
-        f_i <- matrix(f[i, obs]) # cast as column vector
-        wt_i <- matrix(wt[i, obs]) # caset as column vector
+        # get (observed) counts for this site
+        f_i <- if (use.months) f[i,,] else f[i,] # Data for this site
+        f_i <- as.vector(f_i)                    # Matrix->vector representation
+        f_i <- f_i[obs]                          # Observed only
+        # idem weights, using more compact but equivalent code
+        wt_i <- if (use.months) as.vector(wt[i,,])[obs] else wt[i,obs]
+        # idem expected
+        mu_i <- if (use.months) as.vector(mu[i,,])[obs] else mu[i,obs]
+        # Get design matrix B
+        B <- make.B(i)
         B_i <- B[obs, , drop=FALSE]
         if (method=="ML") { # no covariance; $V_i = \diag{mu}$
           z_t <- matrix(1, 1, nobs[i])
         } else if (method=="GEE") { # Use covariance
-          mu_i = mu[i, obs]
           z_t <- mu_i %*% V_inv[[i]] # define correlation weights
         } else stop("Can't happen")
         if (z_t %*% f_i > 0) { # Application of method 1 is possible
@@ -575,17 +591,17 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
 
   update_V <- function(method=c("ML","GEE")) {
     for (i in 1:nsite) {
-      obs <- observed[i, ]
-      mu_i <- mu[i, obs]
-      f_i  <- f[i, obs]
+      obs <- obsi[[i]]
+      f_i <- if (use.months) as.vector(f[i,,])[obs] else f[i,obs]
+      mu_i <- if (use.months) as.vector(mu[i,,])[obs] else mu[i,obs]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
-      if (method=="ML") {
-        V_i <- sig2 * d_mu_i
-      } else if (method=="GEE") {
+      if (method=="GEE" & serialcor) {
         idx <- which(obs)
         R_i <- Rg[idx,idx]
         V_i <- sig2 * sqrt(d_mu_i) %*% R_i %*% sqrt(d_mu_i)
-      } else stop("Can't happen")
+      } else {
+        V_i <- sig2 * d_mu_i
+      }
       if (any(abs(diag(V_i))<1e-12)) browser()
       V_inv[[i]] <<- solve(V_i) # Store $V^{-1}# for later use
       Omega[[i]] <<- d_mu_i %*% V_inv[[i]] %*% d_mu_i # idem for $\Omega_i$
@@ -683,13 +699,13 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     i_b <<- 0 # Also store in outer environment for later retrieval
     U_b <<- 0
     for (i in 1:nsite) {
-      obs <- observed[i, ]
-      B = make.B(i)
-      mu_i <- mu[i, obs]
-      f_i  <- f[i, obs]
+      obs <- obsi[[i]]
+      f_i <- if (use.months) as.vector(f[i,,])[obs] else f[i,obs]
+      mu_i <- if (use.months) as.vector(mu[i,,])[obs] else mu[i,obs]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
       ones <- matrix(1, nobs[i], 1)
       d_i <- as.numeric(t(ones) %*% Omega[[i]] %*% ones) # Could use sum(Omega) as well...
+      B <- make.B(i)
       B_i <- B[obs, ,drop=FALSE] # recyle index for e.g. covariates in $B$
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
@@ -893,7 +909,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   time.id <- as.numeric(levels(timept))
   site.id <- factor(levels(site.id))
 
-  z <- list(title=title, f=f, nsite=nsite, nyear=nyear, time.id=time.id,
+  z <- list(title=title, f=f, nsite=nsite, nyear=nyear, ntime=nyear, time.id=time.id,
             site.id = site.id,
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints, converged=converged,
@@ -1094,6 +1110,10 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     ib <- ib - term
   }
 
+  # save stuff for debugging purposes
+  z$ib = ib
+  z$Omega = Omega
+
   # Matrices E and F take missings into account
   E <- -ib # replace by covin hessian
 
@@ -1107,10 +1127,11 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
       F <- matrix(0, nsite, nbeta)
       d <- numeric(nsite)
       for (i in 1:nsite) {
-        B <- make.B(i)
         d[i] <- sum(Omega[[i]])
         w_i <- colSums(Omega[[i]])
-        B_i <- B[observed[site==i], ,drop=FALSE]
+        B <- make.B(i)
+        obs <- obsi[[i]]
+        B_i <- B[obs, ,drop=FALSE]
         F_i <- (t(w_i) %*% B_i) / d[i]
         F[i, ] <- F_i
       }
@@ -1120,27 +1141,56 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
       # Zero-out unobserved $i,j$ to facilitate the computation of the variance of the imputed counts
       if (observed_only) wmu[!observed] = 0.0
       # Zero-out unselected sites to facilitate the computation of the variance of covariate categories
-      if (!is.null(mask)) wmu[!mask]     = 0.0
+      if (!is.null(mask)) wmu[!mask]    = 0.0
+
+      G <- matrix(0, nyear, nsite)
+      if (use.months) {
+        for (i in 1:nsite) for (j in 1:nyear) G[j,i] = sum(wmu[i,j, ])
+      } else {
+        for (i in 1:nsite) for (j in 1:nyear) G[j,i] = wmu[i,j]
+      }
 
       GddG <- matrix(0, nyear,nyear)
       for (i in 1:nsite) {
         for (j in 1:nyear) for (k in 1:nyear) {
-          GddG[j,k] <- GddG[j,k] + wmu[i,j]*wmu[i,k]/d[i]
+          #GddG[j,k] <- GddG[j,k] + wmu[i,j]*wmu[i,k]/d[i]
+          GddG[j,k] <- GddG[j,k] + G[j,i] * G[k,i] / d[i]
         }
       }
 
-      GF <- matrix(0, nyear, nbeta)
-      for (i in 1:nsite) {
-        for (j in 1:nyear) for (k in 1:nbeta)  {
-          GF[j,k] <- GF[j,k] + wmu[i,j] * F[i,k]
-        }
-      }
+      # GF  <- matrix(0, nyear, nbeta)
+      # GF2 <- matrix(0, nyear, nbeta)
+      # for (i in 1:nsite) {
+      #   for (j in 1:nyear) for (k in 1:nbeta) {
+      #     if (use.months) {
+      #       for (m in 1:nmonth) {
+      #         GF[j,k] <- GF[j,k] + wmu[i,j,m] * F[i,k]
+      #       }
+      #       GF2[j,k] <- GF2[j,k] + G[j,i] * F[i,k]
+      #     } else {
+      #       GF[j,k] <- GF[j,k] + wmu[i,j] * F[i,k]
+      #     }
+      #     #GF[j,k] <- GF[j,k] + G[j,i] * F[i,k]
+      #   }
+      # }
+      GF = G %*% F
 
       H <- matrix(0, nyear, nbeta)
-      for (i in 1:nsite) {
-        B <- make.B(i)
-        for (k in 1:nbeta) for (j in 1:nyear) {
-          H[j,k]  <- H[j,k] + B[j,k] * wmu[i,j]
+      if (use.months) {
+        for (i in 1:nsite) {
+          B_i <- make.B(i)
+          for (m in 1:nmonth) {
+            for (k in 1:nbeta) for (j in 1:nyear) {
+              H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j,m]
+            }
+          }
+        }
+      } else {
+        for (i in 1:nsite) {
+          B_i <- make.B(i)
+          for (k in 1:nbeta) for (j in 1:nyear) {
+            H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j]
+          }
         }
       }
 
@@ -1150,14 +1200,28 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
       if (model==1) V <- GddG
       else          V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
+      # output for debugging
+      if (observed_only==FALSE) {
+        z$G <<- G
+        z$d <<- d
+        z$GddG <<- GddG
+        z$GF <<- GF
+        z$H <<- H
+        z$GFminH <<- GFminH
+        z$Einv <<- solve(E)
+        z$V <<- V
+        z$vtt_vars <<- list(G=G, d=d, GddG=GddG, GF=GF, H=H, GFminH=GFminH, Einv=solve(E), V=V)
+      }
+
     } else { # Use input covariance
+      if (model==4) stop("Alas, covin+model 4 not implemented for model 4")
       if (!is.null(mask)) stop("Alas, covariates+upscaling not implemented yet.");
       # First loop op sites to compute $GF - H$.
       GFminH = matrix(0, nyear, nbeta)
       for (i in 1:nsite) { # First loop
         u <-  mu[i, ]
         wu <- wt[i, ] * mu[i, ]
-        obs <- observed[i, ] # observed j's
+        obs <- obsi[[i]] # observed[i, ] # observed j's
         if (observed_only) wu[!obs] <- 0.0
         w <- mu[i, obs]
         d <- sum(w)
@@ -1195,8 +1259,9 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
     V
   }
 
-  if (model==4) var_tt_mod = matrix(0,J,J)
-  else          var_tt_mod <- var_model_tt(observed_only = FALSE)
+  # if (model==4) var_tt_mod = matrix(0,J,J)
+  # else          var_tt_mod <- var_model_tt(observed_only = FALSE)
+  var_tt_mod <- var_model_tt(observed_only = FALSE)
 
   # To compute the variance of the time totals of the imputed data, we first
   # substract the contribution due to te observations, as computed by above scheme,
@@ -1211,15 +1276,25 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
       wwmu[!observed] <- 0 # # erase estimated $\mu$'s
       if (!is.null(mask)) wmu[!mask] <- 0.0 # Erase 'other' covariate categories also.
       for (i in 1:nsite) {
-        if (serialcor) {
-          srdu = sqrt(diag(wwmu[i, ]))
-          Vi = sig2 * srdu %*% Rg %*% srdu
+        if (use.months) {
+          for (m in 1:nmonth) {
+            wwmu_im <- wwmu[i, ,m]
+            Vi <- sig2 * diag(wwmu_im)
+            V <- V + Vi
+          }
         } else {
-          Vi = sig2 * diag(wwmu[i, ])
+          wwmu_i <- wwmu[i, ]
+          if (serialcor) {
+            srdu = sqrt(diag(wwmu_i))
+            Vi = sig2 * srdu %*% Rg %*% srdu
+          } else {
+            Vi = sig2 * diag(wwmu_i)
+          }
+          V = V + Vi
         }
-        V = V + Vi
       }
     } else {
+      if (model==4) stop("Alas, covin+model 4 not implemented for model 4")
       for (i in 1:nsite) {
         Vi = covin[[i]]
         obs <- observed[i, ]
@@ -1232,12 +1307,12 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
   }
 
   # Combine
-  if (model==4) var_tt_imp = matrix(0,J,J)
-  else {
+  # if (model==4) var_tt_imp = matrix(0,J,J)
+  # else {
     var_tt_obs_old <- var_model_tt(observed_only=TRUE)
     var_tt_obs_new <- var_observed_tt()
     var_tt_imp = var_tt_mod - var_tt_obs_old + var_tt_obs_new
-  }
+  # }
 
   # Time totals of the model, and it's standard error
   wmu <- if (use.weights) wt * mu else mu
@@ -1265,6 +1340,7 @@ trim_workhorse <- function(count, year, site.id, month=NULL, covars=data.frame()
 
   # Indices for covariates. First baseline
   if (use.covars) {
+    if (model==4) stop("Covariates not implemented for model 4")
     z$covar_tt <- list()
     for (i in 1:ncovar) {
       cvname <- names(covars)[i]
