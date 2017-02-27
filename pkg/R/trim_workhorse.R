@@ -134,6 +134,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
                          changepoints=integer(0), weights=numeric(0),
                          covin = list(),
                          conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
+                         sig2fix=1.0,
                          soft=FALSE, debug=FALSE)
 {
 
@@ -227,6 +228,25 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # check for double data
   stopifnot(length(count) <= I*J*M)
 
+  # Check for sufficient data
+  # # todo: speedup by using as.integer(mon) etc.
+
+  for (i in 1:I) {
+    cur_site <- levels(site.id)[i]
+    site_idx <- site.id == cur_site
+    # for (m in 1:M) {
+      # cur_month = levels(mon)[m]
+      # month_idx = month == cur_month
+      idx <- site_idx # & month_idx
+      nobs <- sum(idx)
+      # if (nobs==0) stop(sprintf("No observations for site \"%s\", month %s", cur_site, cur_month))
+      if (nobs==0) stop(sprintf("No observations for site %s", cur_site), call.=FALSE)
+      npos <- sum(count[idx], na.rm=TRUE)
+      # if (npos==0) stop(sprintf("No positive observations for site \"%s\", month %s", cur_site, cur_month), call.=FALSE)
+      if (npos==0) stop(sprintf("No positive observations for site %s", cur_site), call.=FALSE)
+  # }
+  }
+
   # Create observation matrix $f$.
   # Convert the data from a vector representation to a matrix representation.
   # It's OK to have missing site/time combinations; these will automatically
@@ -242,7 +262,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     f <- array(0, dim=c(nsite,nyear,nmonth))
     for (m in 1:M) {
       fm <- matrix(0, nsite, nyear)
-      midx = mon==m
+      midx = as.integer(mon) == m # month factor -> 1,2,3,etc
       rows <- as.integer(site.id[midx])
       cols <- as.integer(timept[midx])
       idx <- (cols-1)*nsite+rows
@@ -279,10 +299,24 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     cvmat <- NULL
   }
 
-  # idem for the weights (TODO: weights+monthts)
-  if (use.months) wt <- array(1.0, dim=c(nsite,nyear,nmonth))
-  else            wt <- matrix(1.0, nsite, nyear)
-  if (use.weights) wt[idx] <- weights
+  # idem for the weights
+  if (use.months) {
+    wt <- array(1.0, dim=c(nsite,nyear,nmonth))
+    if (use.weights) {
+      for (m in 1:M) {
+        wtm <- matrix(1.0, nsite, nyear)
+        midx = as.integer(mon) == m # month factor -> 1,2,3,etc
+        rows <- as.integer(site.id[midx])
+        cols <- as.integer(timept[midx])
+        idx <- (cols-1)*nsite+rows
+        wtm[idx] <- weights[midx]
+        wt[ , ,m] <- wtm
+      }
+    }
+  } else {
+    wt <- matrix(1.0, nsite, nyear)
+    if (use.weights) wt[idx] <- weights
+  }
 
   # We often need some specific subset of the data, e.g.\ all observations for site 3.
   # These are conveniently found by combining the following indices:
@@ -372,7 +406,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     for (m in 2:M) B <- rbind(B, unitB)
     B <- B[ ,-1]
     D <- matrix(rep(diag(M), each=J), J*M)
-    D <- D[ ,-1]
+    D <- D[ ,-1, drop=FALSE]
     B <- cbind(B, D) # comnine year effects and month effects
   }
 
@@ -505,11 +539,13 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         } else stop("Can't happen")
         if (z_t %*% f_i > 0) { # Application of method 1 is possible
           alpha[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta - log(wt_i)))
+          if (!is.finite(alpha[i])) stop("non-finite alpha problem 1a")
         } else { # Fall back to method 2
           sumf <- sum(f_i)
           sumu <- sum(mu_i)
           dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
           alpha[i] <<- alpha[i] + dalpha;
+          if (!is.finite(alpha[i])) stop("non-finite alpha problem 1b")
         }
         #if (z_t %*% f_i < 0) z_t = matrix(1, 1, nobs[i]) # alternative hack
       } else { #method 2: classic TRIM
@@ -519,6 +555,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         sumu <- sum(mu_i)
         dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
         alpha[i] <<- alpha[i] + dalpha;
+        if (!is.finite(alpha[i])) stop("non-finite alpha problem 2")
       }
     }
     #printf("\n\n** %f ** \n\n", max(abs(alpha1-alpha2)))
@@ -661,8 +698,32 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # and $r_{ij}$ are Pearson residuals (Section~\ref{r})
   sig2 <- 1.0 # default value (Maximum Likelihood case)
   update_sig2 <- function() {
-    df <- sum(nobs) - length(alpha) - length(beta) # degrees of freedom
-    sig2 <<- if (df>0) sum(r^2, na.rm=TRUE) / df else 1.0
+    if (isTRUE(sig2fix)) {
+      ok = is.finite(r)
+      r2 = r[ok]^2
+      Q1 = quantile(r2, 0.25)
+      Q3 = quantile(r2, 0.75)
+      lo = Q1 - 3 * (Q3-Q1)
+      hi = Q3 + 3 * (Q3-Q1)
+      cat(sprintf("Using r2 limit %f -- %f\n", lo, hi))
+      ok = (r2>lo) & (r2<hi)
+      r2 = r2[ok]
+      df <- length(r2) - length(alpha) - length(beta)
+      sig2 <<- if (df>0) sum(r2) / df else 1.0
+    } else if (sig2fix > 0) {
+      ok = is.finite(r)
+      r2 = r[ok]^2
+      for (iter in 1:10) {
+        df <- length(r2) - length(alpha) - length(beta)
+        sig2 <<- if (df>0) sum(r2) / df else 1.0
+        cutoff <- sig2 * qchisq(sig2fix, 1)
+        ok <- r2 < cutoff
+        r2 <- r2[ok]
+      }
+    } else {
+      df <- sum(nobs) - length(alpha) - length(beta) # degrees of freedom
+      sig2 <<- if (df>0) sum(r^2, na.rm=TRUE) / df else 1.0
+    }
     if (!is.finite(sig2)) stop("Overdispersion problem")
   }
 
@@ -727,7 +788,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   update_mu <- function(fill) {
     for (i in 1:nsite) {
       B = make.B(i)
-      if (use.months)       mu[i, , ] <<-  exp(alpha[i] + B %*% beta)
+      if (use.months)       mu[i, , ] <<-  (exp(alpha[i] + B %*% beta) / as.vector(wt[i,,]))
       else if (use.weights) mu[i, ]   <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
       else                  mu[i, ]   <<-  exp(alpha[i] + B %*% beta)
 
