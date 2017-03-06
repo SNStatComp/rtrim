@@ -17,9 +17,9 @@
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_refine <- function(count, site.id, time.id, covars=list(),
+trim_refine <- function(count, site.id, time.id, month, covars=list(),
                         model=2, serialcor=FALSE, overdisp=FALSE,
-                        changepoints=integer(0),weights=numeric(0))
+                        changepoints=integer(0), weights=numeric(0))
 {
   org_cp = changepoints
   ncp <- length(org_cp)
@@ -27,7 +27,7 @@ trim_refine <- function(count, site.id, time.id, covars=list(),
 
   # Always start with an estimation using all proposed changepoints
   cur_cp <- org_cp
-  z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp, weights)
+  z <- trim_workhorse(count, site.id, time.id, month, covars, model, serialcor, overdisp, cur_cp, weights)
 
   # # Hack: remove all except the first changepoints
   # n <- length(org_cp)
@@ -56,7 +56,7 @@ trim_refine <- function(count, site.id, time.id, covars=list(),
     # If a changepoint has been removed, we'll need to re-estimate the model
     if (removed) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site.id, time.id, month, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Phase 2: try to re-insert previously removed changepoints
@@ -103,7 +103,7 @@ trim_refine <- function(count, site.id, time.id, covars=list(),
     # If a changepoint has been re-inserted, we'll need to re-estimate the model
     if (added) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site.id, time.id, month, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Finished refinement?

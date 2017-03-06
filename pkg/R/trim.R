@@ -229,7 +229,7 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
 
   if (nrow(x)==0) stop("Empty data frame")
 
-  stopifnot(is.numeric(model), model %in% 1:3)
+  stopifnot(is.numeric(model), model %in% 1:4)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
   stopifnot(isTRUE(stepwise)||!isTRUE(stepwise))
