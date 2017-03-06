@@ -818,6 +818,13 @@ trim_workhorse <- function(count, site.id, time.id, covars=data.frame(),
                              iter)
   rprintf("%s\n", convergence_msg)
 
+  # Warn the user if a very low serial correlation has been found
+  if (serialcor && rho < 0.2) {
+    status <- ifelse(rho<0, "negative", "very low")
+    msg <- sprintf("Serial correlation is %s (rho=%.3f); consider disabling it.", status, rho)
+    warning(msg, call. = FALSE)
+  }
+
   # Run the final model
   update_mu(fill=TRUE)
 
