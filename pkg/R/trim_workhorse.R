@@ -699,27 +699,33 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   sig2 <- 1.0 # default value (Maximum Likelihood case)
   update_sig2 <- function() {
     if (isTRUE(sig2fix)) {
-      ok = is.finite(r)
-      r2 = r[ok]^2
-      Q1 = quantile(r2, 0.25)
-      Q3 = quantile(r2, 0.75)
-      lo = Q1 - 3 * (Q3-Q1)
-      hi = Q3 + 3 * (Q3-Q1)
+      ok <- as.logical(is.finite(f)) # matrix -> vector
+      r2 <- r[ok]^2
+      Q1 <- quantile(r2, 0.25)
+      Q3 <- quantile(r2, 0.75)
+      lo <- Q1 - 3 * (Q3-Q1)
+      hi <- Q3 + 3 * (Q3-Q1)
       cat(sprintf("Using r2 limit %f -- %f\n", lo, hi))
-      ok = (r2>lo) & (r2<hi)
-      r2 = r2[ok]
+      ok <- (r2>lo) & (r2<hi)
+      r2 <- r2[ok]
       df <- length(r2) - length(alpha) - length(beta)
       sig2 <<- if (df>0) sum(r2) / df else 1.0
-    } else if (sig2fix > 0) {
-      ok = is.finite(r)
-      r2 = r[ok]^2
-      for (iter in 1:10) {
+    } else if (sig2fix < 1) {
+      ok <- as.logical(is.finite(f)) # matrix -> vector
+      r2 <- r[ok]^2
+      for (iter in 1:50) {
         df <- length(r2) - length(alpha) - length(beta)
+        if (iter > 1) old_sig2 <- sig2
         sig2 <<- if (df>0) sum(r2) / df else 1.0
+        if (iter > 1) {
+          change <- sig2 - old_sig2
+          if (abs(change) < 0.1) break
+        }
         cutoff <- sig2 * qchisq(sig2fix, 1)
         ok <- r2 < cutoff
         r2 <- r2[ok]
       }
+      printf("\n\n*** sig2 converged after %d iterations\n\n", iter)
     } else {
       df <- sum(nobs) - length(alpha) - length(beta) # degrees of freedom
       sig2 <<- if (df>0) sum(r^2, na.rm=TRUE) / df else 1.0
