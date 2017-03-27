@@ -889,8 +889,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       if (!overdisp) sig2 <- 1.0 # hack
     }
     update_V(method)
-    update_U_i() # update Score $U_b$ and Fisher Information $i_b$
     if (model>1) {
+      update_U_i() # update Score $U_b$ and Fisher Information $i_b$
       subiters <- update_beta(method)
       if (!is.null(err.out)) return(err.out)
       rprintf(", %d subiters", subiters)
