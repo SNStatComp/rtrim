@@ -778,7 +778,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
-    if (any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
+    if (model>1 & any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
     # invertable <- class(try(solve(i_b), silent=T))=="matrix"
     # if (!invertable) {
     #   browser()
@@ -1199,16 +1199,9 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
 
     if (!use.covin) { # use computed covariance
 
-      F <- matrix(0, nsite, nbeta)
       d <- numeric(nsite)
       for (i in 1:nsite) {
         d[i] <- sum(Omega[[i]])
-        w_i <- colSums(Omega[[i]])
-        B <- make.B(i)
-        obs <- obsi[[i]]
-        B_i <- B[obs, ,drop=FALSE]
-        F_i <- (t(w_i) %*% B_i) / d[i]
-        F[i, ] <- F_i
       }
 
       # Matrices G and H are for all (weighted) mu's
@@ -1233,21 +1226,24 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         }
       }
 
-      # GF  <- matrix(0, nyear, nbeta)
-      # GF2 <- matrix(0, nyear, nbeta)
-      # for (i in 1:nsite) {
-      #   for (j in 1:nyear) for (k in 1:nbeta) {
-      #     if (use.months) {
-      #       for (m in 1:nmonth) {
-      #         GF[j,k] <- GF[j,k] + wmu[i,j,m] * F[i,k]
-      #       }
-      #       GF2[j,k] <- GF2[j,k] + G[j,i] * F[i,k]
-      #     } else {
-      #       GF[j,k] <- GF[j,k] + wmu[i,j] * F[i,k]
-      #     }
-      #     #GF[j,k] <- GF[j,k] + G[j,i] * F[i,k]
-      #   }
-      # }
+      # For model 1, F etc do not exist, so exit early
+      if (model==1) {
+        V <- GddG
+        return(V)
+      }
+
+      # Continue for other models
+
+      F <- matrix(0, nsite, nbeta)
+      for (i in 1:nsite) {
+        w_i <- colSums(Omega[[i]])
+        B <- make.B(i)
+        obs <- obsi[[i]]
+        B_i <- B[obs, ,drop=FALSE]
+        F_i <- (t(w_i) %*% B_i) / d[i]
+        F[i, ] <- F_i
+      }
+
       GF = G %*% F
 
       H <- matrix(0, nyear, nbeta)
@@ -1272,8 +1268,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       GFminH <- GF - H
 
       # All building blocks are ready. Use them to compute the variance
-      if (model==1) V <- GddG
-      else          V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
+      V <- GddG + GFminH %*% solve(E) %*% t(GFminH)
 
       # output for debugging
       if (observed_only==FALSE) {
@@ -1331,7 +1326,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         V <- V + Vi
       }
     }
-    V
+
+    V # function output
   }
 
   # if (model==4) var_tt_mod = matrix(0,J,J)
