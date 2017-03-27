@@ -5,8 +5,9 @@
 #' TRIM stepwise refinement
 #'
 #' @param count a numerical vector of count data.
-#' @param site.id a numerical vector time points for each count data point.
-#' @param time.id a numerical vector time points for each count data point.
+#' @param site.id a vector (numerical or factor) of site identifiers for each count data point.
+#' @param year    a numerical vector of annual time points for each count data point.
+#' @param month   an optional numerical vector of monthly time points
 #' @param covars an optional list of covariates
 #' @param model a model type selector
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
@@ -17,7 +18,7 @@
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_refine <- function(count, site.id, time.id, month, covars=list(),
+trim_refine <- function(count, site.id, year, month, covars=list(),
                         model=2, serialcor=FALSE, overdisp=FALSE,
                         changepoints=integer(0), weights=numeric(0))
 {
@@ -27,22 +28,24 @@ trim_refine <- function(count, site.id, time.id, month, covars=list(),
 
   # Always start with an estimation using all proposed changepoints
   cur_cp <- org_cp
-  z <- trim_workhorse(count, site.id, time.id, month, covars, model, serialcor, overdisp, cur_cp, weights)
+  z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
 
   # # Hack: remove all except the first changepoints
   # n <- length(org_cp)
   # active[2:n] <- FALSE
   # cur_cp <- org_cp[active]
-  # z <- trim_workhorse(count, site.id, time.id, covars, model, serialcor, overdisp, cur_cp)
+  # z <- trim_workhorse(count, site.id, year, covars, model, serialcor, overdisp, cur_cp)
 
   for (iter in 1:100) {
     # Phase 1: can one of the changepoints be removed?
     # (Only applies for 2 or more changepoints)
+    # We don't allow the deletion of changepoint #1, so we don't even consider it.
     if (sum(active)>=2) {
       W <- wald(z)
-      max_p = max(W$dslope$p)
+      n <- length(W$dslope$p)
+      max_p = max(W$dslope$p[2:n])
       if (max_p > 0.2) {
-        i = which.max(W$dslope$p)
+        i = which.max(W$dslope$p[2:n])+1
         del_cp <- cur_cp[i]
         del_p  <- max_p
         rprintf("\n>>> Deleted changepoint %d (p = %.4f) <<<\n\n", del_cp, del_p)
@@ -56,7 +59,7 @@ trim_refine <- function(count, site.id, time.id, month, covars=list(),
     # If a changepoint has been removed, we'll need to re-estimate the model
     if (removed) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, site.id, time.id, month, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Phase 2: try to re-insert previously removed changepoints
@@ -103,7 +106,7 @@ trim_refine <- function(count, site.id, time.id, month, covars=list(),
     # If a changepoint has been re-inserted, we'll need to re-estimate the model
     if (added) {
       cur_cp = org_cp[active]
-      z <- trim_workhorse(count, site.id, time.id, month, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
     # Finished refinement?

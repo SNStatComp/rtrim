@@ -35,7 +35,8 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
 {
   call <- sys.call(1)
 
-  year <- time.id # change conventions
+  year <- time.id # change conventions (from timept to year/month)
+  time.id <- NULL
 
   # kick out missing/zero sites
   useful <- count>0
@@ -52,8 +53,8 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
     }
   }
   if (nkickout>0) {
-    count = count[ok]
-    year  = year[ok]
+    count <- count[ok]
+    year  <- year[ok]
     if(!is.null(month)) month <- month[ok]
     site.id = site.id[ok]
     if (length(weights)>0) weights = weights[ok]
@@ -76,7 +77,7 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
 
   t1 <- Sys.time()
   if (isTRUE(stepwise)) {
-    m <- trim_refine(count, site.id, time.id, month, covars, model, serialcor
+    m <- trim_refine(count, site.id, year, month, covars, model, serialcor
           , overdisp, changepoints, weights)
   } else {
     # data input checks: throw error if not enough counts available.
