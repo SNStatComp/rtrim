@@ -4,13 +4,13 @@
 #'
 #' The overal slope represents the total growth over the piecewise linear model.
 #'
-#'
 #' @param x an object of class \code{\link{trim}}.
 #' @param which \code{[character]} Choose between \code{"imputed"} or
 #'   \code{"fitted"} counts.
 #' @param changepoints \code{[numeric]} Change points for which to compute the overall slope,
 #'   or "model", in which case the changepoints from the model are used (if any)
-#' @param bc flag to set backwards compatability with TRIM with respect to trend interpretation.
+#' @param bc \code{[logical]} Flag to set backwards compatability with TRIM with respect to trend interpretation.
+#'   Defaults to \code{FALSE}.
 #'
 #' @section Details:
 #'
@@ -20,9 +20,12 @@
 #' The values for \code{changepoints} do not depend on \code{changepoints} that were used when
 #' specifying the \code{trim} model (See also the example below).
 #'
+#' Note that the original TRIM erroneously assumed that the estimated overall trend
+#' magnitude is t-distributed, while in fact it is normally distributed, which is being used within rtrim.
+#' The option \code{bc=TRUE} can be set to force backward compability, for e.g. comparison purposes.
 #'
 #' @return a list of class \code{trim.overall} containing, a.o., overall slope
-#'   coefficients (\code{slope}), augmented wih p-values and an interpretation).
+#'   coefficients (\code{slope}), augmented with p-values and an interpretation).
 #' @export
 #'
 #' @family analyses

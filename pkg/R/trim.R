@@ -229,6 +229,21 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
 
   if (nrow(x)==0) stop("Empty data frame")
 
+  # # handle 'bare' weights specifier (column name, not as string)
+  # if (class(substitute(weights))=="name") {
+  #   weights <- deparse(substitute(weights))
+  # }
+
+  # Handle character-type weights specifier
+  str(weights)
+  if (is.character(weights)) {
+    if (!weights %in% names(x)) {
+      msg <- sprintf("Weights column \"%s\" not present in data frame.", weights)
+      stop(msg, call.=FALSE)
+    }
+    weights <- x[[weights]]
+  }
+
   stopifnot(is.numeric(model), model %in% 1:4)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))

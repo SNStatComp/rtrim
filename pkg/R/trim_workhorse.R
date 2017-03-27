@@ -252,7 +252,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # It's OK to have missing site/time combinations; these will automatically
   # translate to NA values.
   if (!use.months) {
-    f <- matrix(0, nsite, nyear) # ??? check if we should not use NA instead of 0!!!
+    f <- matrix(NA, nsite, nyear) # ??? check if we should not use NA instead of 0!!!
     rows <- as.integer(site.id) # `site.id' is a factor, thus this results in $1\ldots I$.
     cols <- as.integer(timept) # idem, $1 \ldots J$.
     idx <- (cols-1)*nsite+rows   # Create column-major linear index from row/column subscripts.

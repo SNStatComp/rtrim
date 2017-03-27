@@ -1,5 +1,6 @@
 version 1.1.0
-- 
+- Added backward compatibility option in overall() to match erroneous overall trend interpretation in original TRIM (thans for Lars Petterson to pointing out the differences in trend interpretation)
+
 version 1.0.2
 - Limit on regression parameters now equal to original TRIM (thanks to Lars Petterson)
 
