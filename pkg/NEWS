@@ -3,6 +3,8 @@ version 1.1.0
 
 version 1.0.2
 - Limit on regression parameters now equal to original TRIM (thanks to Lars Petterson)
+- Fixed problem during stepwise regression when the algorithm wants to remove the first changepoint (thanks to Asaf Tsoar)
+- Fixed computation of standard errors when model==1 (thanks to Asaf Tsoar) 
 
 version 1.0.1
 - initial CRAN release
