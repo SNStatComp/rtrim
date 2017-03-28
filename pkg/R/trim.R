@@ -235,7 +235,6 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
   # }
 
   # Handle character-type weights specifier
-  str(weights)
   if (is.character(weights)) {
     if (!weights %in% names(x)) {
       msg <- sprintf("Weights column \"%s\" not present in data frame.", weights)
