@@ -136,7 +136,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
                          covin = list(),
                          conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
                          sig2fix=1.0,
-                         soft=FALSE, debug=FALSE)
+                         soft=FALSE, debug=FALSE, warnings=TRUE)
 {
 
   # =========================================================== Preparation ====
@@ -189,14 +189,14 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # remove covariates that have only a single class
   while (any(nclass==1)) {
     idx <-  which(nclass==1)[1]
-    warning(sprintf("Removing covariate \"%s\" which has only one class.", names(covars)[idx])
+    if (warnings) warning(sprintf("Removing covariate \"%s\" which has only one class.", names(covars)[idx])
             , call. = FALSE)
     covars <-  covars[-idx]
     icovars <- icovars[-idx]
     nclass <- nclass[-idx]
     ncovar <- ncovar-1
     if (ncovar==0) {
-      warning("No covariates left", call. = FALSE)
+      if (warnings) warning("No covariates left", call. = FALSE)
       use.covars <- FALSE
     }
   }
@@ -278,12 +278,12 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (sum(totals)==0) stop("No positive observations in the data.")
   if (totals[1]==0) {
     n = which(totals>0)[1] - 1
-    warning(sprintf("Data starts with %d years without positive observations.", n))
+    if (warnings) warning(sprintf("Data starts with %d years without positive observations.", n))
   }
   totals <- rev(totals)
   if (totals[1]==0) {
     n = which(totals>0)[1] - 1
-    warning(sprintf("Data ends with %d years without positive observations.", n))
+    if (warnings) warning(sprintf("Data ends with %d years without positive observations.", n))
   }
 
   # Create similar matrices for all covariates
@@ -953,7 +953,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (serialcor && rho < 0.2) {
     status <- ifelse(rho<0, "negative", "very low")
     msg <- sprintf("Serial correlation is %s (rho=%.3f); consider disabling it.", status, rho)
-    warning(msg, call. = FALSE)
+    if (warnings) warning(msg, call. = FALSE)
   }
 
   # Run the final model
