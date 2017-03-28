@@ -275,6 +275,7 @@ test_that("testing skylark-2a",{
 })
 
 context("Error handling")
+
 test_that("invalid model specs",{
   data(skylark)
   expect_error(
@@ -291,7 +292,15 @@ test_that("invalid model specs",{
 
 })
 
-
+test_that("Zero expected count", {
+  load("testdata/131183.RData")
+  suppressWarnings(
+    expect_error(
+      trim(count ~ site + year, data=df, model=2, overdisp=TRUE, serialcor=TRUE, changepoints="all", autodelete=TRUE),
+           regexp = "Zero expected value at year 2014"
+      )
+    )
+})
 
 test_that("tcf checker",{
 
