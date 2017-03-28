@@ -640,7 +640,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       } else {
         V_i <- sig2 * d_mu_i
       }
-      if (any(abs(diag(V_i))<1e-12)) browser()
+      # if (any(abs(diag(V_i))<1e-12)) browser()
       V_inv[[i]] <<- solve(V_i) # Store $V^{-1}# for later use
       Omega[[i]] <<- d_mu_i %*% V_inv[[i]] %*% d_mu_i # idem for $\Omega_i$
     }
@@ -799,6 +799,27 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       else if (use.weights) mu[i, ]   <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
       else                  mu[i, ]   <<-  exp(alpha[i] + B %*% beta)
 
+      # Do not allow very small estimates, because that screws up the computation of $V$.
+      # Anyway, the model is not designed to predict 0's
+      if (use.months) {
+        for (m in 1:M) {
+          mu_check <- mu[i, ,m] < 1e-12
+          if (any(mu_check)) {
+            j <- which(mu_check)[1]
+            y <- as.numeric(levels(timept))[j]
+            msg <- sprintf("Zero expected value at year %d month %d\n", y, m)
+            stop(msg, call.=FALSE)
+          }
+        }
+      } else {
+        mu_check <- mu[i, ] < 1e-12
+        if (any(mu_check)) {
+          j <- which(mu_check)[1]
+          y <- as.numeric(levels(timept))[j]
+          msg <- sprintf("Zero expected value at year %d\n", y)
+          stop(msg, call.=FALSE)
+        }
+      }
     }
     # clear estimates for non-observed cases, if required.
     if (!fill) mu[!observed] <<- 0.0
