@@ -60,6 +60,8 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
     if (length(weights)>0) weights = weights[ok]
     rprintf("Removed %d %s without observations: (%s)\n", nkickout,
             ifelse(nkickout==1, "site","sites"), paste0(del.sites, collapse=", "))
+    # Prevent the formation of 'empty' levels
+    if (is.factor(site.id)) site.id <- droplevels(site.id)
   }
 
   # Handle "auto" changepoints
