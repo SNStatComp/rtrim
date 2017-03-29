@@ -1,3 +1,9 @@
+version 1.1.3
+- Fixed a bug resulting in wrong p-values output by the overall() function (thanks to Anna Marie Holand for reporting).
+
+version 1.1.2
+- Fixed problem when to many years have no or 0 counts, such that the expected value becomes effectively 0 as well. This case now generates an error message “Zero expected value” (thanks to Arco van Strien for proving this case)
+
 version 1.1.1
 - Fixed problem during stepwise regression when the algorithm wants to remove the first changepoint (thanks to Asaf Tsoar)
 - Fixed computation of standard errors when model==1 (thanks to Asaf Tsoar) 
