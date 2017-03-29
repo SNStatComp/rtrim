@@ -732,6 +732,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     } else {
       df <- sum(nobs) - length(alpha) - length(beta) # degrees of freedom
       sig2 <<- if (df>0) sum(r^2, na.rm=TRUE) / df else 1.0
+      if (sig2 < 1e-7) stop("Overdispersion apparently 0; consider setting overdisp=FALSE")
+      if (sig2 < 1) warning(sprintf("Overdispersion %.1f <1; consider setting overdisp=FALSE", sig2), call.=FALSE)
     }
     if (!is.finite(sig2)) stop("Overdispersion problem")
   }

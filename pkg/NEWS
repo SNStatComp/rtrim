@@ -1,3 +1,6 @@
+version 1.1.5
+- Now generates an error when the computed overdispersion is 0, and a warning when overdispersion < 1 (thanks to Oscar Ramírez for proving a data set where this happened)
+
 version 1.1.4
 - Fixed a bug caused by auto-removal of empty factorial sites (thanks to Tomás Murray)
 
