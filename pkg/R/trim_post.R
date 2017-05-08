@@ -280,6 +280,104 @@ export.trim.totals <- function(x, species, stratum) {
   print(df, row.names=FALSE)
 }
 
+#------------------------------------------------------------------ Plot -----
+
+plot.trim.totals <- function(t1, ..., leg.pos="topleft") {
+
+  # Create custom palette based on Color Brewer Set 1
+  brewer_set1 <- c("#E41A1C","#377EB8","#4DAF4A","#984EA3","#FF7F00","#FFFF33","#A65628","#F781BF","#999999")
+  opaque <- brewer_set1
+  aqua   <- brewer_set1
+  for (i in 1:9) aqua[i] <- adjustcolor(aqua[i], 0.2)
+
+
+  # Build a list of time-totals with optional titles
+  tt = list(t1)
+  optional = list(...)
+
+  # cat("tt pre:\n")
+  # str(tt)
+
+  # cat("optional:\n")
+  # str(optional)
+
+  nopt = length(optional)
+  for (i in seq_len(nopt)) {
+    x = optional[[i]]
+    if ("character" %in% class(x)) {
+      attr(tt[[length(tt)]], "tag") <- x
+    } else if ("trim.totals" %in% class(x)) {
+      tt[[length(tt)+1]] <- x
+    } else {
+      stop(sprintf("Invalid data type for optional argument %d: %s", i, class(x)))
+    }
+  }
+
+  # cat("tt post:\n")
+  # str(tt)
+
+  # cat("leg.pos:\n")
+  # str(leg.pos)
+
+  # First pass to compute total range
+  n = length(tt)
+  for (i in 1:n) {
+    x = tt[[i]][[1]] # Time point or years
+    y = tt[[i]][[2]] # imputed or fitted
+    s = tt[[i]][[3]] # Standard error
+    ylo = y-s
+    yhi = y+s
+    if (i==1) {
+      xrange <- range(x)
+      yrange <- range(ylo, yhi)
+    } else {
+      xrange <- range(xrange, range(x))
+      yrange <- range(yrange, range(ylo, range(yhi)))
+    }
+  }
+
+  # empty plot for correct axes
+  plot(xrange, yrange, type='n', xlab="Time point", ylab="Time totals")
+
+  # Second pass: plot them
+  for (i in 1:n) {
+    x = tt[[i]][[1]] # Time point or years
+    y = tt[[i]][[2]] # imputed or fitted
+    s = tt[[i]][[3]] # Standard error
+    ylo = y-s
+    yhi = y+s
+
+    xx = c(x, rev(x))
+    ci = c(ylo, rev(yhi))
+
+    polygon(xx,ci, col=aqua[i], border=NA)
+    lines(x,y, col=opaque[i])
+  }
+
+  # third pass: legend
+  nnamed  = 0
+  nnoname = 0
+  for (i in 1:n) {
+    s <- attr(tt[[i]],"tag")
+    if (is.null(s)) {
+      nnoname <- nnoname + 1
+      s <- sprintf("<unnamed> %d", nnoname)
+    } else {
+      nnamed = nnamed + 1
+    }
+    if (i==1) {
+      leg.colors <- opaque[i]
+      leg.names  <- s
+    } else {
+      leg.colors <- c(leg.colors, opaque[i])
+      leg.names <- c(leg.names, s)
+    }
+  }
+  if (n>1 | nnamed>0) {
+    legend(leg.pos, legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
+  }
+}
+
 # ============================================== Variance-Covariance matrix ====
 
 # ----------------------------------------------------------------- extract ----
