@@ -105,7 +105,9 @@ print_and_capture <- function(x){
 assert_positive <- function(x, varname){
   if (any(x <= 0)){
     i <- which(x<=0)
-    stop(sprintf("Found zero or less counts for %s %s",varname, paste(names(x[i]),collapse=", ")),call.=FALSE)
+    msg <- if (is.null(varname)) sprintf("Found zero or less counts for %s", paste(names(x[i]),collapse=", "))
+           else                  sprintf("Found zero or less counts for %s %s",varname, paste(names(x[i]),collapse=", "))
+    stop(msg,call.=FALSE)
   }
   invisible(TRUE)
 }

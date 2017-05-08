@@ -643,6 +643,9 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         V_i <- sig2 * d_mu_i
       }
       # if (any(abs(diag(V_i))<1e-12)) browser()
+      # printf("\n!!! Site: %d\n", i)
+      # print(mu_i)
+      # if (any(mu_i < 6e-18)) browser()
       V_inv[[i]] <<- solve(V_i) # Store $V^{-1}# for later use
       Omega[[i]] <<- d_mu_i %*% V_inv[[i]] %*% d_mu_i # idem for $\Omega_i$
     }
