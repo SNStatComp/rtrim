@@ -489,7 +489,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # Now that we know much parameters are requested, check if we do have enough observations.
   # For this, we ignore the `0' observations
   nalpha <- length(alpha)
-  if (sum(npos) < (nalpha+nbeta)) {
+  if (sum(nobs) < (nalpha+nbeta)) {
     msg <- sprintf("Not enough positive observations (%d) to specify %d parameters (%d alpha + %d beta)", sum(npos), nalpha+nbeta, nalpha, nbeta)
     if (soft) return(list(error=msg)) else stop(msg, call.=FALSE)
   }
