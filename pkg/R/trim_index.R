@@ -277,3 +277,105 @@ plot.trim.index <- function(x, covar="auto", ...) {
   if (use.covars)
     legend("topleft", legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
 }
+
+plot.midx <- function(idx1, ..., main="", leg.pos="topleft")
+{
+  # Create custom palette based on Color Brewer Set 1
+  brewer_set1 <- c("#E41A1C","#377EB8","#4DAF4A","#984EA3","#FF7F00","#FFFF33","#A65628","#F781BF","#999999")
+  opaque <- brewer_set1
+  aqua   <- brewer_set1
+  for (i in 1:9) aqua[i] <- adjustcolor(aqua[i], 0.3)
+
+  # Build a list of indices with optional titles
+  idx = list(idx1)
+  optional = list(...)
+
+  nopt = length(optional)
+  for (i in seq_len(nopt)) {
+    x = optional[[i]]
+    if ("character" %in% class(x)) {
+      attr(idx[[length(idx)]], "tag") <- x
+    } else if ("trim.index" %in% class(x)) {
+      idx[[length(idx)+1]] <- x
+    } else {
+      stop(sprintf("Invalid data type for optional argument %d: %s", i, class(x)))
+    }
+  }
+
+  # First pass to compute total range
+  n = length(idx)
+  for (i in 1:n) {
+    x = idx[[i]][[1]] # Time point or years
+    y = idx[[i]][[2]] # imputed or fitted index
+    s = idx[[i]][[3]] # Standard error
+    ylo = y-s
+    yhi = y+s
+    if (i==1) {
+      xrange <- range(x)
+      yrange <- range(ylo, yhi)
+    } else {
+      xrange <- range(xrange, range(x))
+      yrange <- range(yrange, range(ylo, range(yhi)))
+    }
+  }
+
+  # empty plot for correct axes
+  plot(xrange, yrange, type='n', xlab="Time point", ylab="Index", main=main)
+
+  # Second pass: SE panels
+  for (i in 1:n) {
+    x = idx[[i]][[1]] # Time point or years
+    y = idx[[i]][[2]] # imputed or fitted index
+    s = idx[[i]][[3]] # Standard error
+    ylo = y-s
+    yhi = y+s
+
+    xx = c(x, rev(x))
+    ci = c(ylo, rev(yhi))
+
+    polygon(xx,ci, col=aqua[i], border=NA)
+  }
+
+  # Third pass: SE lines
+  for (i in 1:n) {
+    x = idx[[i]][[1]] # Time point or years
+    y = idx[[i]][[2]] # imputed or fitted index
+    s = idx[[i]][[3]] # Standard error
+    ylo = y-s
+    yhi = y+s
+
+    segments(x,ylo, x,yhi, col="white", lwd=1)
+  }
+
+  # Fourth pass: lines+points
+  for (i in 1:n) {
+    x = idx[[i]][[1]] # Time point or years
+    y = idx[[i]][[2]] # imputed or fitted index
+
+    lines(x,y, col=opaque[i], lwd=2)
+    points(x,y, col=opaque[i], pch=16)
+  }
+
+  # Fifth pass: legend
+  nnamed  = 0
+  nnoname = 0
+  for (i in 1:n) {
+    s <- attr(idx[[i]],"tag")
+    if (is.null(s)) {
+      nnoname <- nnoname + 1
+      s <- sprintf("<unnamed> %d", nnoname)
+    } else {
+      nnamed = nnamed + 1
+    }
+    if (i==1) {
+      leg.colors <- opaque[i]
+      leg.names  <- s
+    } else {
+      leg.colors <- c(leg.colors, opaque[i])
+      leg.names <- c(leg.names, s)
+    }
+  }
+  if (n>1 | nnamed>0) {
+    legend(leg.pos, legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
+  }
+}
