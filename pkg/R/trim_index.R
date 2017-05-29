@@ -51,38 +51,36 @@
   out
 }
 
-.new_index <- function(tt, var_tt, nlead=3) {
-  # new version
-  tau = tt / mean(tt[1:nlead])
+
+.index <- function(tt, var_tt, base) {
+
+  nbase <- length(base)
+
+  if (nbase==1) {
+    tau <- tt / tt[base]
+  } else {
+    tau <- tt / mean(tt[base])
+  }
 
   J <- length(tt)
   var_tau <- numeric(J)
-  d = matrix(0, nlead+1, 1)
+  d <- matrix(0, nbase+1, 1)
   for (j in 1:J) {
-    # Create j-specific d
-    for (i in 1:nlead) {
-      d[i] = -nlead * tt[j] / sum(tt[1:nlead])^2
+
+    if (nbase==1 && j==base) {
+      var_tau[j] <- 0.0
+    } else {
+      d[1:nbase] <- -nbase * tt[j] / sum(tt[base])^2
+      d[nbase+1] <- nbase / sum(tt[base])
     }
-    d[nlead+1] = nlead / sum(tt[1:nlead])
-    idx = c(1:nlead, j)
-    V = var_tt[idx,idx]
+
+    idx <- c(base, j)
+    V <- var_tt[idx,idx]
     var_tau[j] <- t(d) %*% V %*% d
   }
 
   out <- list(tau=tau, var_tau=var_tau)
 }
-
-
-
-.index <- function(tt,var_tt, b=1, nlead=NA) {
-  if (is.finite(nlead)) {
-    out <- .new_index(tt, var_tt, nlead)
-  } else {
-    out <- .old_index(tt, var_tt, b)
-  }
-  out
-}
-
 
 # ========================================================== User interface ====
 
@@ -122,13 +120,15 @@
 #' z <- trim(count ~ site + time + Habitat, data=skylark, model=2)
 #' ind <- index(z, covars=TRUE)
 #' plot(ind)
-index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, nlead=NA) {
+index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
   stopifnot(inherits(x,"trim"))
 
   # Match base to actual time points
-  if (base %in% x$time.id) {
-    base = which(base == x$time.id)
-    stopifnot(length(base)==1)
+  if (base[1] %in% x$time.id) {
+    # First base time point is an actual year. Check that all the others are
+    stopifnot(all(base %in% x$time.id))
+    # Then convert year to time point
+    for (i in seq_along(base)) base[i] <- which(base[i] == x$time.id)
   }
 
   # Start with overall indices (i.e. ignoring covariate categories, if applicable)
@@ -136,21 +136,21 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, n
   which <- match.arg(which)
   if (which=="fitted") {
     # Call workhorse function to do the actual computation
-    mod <- .index(x$tt_mod, x$var_tt_mod, base, nlead)
+    mod <- .index(x$tt_mod, x$var_tt_mod, base)
     # Store results in a data frame
     out <- data.frame(time  = x$time.id,
                       fitted = mod$tau,
                       se_fit = sqrt(mod$var_tau))
   } else if (which=="imputed") {
     # Idem, using the imputed time totals instead
-    imp <- .index(x$tt_imp, x$var_tt_imp, base, nlead)
+    imp <- .index(x$tt_imp, x$var_tt_imp, base)
     out = data.frame(time    = x$time.id,
                      imputed = imp$tau,
                      se_imp  = sqrt(imp$var_tau))
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
-    mod <- .index(x$tt_mod, x$var_tt_mod, base, nlead)
-    imp <- .index(x$tt_imp, x$var_tt_imp, base, nlead)
+    mod <- .index(x$tt_mod, x$var_tt_mod, base)
+    imp <- .index(x$tt_imp, x$var_tt_imp, base)
     out = data.frame(time    = x$time.id,
                      fitted   = mod$tau,
                      se_fit  = sqrt(mod$var_tau),
@@ -175,13 +175,13 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, n
         df = data.frame(covariate=ttij$covariate, category=ttij$class, time=x$time.id)
         # Compute model index+variance
         if (which %in% c("fitted","both")) {
-          idx <- .index(ttij$mod, ttij$var_mod, base, nlead)
+          idx <- .index(ttij$mod, ttij$var_mod, base)
           df2 <- data.frame(fitted=idx$tau, se_fit=sqrt(idx$var_tau))
           df <- cbind(df, df2)
         }
         # Idem for imputed index + variance
         if (which %in% c("imputed","both")) {
-          idx <- .index(ttij$imp, ttij$var_imp, base, nlead)
+          idx <- .index(ttij$imp, ttij$var_imp, base)
           df2 <- data.frame(imputed=idx$tau, se_imp=sqrt(idx$var_tau))
           df <- cbind(df, df2)
         }
