@@ -3,7 +3,7 @@
 
 # ============================================= Internal workhorse function ====
 
-.index <- function(tt, var_tt, b) {
+.old_index <- function(tt, var_tt, b) {
 
   # Time index $\tau_j$ is defined as time totals $\Mu$, normalized by the time total for the base
   # year, i.e.\,
@@ -51,6 +51,37 @@
   out
 }
 
+.new_index <- function(tt, var_tt, nlead=3) {
+  # new version
+  tau = tt / mean(tt[1:nlead])
+
+  J <- length(tt)
+  var_tau <- numeric(J)
+  d = matrix(0, nlead+1, 1)
+  for (j in 1:J) {
+    # Create j-specific d
+    for (i in 1:nlead) {
+      d[i] = -nlead * tt[j] / sum(tt[1:nlead])^2
+    }
+    d[nlead+1] = nlead / sum(tt[1:nlead])
+    idx = c(1:nlead, j)
+    V = var_tt[idx,idx]
+    var_tau[j] <- t(d) %*% V %*% d
+  }
+
+  out <- list(tau=tau, var_tau=var_tau)
+}
+
+
+
+.index <- function(tt,var_tt, b=1, nlead=NA) {
+  if (is.finite(nlead)) {
+    out <- .new_index(tt, var_tt, nlead)
+  } else {
+    out <- .old_index(tt, var_tt, b)
+  }
+  out
+}
 
 
 # ========================================================== User interface ====
@@ -91,7 +122,7 @@
 #' z <- trim(count ~ site + time + Habitat, data=skylark, model=2)
 #' ind <- index(z, covars=TRUE)
 #' plot(ind)
-index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
+index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, nlead=NA) {
   stopifnot(inherits(x,"trim"))
 
   # Match base to actual time points
@@ -105,21 +136,21 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
   which <- match.arg(which)
   if (which=="fitted") {
     # Call workhorse function to do the actual computation
-    mod <- .index(x$tt_mod, x$var_tt_mod, base)
+    mod <- .index(x$tt_mod, x$var_tt_mod, base, nlead)
     # Store results in a data frame
     out <- data.frame(time  = x$time.id,
                       fitted = mod$tau,
                       se_fit = sqrt(mod$var_tau))
   } else if (which=="imputed") {
     # Idem, using the imputed time totals instead
-    imp <- .index(x$tt_imp, x$var_tt_imp, base)
+    imp <- .index(x$tt_imp, x$var_tt_imp, base, nlead)
     out = data.frame(time    = x$time.id,
                      imputed = imp$tau,
                      se_imp  = sqrt(imp$var_tau))
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
-    mod <- .index(x$tt_mod, x$var_tt_mod, base)
-    imp <- .index(x$tt_imp, x$var_tt_imp, base)
+    mod <- .index(x$tt_mod, x$var_tt_mod, base, nlead)
+    imp <- .index(x$tt_imp, x$var_tt_imp, base, nlead)
     out = data.frame(time    = x$time.id,
                      fitted   = mod$tau,
                      se_fit  = sqrt(mod$var_tau),
@@ -144,13 +175,13 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
         df = data.frame(covariate=ttij$covariate, category=ttij$class, time=x$time.id)
         # Compute model index+variance
         if (which %in% c("fitted","both")) {
-          idx <- .index(ttij$mod, ttij$var_mod, base)
+          idx <- .index(ttij$mod, ttij$var_mod, base, nlead)
           df2 <- data.frame(fitted=idx$tau, se_fit=sqrt(idx$var_tau))
           df <- cbind(df, df2)
         }
         # Idem for imputed index + variance
         if (which %in% c("imputed","both")) {
-          idx <- .index(ttij$imp, ttij$var_imp, base)
+          idx <- .index(ttij$imp, ttij$var_imp, base, nlead)
           df2 <- data.frame(imputed=idx$tau, se_imp=sqrt(idx$var_tau))
           df <- cbind(df, df2)
         }
