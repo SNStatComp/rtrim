@@ -269,9 +269,10 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
 #' @rdname trim
 #' @param data \code{[data.frame]} Data containing at least counts, sites, and times
 #' @export
-trim.formula <- function(x, data, model=2, weights=numeric(0)
+trim.formula <- function(x, data=NA, model=2, weights=numeric(0)
           , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
-          , autodelete=FALSE, ...){
+          , autodelete=FALSE, ...) {
+  if (is.na(data)) stop("No data given")
   stopifnot(inherits(data,"data.frame"))
   L <- parse_formula(x, names(data))
   trim.data.frame(x=data
