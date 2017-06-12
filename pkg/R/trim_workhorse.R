@@ -39,29 +39,47 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
   time.id <- NULL
 
   # kick out missing/zero sites
-  useful <- count>0
-  ok = rep(TRUE, length(count))
-  sites = unique(site.id)
-  del.sites = character(0)
-  nkickout = 0
-  for (site in sites) {
-    idx = site.id==site
-    if (!any(count[idx]>0, na.rm=TRUE)) {
-      ok[idx] = FALSE
-      nkickout = nkickout+1
-      del.sites <- c(del.sites, site)
-    }
-  }
+  # useful <- count>0
+  # ok = rep(TRUE, length(count))
+  # sites = unique(site.id)
+  # del.sites = character(0)
+  # nkickout = 0
+  # for (site in sites) {
+  #   idx = site.id==site
+  #   if (!any(count[idx]>0, na.rm=TRUE)) {
+  #     ok[idx] = FALSE
+  #     nkickout = nkickout+1
+  #     del.sites <- c(del.sites, site)
+  #   }
+  # }
+  # if (nkickout>0) {
+  #   count <- count[ok]
+  #   year  <- year[ok]
+  #   if(!is.null(month)) month <- month[ok]
+  #   site.id = site.id[ok]
+  #   if (length(weights)>0) weights = weights[ok]
+  #   rprintf("Removed %d %s without observations: (%s)\n", nkickout,
+  #           ifelse(nkickout==1, "site","sites"), paste0(del.sites, collapse=", "))
+  #   # Prevent the formation of 'empty' levels
+  #
+  # }
+
+  # kick out missing/zero sites
+  tot_count <- tapply(count, site.id, function(x) sum(x>0, na.rm=TRUE)) # Count total observations per site
+  full_sites  <- names(tot_count)[tot_count>0]
+  empty_sites <- names(tot_count)[tot_count==0]
+  nkickout <- length(empty_sites)
+
   if (nkickout>0) {
-    count <- count[ok]
-    year  <- year[ok]
-    if(!is.null(month)) month <- month[ok]
-    site.id = site.id[ok]
-    if (length(weights)>0) weights = weights[ok]
     rprintf("Removed %d %s without observations: (%s)\n", nkickout,
-            ifelse(nkickout==1, "site","sites"), paste0(del.sites, collapse=", "))
-    # Prevent the formation of 'empty' levels
+            ifelse(nkickout==1, "site","sites"), paste0(empty_sites, collapse=", "))
+    idx <- site.id %in% full_sites
+    count <- count[idx]
+    year  <- year[idx]
+    if(!is.null(month)) month <- month[idx]
+    site.id <- site.id[idx]
     if (is.factor(site.id)) site.id <- droplevels(site.id)
+    if (length(weights)>0) weights <- weights[idx]
   }
 
   # Handle "auto" changepoints
@@ -140,7 +158,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
                          sig2fix=1.0,
                          soft=FALSE, debug=FALSE)
 {
-
+  if (debug) browser()
   # =========================================================== Preparation ====
 
   # Check the arguments. \verb!count! should be a vector of numerics.
@@ -779,7 +797,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       mu_i <- if (use.months) as.vector(mu[i,,])[obs] else mu[i,obs]
       d_mu_i <- diag(mu_i, length(mu_i)) # Length argument guarantees diag creation
       ones <- matrix(1, nobs[i], 1)
-      d_i <- as.numeric(t(ones) %*% Omega[[i]] %*% ones) # Could use sum(Omega) as well...
+      # d_i <- as.numeric(t(ones) %*% Omega[[i]] %*% ones) # Could use sum(Omega) as well...
+      d_i <- sum(Omega[[i]])
       B <- make.B(i)
       B_i <- B[obs, ,drop=FALSE] # recyle index for e.g. covariates in $B$
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
@@ -1247,11 +1266,13 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       }
 
       GddG <- matrix(0, nyear,nyear)
-      for (i in 1:nsite) {
-        for (j in 1:nyear) for (k in 1:nyear) {
-          #GddG[j,k] <- GddG[j,k] + wmu[i,j]*wmu[i,k]/d[i]
-          GddG[j,k] <- GddG[j,k] + G[j,i] * G[k,i] / d[i]
-        }
+      # for (i in 1:nsite) {
+      #   for (j in 1:nyear) for (k in 1:nyear) {
+      #     GddG[j,k] <- GddG[j,k] + G[j,i] * G[k,i] / d[i]
+      #   }
+      # }
+      for (j in 1:nyear) for (k in 1:nyear) {
+        GddG[j,k] <- sum(G[j, ] * G[k, ] / d)
       }
 
       # For model 1, F etc do not exist, so exit early
@@ -1279,17 +1300,21 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         for (i in 1:nsite) {
           B_i <- make.B(i)
           for (m in 1:nmonth) {
-            for (k in 1:nbeta) for (j in 1:nyear) {
-              H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j,m]
-            }
+            # for (k in 1:nbeta) for (j in 1:nyear) {
+            #   H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j,m]
+            # }
+            wmu_im <- matrix(wmu[i, ,m], nyear,nbeta)
+            H <- H + (B_i * wmu_im)
           }
         }
       } else {
         for (i in 1:nsite) {
           B_i <- make.B(i)
-          for (k in 1:nbeta) for (j in 1:nyear) {
-            H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j]
-          }
+          # for (k in 1:nbeta) for (j in 1:nyear) {
+          #   H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j]
+          # }
+          wmu_i <- matrix(wmu[i, ], nyear,nbeta)
+          H <- H + (B_i * wmu_i)
         }
       }
 
