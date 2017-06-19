@@ -900,7 +900,11 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       # convergence <- conv_par && conv_cnt && conv_lik
       convergence <- conv_rho && conv_sig && conv_beta
       # rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
-      rprintf(" Max change: %10e %10e %10e ", rho_change, sig_change, beta_change)
+      # rprintf(" Max change: %10e %10e %10e ", rho_change, sig_change, beta_change)
+      rprintf(" (max change:")
+      if (overdisp)  rprintf(" sig^2=%10e", sig_change)
+      if (serialcor) rprintf(" rho=%10e", rho_change)
+      rprintf(" beta=%10e)", beta_change)
     } else {
       convergence = FALSE
     }
