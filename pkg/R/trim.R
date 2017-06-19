@@ -243,6 +243,35 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
     weights <- x[[weights]]
   }
 
+  # Check covariates
+  if (length(covars)>0) {
+    for (covar in covars) {
+
+      # Does the covariate exist?
+      if (!covar %in% names(x)) {
+        msg <- sprintf("Covariate column \"%s\" not present in data frame.", covar)
+        stop(msg, call.=FALSE)
+      }
+
+      # # is is a factor? If not, raise an error
+      # cls <- class(x[[covar]])
+      # if (!"factor" %in% cls) {
+      #   msg <- sprintf("Covariate \"%s\" is not a factor but of class \"%s\".", covar, paste(cls,collapse=","))
+      #   stop(msg, call.=FALSE)
+      # }
+
+      # Is it not a factor? Convert it.
+      cls <- class(x[[covar]])
+      if (!"factor" %in% cls) {
+        rprintf("Converting covariate \"%s\" from class \"%s\" to a factor.\n", covar, paste(cls,collapse=","))
+        x[[covar]] <- factor(x[[covar]])
+      }
+
+    }
+  }
+
+  # browser()
+
   stopifnot(is.numeric(model), model %in% 1:4)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
