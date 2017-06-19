@@ -51,6 +51,7 @@ check_observations <- function(x,...){
 check_observations.data.frame <- function(x, model, covars = list()
   , changepoints = numeric(0), time.id="time",count.id="count", eps=1e-8, ...){
 
+  # browser()
   stopifnot(model %in% 1:3)
 
   out <- list()
@@ -102,22 +103,12 @@ print_and_capture <- function(x){
 }
 
 # all x positive or an error
-assert_positive <- function(x, varname){
+assert_positive <- function(x, varname) {
   if (any(x <= 0)){
     i <- which(x<=0)
     msg <- if (is.null(varname)) sprintf("Found zero or less counts for %s", paste(names(x[i]),collapse=", "))
            else                  sprintf("Found zero or less counts for %s %s",varname, paste(names(x[i]),collapse=", "))
     stop(msg,call.=FALSE)
-  }
-  invisible(TRUE)
-}
-
-# x strictly increasting or an error
-assert_increasing <- function(x, varname){
-  if( !all(diff(x)>0) ){
-    stop(sprintf(
-      "%s not ordered or containing duplicates",varname
-    ), call.=FALSE)
   }
   invisible(TRUE)
 }
@@ -129,31 +120,45 @@ assert_sufficient_counts <- function(count, index) {
   assert_positive(time_totals, names(index))
 }
 
+
 # Get an indicator for the pieces in 'piecewise linear model'
 # that are encoded in changepoints.
 pieces_from_changepoints <- function(time, changepoints) {
-  if (length(changepoints)==0) return(rep(0,length(time))) # nothing to do
+  # extra checks - remove in production code
+  if (length(changepoints)>0) {
+    stopifnot(max(changepoints) < length(unique(time)))
+    stopifnot(min(changepoints) > 0)
+  }
 
   # convert time from (possibly non-contiguous) years to time points 1..ntime
   tpt <- as.integer(ordered(time))
 
-  pieces <- integer(length(tpt))
-  C <- changepoints
-  if (C[length(C)] != max(tpt)) C <- append(C,max(tpt))
-
-  for ( i in seq_along(C[-1])){
-    j <- seq(C[i] + 1, C[i+1])
-    pieces[tpt %in% j] <- C[i]
+  # Assign each time point tot the corresponding change point
+  pieces <- integer(length(tpt)) # Allocate memory
+  for (cpt in changepoints) {
+    idx <- tpt > cpt
+    pieces[idx] <- cpt
   }
+
+  # Ready
   pieces
 }
 
+
+## Check model 2
+
 # sufficient data for piecewise linear trend model
 assert_plt_model <- function(count, time, changepoints, covars){
-  assert_increasing(changepoints, "change points")
-  if (length(changepoints)==0) changepoints <- 1
+
+  # First check if the changepoints, are strictly increasing
+  if (!all(diff(changepoints)>0) ) {
+    msg <- "changepoints not ordered, or containing duplicates"
+    stop(msg, call.=FALSE)
+  }
+
   # label the pieces in piecewise linear regression
   pieces <- pieces_from_changepoints(time, changepoints)
+
   ok = pieces>0 # Allow zero observations for changepoint 0
   if (length(covars)==0){
     assert_sufficient_counts(count[ok], list(changepoint=pieces[ok]))
@@ -168,16 +173,23 @@ assert_plt_model <- function(count, time, changepoints, covars){
 # of matrices with columns 'timename', value (of the covariate)
 get_cov_count_errlist <- function(count, time, covars, timename="time"){
   ERR <- list()
-
-  for ( i in seq_along(covars) ){
+  # browser()
+  for (i in seq_along(covars)) { # For all covariates
     covname <- names(covars)[i]
     cov <- covars[[i]]
-    index <- list(time=time,value = cov)
+    index <- list(time=time, value=cov)
     names(index)[1] <- timename
     tab <- tapply(count, INDEX=index, FUN=sum, na.rm=TRUE)
     df <- as.data.frame(as.table(tab))
+    # df[,1] = as.integer(df[,1]) # time or piece chareacter->integer
+    # browser()
+    # allow no-pos-data on time pt 0
+    if (timename=="changepoint") {
+      idx <- df$changepoint != "0"
+      df <- df[idx, ]
+    }
 
-    # df$Freq[is.na(df$Freq)] <- 0 # replace NA -> 0
+    df$Freq[is.na(df$Freq)] <- 0 # replace NA -> 0
     #
     # # Allow no-data at cp 0
     # CP0 = levels(df$time)[1]
@@ -194,7 +206,7 @@ get_cov_count_errlist <- function(count, time, covars, timename="time"){
 }
 
 # count: vector of counts
-# time: vector of time points
+# time: vector of time point or piece ID
 # covar: list of covariate vectors
 assert_covariate_counts <- function(count, time, covars, timename="time"){
   err <- get_cov_count_errlist(count, time, covars, timename=timename)
@@ -210,6 +222,7 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 # returns the value of the CP, or -1 when nothing
 # needs to be deleted.
 get_deletion <- function(count, time, changepoints, covars) {
+  # browser()
   # if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
   out <- -1
   if (length(changepoints)==1) return(out) # Never propose to delete a lonely changepoint
@@ -232,7 +245,7 @@ get_deletion <- function(count, time, changepoints, covars) {
   out
 }
 
-autodelete <- function(count, time, changepoints, covars) {
+autodelete <- function(count, time, changepoints, covars=NULL) {
   out <- get_deletion(count, time, changepoints, covars)
   while (out > 0) {
     cp = as.integer(out)

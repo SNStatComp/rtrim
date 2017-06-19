@@ -80,6 +80,8 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
     site.id <- site.id[idx]
     if (is.factor(site.id)) site.id <- droplevels(site.id)
     if (length(weights)>0) weights <- weights[idx]
+    # Don't forget to adjust the covariates as well!
+    if (nrow(covars)>0) covars <- covars[idx,]
   }
 
   # Handle "auto" changepoints
@@ -308,12 +310,14 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
 
   # Create similar matrices for all covariates
   if (use.covars) {
+    if (use.months) stop("months+covars not yet correctly implemented")
     cvmat <- list()
     for (i in 1:ncovar) {
       cv = icovars[[i]]
       m <- matrix(NA, nsite, nyear)
       m[idx] <- cv
-      if (any(is.na(m))) stop(sprintf('(implicit) NA values in covariate "%s".', names(covars)[i]), call.=FALSE)
+      # not sure why the following line was included; NA's are allowed (mirroring NA's in f)
+      # if (any(is.na(m))) stop(sprintf('(implicit) NA values in covariate "%s".', names(covars)[i]), call.=FALSE)
       cvmat[[i]] <- m
     }
   } else {
@@ -372,6 +376,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # For model 2, we do not allow for changepoints $<1$ or $\geq J$.
   # At the same time, a changepoint $1$ must be present
   if (model==2) {
+    # stopifnot(length(changepoints)>0)
     if (length(changepoints)==0) {
       use.changepoints <- FALSE # Pretend we're not using changepoints at all
       changepoints <- 1L        # but internally use them nevertheless
@@ -1056,7 +1061,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (use.weights) {
     z$wt = wt
   } else {
-    z$wt = NULL
+    # Do nothing
   }
 
   class(z) <- "trim"
