@@ -81,7 +81,7 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
     if (is.factor(site.id)) site.id <- droplevels(site.id)
     if (length(weights)>0) weights <- weights[idx]
     # Don't forget to adjust the covariates as well!
-    if (nrow(covars)>0) covars <- covars[idx,]
+    if (nrow(covars)>0) covars <- covars[idx, ,drop=FALSE] # prevent data.frame -> vector degradation!
   }
 
   # Handle "auto" changepoints

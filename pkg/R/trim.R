@@ -270,8 +270,6 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
     }
   }
 
-  # browser()
-
   stopifnot(is.numeric(model), model %in% 1:4)
   stopifnot(isTRUE(serialcor)||!isTRUE(serialcor))
   stopifnot(isTRUE(overdisp)||!isTRUE(overdisp))
