@@ -101,23 +101,23 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0), bc=
     bhi <- bhat + tval * berr
 
     # First priority: evidece for a strong trend?
-    if (blo[2] > +0.05) return("Strong increase (p<0.001)")
-    if (bhi[2] < -0.05) return("Strong decrease (p<0.001)")
+    if (blo[2] > +0.05) return("Strong increase (p<0.01)")
+    if (bhi[2] < -0.05) return("Strong decrease (p<0.01)")
     if (blo[1] > +0.05) return("Strong increase (p<0.05)")
     if (bhi[1] < -0.05) return("Strong decrease (p<0.05)")
-    # if (blo[2] > 1.05) return("Strong increase (p<0.001)")
-    # if (bhi[2] < 0.95) return("Strong decrease (p<0.001)")
+    # if (blo[2] > 1.05) return("Strong increase (p<0.01)")
+    # if (bhi[2] < 0.95) return("Strong decrease (p<0.01)")
     # if (blo[1] > 1.05) return("Strong increase (p<0.05)")
     # if (bhi[1] < 0.95) return("Strong decrease (p<0.05)")
 
     # Second prority: evidence for a moderate trend?
     eps = 1e-7 # required to get a correct interpretation for slope=0.0 (Stable)
-    if (blo[2] > +eps) return("Moderate increase (p<0.001)")
-    if (bhi[2] < -eps) return("Moderate decrease (p<0.001)")
+    if (blo[2] > +eps) return("Moderate increase (p<0.01)")
+    if (bhi[2] < -eps) return("Moderate decrease (p<0.01)")
     if (blo[1] > +eps) return("Moderate increase (p<0.05)")
     if (bhi[1] < -eps) return("Moderate decrease (p<0.05)")
-    # if (blo[2] > 1.0+eps) return("Moderate increase (p<0.001)")
-    # if (bhi[2] < 1.0-eps) return("Moderate decrease (p<0.001)")
+    # if (blo[2] > 1.0+eps) return("Moderate increase (p<0.01)")
+    # if (bhi[2] < 1.0-eps) return("Moderate decrease (p<0.01)")
     # if (blo[1] > 1.0+eps) return("Moderate increase (p<0.05)")
     # if (bhi[1] < 1.0-eps) return("Moderate decrease (p<0.05)")
     #
