@@ -87,6 +87,8 @@
 #' Extract time-indices from trim output. Infices are obtained by dividing the modelled or imputed time totals by a reference value.
 #' Most commonly, the time totals for the first time point are used as reference.
 #' As a result, the index value for this first time point will be 1.0, with a standard error of 0.0 by definition.
+#' Alternatively, a range of time points can be used as reference. In this case, the mean time totals for this range will be used as
+#' reference, and the standard errors will be larger than 0.0.
 #'
 #' @param x an object of class \code{\link{trim}}
 #' @param which \code{[character]} Selector to distinguish between time indices based on the imputed data (default),

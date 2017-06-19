@@ -1,3 +1,10 @@
+version 1.2.0
+- Introduced time-window-based indexing
+- Automatically converts non-factor covariates to factors
+- Fixes a bug occuring when empty sites are combined with covariates (thanks to Marnix de Zeeuw)
+- Speed improvements
+- Minor bug fixes
+ 
 version 1.1.5
 - Now generates an error when the computed overdispersion is 0, and a warning when overdispersion < 1 (thanks to Oscar Ramírez for proving a data set where this happened)
 
