@@ -282,9 +282,9 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     f[idx] <- count    # ... such that we can paste all data into the right positions
   } else {
     # Create a layers f, one layer per month
-    f <- array(0, dim=c(nsite,nyear,nmonth))
+    f <- array(NA, dim=c(nsite,nyear,nmonth))
     for (m in 1:M) {
-      fm <- matrix(0, nsite, nyear)
+      fm <- matrix(NA, nsite, nyear)
       midx = as.integer(mon) == m # month factor -> 1,2,3,etc
       rows <- as.integer(site.id[midx])
       cols <- as.integer(timept[midx])
@@ -297,6 +297,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # TRIM is not intended for extrapolation. Therefore, issue a warning if the first or last
   # time points do not contain positive observations.
   totals <- colSums(f, na.rm=TRUE)
+  if (use.months) totals <- rowSums(totals) # aggregate months
   if (sum(totals)==0) stop("No positive observations in the data.")
   if (totals[1]==0) {
     n = which(totals>0)[1] - 1
@@ -433,7 +434,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     B <- B[ ,-1]
     D <- matrix(rep(diag(M), each=J), J*M)
     D <- D[ ,-1, drop=FALSE]
-    B <- cbind(B, D) # comnine year effects and month effects
+    B <- cbind(B, D) # combine year effects and month effects
   }
 
   # For some purposes (e.g. vcov() ), we do need a dummy first column in B
@@ -1308,12 +1309,15 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       if (use.months) {
         for (i in 1:nsite) {
           B_i <- make.B(i)
+          idx <- 1 : J # rows of B_i for m=1
           for (m in 1:nmonth) {
+            B_i_m <- B_i[idx, ,drop=FALSE]
+            idx <- idx + J # shift no next month
             # for (k in 1:nbeta) for (j in 1:nyear) {
             #   H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j,m]
             # }
             wmu_im <- matrix(wmu[i, ,m], nyear,nbeta)
-            H <- H + (B_i * wmu_im)
+            H <- H + (B_i_m * wmu_im)
           }
         }
       } else {
@@ -1322,7 +1326,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
           # for (k in 1:nbeta) for (j in 1:nyear) {
           #   H[j,k]  <- H[j,k] + B_i[j,k] * wmu[i,j]
           # }
-          wmu_i <- matrix(wmu[i, ], nyear,nbeta)
+          wmu_i <- matrix(wmu[i, ], nyear,nbeta) # recycling intended
           H <- H + (B_i * wmu_i)
         }
       }
