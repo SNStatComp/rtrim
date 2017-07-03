@@ -903,9 +903,9 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       # rprintf(" Max change: %10e %10e %10e ", max_par_change, max_cnt_change, max_lik_change)
       # rprintf(" Max change: %10e %10e %10e ", rho_change, sig_change, beta_change)
       rprintf(" (max change:")
-      if (overdisp)  rprintf(" sig^2=%10e", sig_change)
-      if (serialcor) rprintf(" rho=%10e", rho_change)
-      rprintf(" beta=%10e)", beta_change)
+      if (overdisp)  rprintf(" sig^2=%.3e", sig_change)
+      if (serialcor) rprintf(" rho=%.3e", rho_change)
+      rprintf(" beta=%.3e)", beta_change)
     } else {
       convergence = FALSE
     }
@@ -934,7 +934,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
 
   for (iter in 1:max_iter) {
     if (compatible && iter==4) method <- final_method
-    rprintf("Iteration %d (%s)", iter, method)
+    rprintf("Iteration %d (%s", iter, method)
     update_alpha(method)
     if (!is.null(err.out)) return(err.out)
     update_mu(fill=FALSE)
@@ -950,11 +950,11 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       update_U_i() # update Score $U_b$ and Fisher Information $i_b$
       subiters <- update_beta(method)
       if (!is.null(err.out)) return(err.out)
-      rprintf(", %d subiters", subiters)
+      rprintf("; %d subiters)", subiters)
     }
-    rprintf(", lik=%.3f", likelihood())
-    if (overdisp)  rprintf(", sig^2=%.3f", sig2)
-    if (serialcor) rprintf(", rho=%.3f;", rho)
+    rprintf("; lik=%.3f", likelihood())
+    if (overdisp)  rprintf("; sig^2=%.3f", sig2)
+    if (serialcor) rprintf("; rho=%.3f;", rho)
 
     convergence <- check_convergence(iter)
 
