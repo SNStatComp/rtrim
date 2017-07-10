@@ -181,8 +181,19 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   stopifnot(class(site.id) %in% c("integer","character","factor"))
   stopifnot(length(site.id)==n)
 
-  # todo: check months
-  use.months <- !is.null(month)
+  # `Month' specifiers should be similar to years
+  if (is.null(month)) {
+    use.months <- FALSE
+  } else {
+    use.months <- TRUE
+    # Include the same tests as for years
+    stopifnot(any(class(month) %in% c("integer","numeric")))
+    if (any(class(month) %in% c("integer","numeric"))) {
+      check = unique(diff(sort(unique(month))))
+      stopifnot(check==1 && length(check)==1)
+    }
+    stopifnot(length(month)==n)
+  }
 
   # \verb!covars! should be a list where each element (if any) is a vector
   stopifnot(class(covars)=="data.frame")
@@ -224,7 +235,12 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   }
 
   # \verb!model! should be in the range 1 to 3
+  # For backward compatibility, model 4 is mapped to model 3
   stopifnot(model %in% 1:4)
+  if (model==4) {
+    model <- 3
+    if (!use.months) stop("Model 4 cannot be specified without month data", call. = FALSE)
+  }
 
   # Weights should be either absent, or aligned with the counts
   if (length(weights)>0) {
@@ -242,7 +258,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (use.months) {
     mon <- ordered(month)
     M <- nmonth <- length(levels(mon))
-  } else M <- nmonth <- 1
+  } else M <- nmonth <- 1L
 
   #org.site.id <- site.id # Remember the original values for output purposes.
   if (class(site.id) %in% c("integer","numeric")) site.id <- factor(site.id)
@@ -250,6 +266,13 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
 
   # check for double data
   stopifnot(length(count) <= I*J*M)
+  if (use.months) {
+    check <- tapply(count, list(site.id, timept, mon), length)
+    if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year/month combination.", call.=FALSE)
+  } else {
+    check <- tapply(count, list(site.id, timept), length)
+    if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year combination.", call.=FALSE)
+  }
 
   # Check for sufficient data
   # # todo: speedup by using as.integer(mon) etc.
@@ -394,7 +417,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     }
   }
 
-  if (model!=2 && length(changepoints) > 0) stop(sprintf("Changepoints cannot be specified for model %d", model))
+  if (model!=2 && length(changepoints) > 0)
+    stop(sprintf("Changepoints cannot be specified for model %d", model), call.=FALSE)
 
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
@@ -406,7 +430,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # Create matrix $B$, which is model-dependent.
   if (model==1) {
     # Model 1 has not really any beta's, but the code runs easier if we have a fake beta
-    # with a fioxed value of 1. Therefore, create a corresponding B
+    # with a fixed value of 1. Therefore, create a corresponding B
     J <- nyear
     B <- matrix(0, J, 1)
   } else if (model==2) {
