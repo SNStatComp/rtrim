@@ -38,27 +38,30 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
 
   for (iter in 1:100) {
     # Phase 1: can one of the changepoints be removed?
-    # (Only applies for 2 or more changepoints)
-    # We don't allow the deletion of changepoint #1, so we don't even consider it.
-    if (sum(active)>=2) {
+    if (sum(active)>0) {
       W <- wald(z)
-      n <- length(W$dslope$p)
-      max_p = max(W$dslope$p[2:n])
+      max_p = max(W$dslope$p)
       if (max_p > 0.2) {
-        i = which.max(W$dslope$p[2:n])+1
+        i = which.max(W$dslope$p)
         del_cp <- cur_cp[i]
         del_p  <- max_p
-        rprintf("\n>>> Deleted changepoint %d (p = %.4f) <<<\n\n", del_cp, del_p)
         # remove from original changepoints
         i = which(org_cp == del_cp)
         active[i] = FALSE
         removed <- TRUE
+        # report
+        rprintf("\n>>> Deleted changepoint %d (p = %.4f); %d changepoint(s) left. <<<\n\n", del_cp, del_p, sum(active))
+        # Collapse model 2 to 1?
+        if (sum(active)==0) {
+          rprintf(">>> Collapsing to Model 1 <<<\n")
+          # browser()
+        }
       } else removed <- FALSE
     } else removed <- FALSE
 
     # If a changepoint has been removed, we'll need to re-estimate the model
     if (removed) {
-      cur_cp = org_cp[active]
+      cur_cp = org_cp[active] # collapes to numeric(0) if no active changepoints, as intended
       z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 
@@ -66,23 +69,24 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
     alpha <- z$alpha
     beta  <- z$beta
     nacp <- sum(active) # Number of active changpoints
+    beta <- matrix(z$beta, nacp) # vector matrix; columns are covariates
     p <- numeric(ncp)
     for (i in 1:ncp) if (active[i]==FALSE) {
       # deleted changepoints
-      num.active.before = ifelse(i==1, 0, sum(active[1:(i-1)]))
-      num.active.after  = ifelse(i==ncp, 0, sum(active[(i+1):ncp]))
+      num.active.before <- ifelse(i==1, 0, sum(active[1:(i-1)]))
+      num.active.after  <- ifelse(i==ncp, 0, sum(active[(i+1):ncp]))
       # cast beta in a matrix with beta0 in first column, covars in other columns
-      beta_t <- matrix(as.vector(beta), nacp)
       if (num.active.before==0) {
-        stop("Should never happen")
+        beta_t    <- rbind(0.0, beta) # add no-trend top row
+        # stop("Should never happen")
       } else if (num.active.after==0) {
-        beta_last = beta_t[num.active.before, ,drop=FALSE]
-        beta_t = rbind(beta_t, beta_last)
+        beta_last <- beta[num.active.before, ,drop=FALSE] # last before test position; corresponds to Jeroen's '0'
+        beta_t    <- rbind(beta, beta_last)
       } else {
-        beta1 = beta[1:num.active.before, ,drop=FALSE]
-        beta_last = beta_t[num.active.before, ,drop=FALSE]
-        beta2 = beta[(nacp-num.active.after+1):nacp, ,drop=FALSE]
-        beta_t = rbind(beta1, beta_last, beta2)
+        beta1     <- beta[1:num.active.before, ,drop=FALSE]
+        beta_last <- beta[num.active.before, ,drop=FALSE]
+        beta2     <- beta[(nacp-num.active.after+1):nacp, ,drop=FALSE]
+        beta_t    <- rbind(beta1, beta_last, beta2)
       }
       beta_t <- matrix(beta_t) # Reshape into column vector
       active_t <- active # Create list of current (test) changepoints
@@ -96,16 +100,16 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
     # specified threshold
     min_p <- min(p)
     if (min_p < 0.15) {
-      i = which.min(p)
+      i <- which.min(p)
       active[i] <- TRUE
       ins_cp <- org_cp[i]
-      rprintf("\n>>> Re-inserted changepoint %d (p=%.4f) <<<\n\n", ins_cp, min_p)
+      rprintf("\n>>> Re-inserted changepoint %d (p=%.4f); now %d changepoints. <<<\n\n", ins_cp, min_p, sum(active))
       added <- TRUE
     } else added <- FALSE
 
     # If a changepoint has been re-inserted, we'll need to re-estimate the model
     if (added) {
-      cur_cp = org_cp[active]
+      cur_cp <- org_cp[active]
       z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
     }
 

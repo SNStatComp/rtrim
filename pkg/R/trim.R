@@ -190,6 +190,9 @@ trim.trimcommand <- function(x,...){
   if (isTRUE(x$covin)) covin <- read_icv(x)
   else                 covin <- list()
 
+  # Create 'automatic' changepoint #1
+  if (x$model==2 && length(x$changepoints)==0) x$changepoints=1L
+
   trim_estimate(count=dat$count
       , site.id = dat$site
       , time.id = dat$time
@@ -224,7 +227,7 @@ trim.trimcommand <- function(x,...){
 #' @export
 trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time"
                             , covars=character(0),  model = 2, weights=numeric(0)
-  , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
+  , serialcor=FALSE, overdisp=FALSE, changepoints=1L, stepwise=FALSE
   , autodelete=FALSE, ...) {
 
   if (nrow(x)==0) stop("Empty data frame")
@@ -297,7 +300,7 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
 #' @param data \code{[data.frame]} Data containing at least counts, sites, and times
 #' @export
 trim.formula <- function(x, data=NULL, model=2, weights=numeric(0)
-          , serialcor=FALSE, overdisp=FALSE, changepoints=integer(0), stepwise=FALSE
+          , serialcor=FALSE, overdisp=FALSE, changepoints=1L, stepwise=FALSE
           , autodelete=FALSE, ...) {
   if (is.null(data)) stop("No data given")
   stopifnot(inherits(data,"data.frame"))

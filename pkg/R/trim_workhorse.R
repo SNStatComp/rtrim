@@ -28,7 +28,7 @@ compatible <- FALSE
 #' @keywords internal
 trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame()
                          , model=2, serialcor=FALSE, overdisp=FALSE
-                         , changepoints=integer(0)
+                         , changepoints=1L
                          , autodelete=TRUE, weights=numeric(0)
                          , stepwise=FALSE, covin=list()
                          , ...)
@@ -154,7 +154,7 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
 #' @keywords internal
 trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame(),
                          model=2, serialcor=FALSE, overdisp=FALSE,
-                         changepoints=integer(0), weights=numeric(0),
+                         changepoints=1L, weights=numeric(0),
                          covin = list(),
                          conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
                          sig2fix=1.0,
@@ -242,6 +242,21 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     if (!use.months) stop("Model 4 cannot be specified without month data", call. = FALSE)
   }
 
+  # # Collapse Model 2 to Model 1 if there are no changepoints
+  # if (model==2 & length(changepoints)==0) {
+  #   rprintf("Model 2 without changepoints; collapsing to Model 1\n")
+  #   model <- 1
+  # }
+
+  # beta parameters are used only if we have model2+changepoints, or model3
+  if (model==1) {
+    use.beta <- FALSE
+  } else if (model==2) {
+    use.beta <- length(changepoints) > 0
+  } else if (model==3) {
+    use.beta <- TRUE
+  } else stop("Should not happen")
+
   # Weights should be either absent, or aligned with the counts
   if (length(weights)>0) {
     use.weights <- TRUE
@@ -323,12 +338,12 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (use.months) totals <- rowSums(totals) # aggregate months
   if (sum(totals)==0) stop("No positive observations in the data.")
   if (totals[1]==0) {
-    n = which(totals>0)[1] - 1
+    n = which(totals>0)[1] - 1L
     warning(sprintf("Data starts with %d years without positive observations.", n))
   }
   totals <- rev(totals)
   if (totals[1]==0) {
-    n = which(totals>0)[1] - 1
+    n = which(totals>0)[1] - 1L
     warning(sprintf("Data ends with %d years without positive observations.", n))
   }
 
@@ -397,28 +412,21 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     }
   }
 
-  # For model 2, we do not allow for changepoints $<1$ or $\geq J$.
-  # At the same time, a changepoint $1$ must be present
-  if (model==2) {
-    # stopifnot(length(changepoints)>0)
-    if (length(changepoints)==0) {
-      use.changepoints <- FALSE # Pretend we're not using changepoints at all
-      changepoints <- 1L        # but internally use them nevertheless
-    } else {
-      use.changepoints <- TRUE
-      years <- as.integer(levels(timept))
-      if (all(changepoints %in% years)) {
-        # Convert changepoints in years  to 1..J
-        changepoints <- match(changepoints, years)
-      }
-      stopifnot(all(changepoints>=1L))
-      stopifnot(all(changepoints<nyear))
-      stopifnot(all(diff(changepoints)>0))
-    }
-  }
-
   if (model!=2 && length(changepoints) > 0)
     stop(sprintf("Changepoints cannot be specified for model %d", model), call.=FALSE)
+
+  # For model 2, test that changepoints (if any) are in the range [1,J>.
+  use.changepoints <- model==2 && length(changepoints)>0
+  if (use.changepoints) {
+    years <- as.integer(levels(timept))
+    if (all(changepoints %in% years)) {
+      # Convert changepoints in years  to 1..J
+      changepoints <- match(changepoints, years)
+    }
+    stopifnot(all(changepoints >= 1L))
+    stopifnot(all(changepoints < nyear))
+    stopifnot(all(diff(changepoints) > 0)) # changepoints must be in incraesing order
+  }
 
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
@@ -428,14 +436,15 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # smaller matrix that is valid for any site, and $A$ is not used at all.
 
   # Create matrix $B$, which is model-dependent.
-  if (model==1) {
-    # Model 1 has not really any beta's, but the code runs easier if we have a fake beta
-    # with a fixed value of 1. Therefore, create a corresponding B
+  if (!use.beta) {
+    # Model 1 or Model 2 without changepoints.
+    # These run easier if we have a fake beta with a fixed value of 1. Therefore, create a corresponding B
     J <- nyear
     B <- matrix(0, J, 1)
   } else if (model==2) {
-    ncp  <-  length(changepoints)
+    # normal model 2, with changepoints
     J <- nyear
+    ncp  <-  length(changepoints)
     B <- matrix(0, J, ncp)
     for (i in 1:ncp) {
       cp1  <-  changepoints[i]
@@ -520,11 +529,11 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (model==1) {
     nbeta <- 1
   } else if (model==2) {
-    # For model 2 we have one $\beta$ per change points
-    nbeta <- length(changepoints)
+    # For model 2 we have one $\beta$ per change points (if any)
+    nbeta <- if (use.changepoints) length(changepoints) else 1
   } else if (model==3) {
     # For model 3, we have one $\beta$ per time $j>1$
-    nbeta = nyear-1
+    nbeta = nyear - 1
   } else if (model==4) {
     nbeta <- (J-1) + (M-1)
   }
@@ -543,7 +552,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   }
 
   # All $\beta_j$ are initialized at 0, to reflect no trend (model 1 or 2) or no time effects (model 3)
-  beta <- matrix(0, nbeta,1) # Store as column vector
+  beta <- matrix(0.0, nbeta,1) # Store as column vector
 
   # Variable $\mu$ holds the estimated counts.
   if (use.months) mu <- array(0, dim=c(I,J,M))
@@ -834,7 +843,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
-    if (model>1 & any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
+    if (use.beta && any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
     # invertable <- class(try(solve(i_b), silent=T))=="matrix"
     # if (!invertable) {
     #   browser()
@@ -970,7 +979,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       if (!overdisp) sig2 <- 1.0 # hack
     }
     update_V(method)
-    if (model>1) {
+    if (use.beta) { # model 2+changepoints, or model 3
       update_U_i() # update Score $U_b$ and Fisher Information $i_b$
       subiters <- update_beta(method)
       if (!is.null(err.out)) return(err.out)
@@ -1020,7 +1029,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   update_mu(fill=TRUE)
 
   # Covariance matrix
-  if (model>1) V <- -solve(i_b)
+  if (use.beta) V <- -solve(i_b)
 
   if (use.covin) {
     UUT <- matrix(0,nbeta,nbeta)
@@ -1047,7 +1056,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   }
 
   # Variance of the $\beta$'s is given by the covariance matrix
-  if (model>1) var_beta = V
+  if (use.beta) var_beta = V
 
   # ============================================================ Imputation ====
 
@@ -1070,7 +1079,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints, converged=converged,
             mu=mu, imputed=imputed, alpha=alpha)
-  if (model>1) {
+  if (use.beta) {
     z$beta <- beta
     z$var_beta <- var_beta
   }
@@ -1078,10 +1087,10 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   z$method <- ifelse(use.covin, "Pseudo ML", final_method)
   z$convergence <- convergence_msg
 
-  # mark the original request for changepoints to allow wald(z) to perform a dslope
-  # test in case of a single changepoint. (otherwise we cannot distinguish it from an
-  # automatic changepoint 1)
-  if (model==2) z$ucp <- use.changepoints
+  # # mark the original request for changepoints to allow wald(z) to perform a dslope
+  # # test in case of a single changepoint. (otherwise we cannot distinguish it from an
+  # # automatic changepoint 1)
+  # if (model==2) z$ucp <- use.changepoints
 
   if (use.covars) {
     z$ncovar <- ncovar # todo: eliminate?
@@ -1105,11 +1114,11 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
 
   #-------------------------------------------- Coefficients and uncertainty ---
 
-  if (model==1) {
+  if (!use.beta) {
     z$coefficients <- NULL
   }
 
-  if (model==2) {
+  if (model==2 && use.beta) {
     se_beta  <- sqrt(diag(var_beta))
 
     ncp <- length(changepoints)
@@ -1310,7 +1319,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       }
 
       # For model 1, F etc do not exist, so exit early
-      if (model==1) {
+      if (!use.beta) {
         V <- GddG
         return(V)
       }

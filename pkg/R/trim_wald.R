@@ -75,11 +75,12 @@ wald.trim <- function(x)
   nclass <- x$nclass
   beta <- x$beta
   var_beta <- x$var_beta
-  ucp <- x$ucp # use.changepoints
+  # ucp <- x$ucp # use.changepoints # not used anymore
 
   # Extract actual changepoints
   if (model==2) {
-    changept <- x$time.id[x$changepoints]
+    changepts <- x$changepoints
+    changeyrs <- x$time.id[x$changepoints]
   }
 
   if (model==3 && ncovar==0) {
@@ -89,12 +90,16 @@ wald.trim <- function(x)
 
   wald <- list() # Create empty output object
 
+  if (model==1) {
+    # pass
+  }
+
   # Test for the significance of the slope parameter ---------------------------
 
   # This test applies to the case where model 2 is used without covariates or changepoints.
   # There thus is a single $\beta$ representing the trend for all sites and throughout the whole period,
   # and the univariate approach Eqn~\eqref{Wald-scalar} applies.
-  if (model==2 && ucp==FALSE && nbeta==1 && ncovar==0) {
+  else if (model==2 && length(changepts)==1 && changepts==1L && ncovar==0) {
     theta <- as.numeric(beta)
     var_theta <- as.numeric(var_beta)
     W  <- theta^2 / var_theta # Compute the Wald statistic by \eqref{Wald-scalar}
@@ -154,7 +159,7 @@ wald.trim <- function(x)
     W <- theta^2 / var_theta # Eqn~\eqref{Wald-scalar}
     df <- 1 # degrees of freedom
     p  <- 1 - pchisq(W, df=df) # $p$-value, based on $W$ being $\chi^2$ distributed.
-    wald$dslope <- list(cp=changept, W=W, df=df, p=p)
+    wald$dslope <- list(cp=changeyrs, W=W, df=df, p=p)
   }
 
   # A variant is the same test for  multiple covariates
@@ -197,7 +202,7 @@ wald.trim <- function(x)
     }
     df <- nblock
     p <- 1 - pchisq(W, df)
-    wald$dslope <- list(cp=changept, W=W, df=df, p=p)
+    wald$dslope <- list(cp=changeyrs, W=W, df=df, p=p)
   }
 
 
@@ -270,6 +275,10 @@ wald.trim <- function(x)
 #' @export
 #' @keywords internal
 print.trim.wald <- function(x,...) {
+
+  if (length(x)==0) {
+    printf("(No Wald tests available)\n")
+  }
 
   if (!is.null(x$covar)) {
     printf("Wald test for significance of covariates\n")
