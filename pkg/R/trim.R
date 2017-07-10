@@ -226,11 +226,18 @@ trim.trimcommand <- function(x,...){
 #' @rdname trim
 #' @export
 trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time"
-                            , covars=character(0),  model = 2, weights=numeric(0)
-  , serialcor=FALSE, overdisp=FALSE, changepoints=1L, stepwise=FALSE
-  , autodelete=FALSE, ...) {
+                            , covars=character(0)
+                            , model = 2
+                            , weights=numeric(0)
+                            , serialcor=FALSE
+                            , overdisp=FALSE
+                            , changepoints=ifelse(model==2, 1L, integer(0))
+                            , stepwise=FALSE
+                            , autodelete=FALSE, ...) {
 
   if (nrow(x)==0) stop("Empty data frame")
+
+  if (length(changepoints)>0 && is.na(changepoints)) changepoints <- integer(0) # fix
 
   # # handle 'bare' weights specifier (column name, not as string)
   # if (class(substitute(weights))=="name") {
@@ -300,11 +307,15 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
 #' @param data \code{[data.frame]} Data containing at least counts, sites, and times
 #' @export
 trim.formula <- function(x, data=NULL, model=2, weights=numeric(0)
-          , serialcor=FALSE, overdisp=FALSE, changepoints=1L, stepwise=FALSE
+          , serialcor=FALSE
+          , overdisp=FALSE
+          , changepoints=ifelse(model==2, 1L, integer(0))
+          , stepwise=FALSE
           , autodelete=FALSE, ...) {
   if (is.null(data)) stop("No data given")
   stopifnot(inherits(data,"data.frame"))
   L <- parse_formula(x, names(data))
+  if (length(changepoints)>0 && is.na(changepoints)) changepoints <- integer(0) # fix
   trim.data.frame(x=data
       , count.id=L$count, site.id=L$site, time.id=L$time, covars = L$cov
       , model=model, weights=weights
