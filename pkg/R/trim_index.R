@@ -277,6 +277,9 @@ plot.trim.index <- function(x, covar="auto", ...) {
     yrange <- yrange1
   }
 
+  # Ensure y-axis starts at 0
+  yrange <- range(0.0, yrange)
+
   # Plot 'empty' overall index
   par(las=1)
   plot(x, y1, type='n', ylim=yrange, xlab="Time point", ylab="Index", ...)

@@ -336,6 +336,9 @@ plot.trim.totals <- function(t1, ..., leg.pos="topleft") {
     }
   }
 
+  # Ensure y-axis starts at 0.0
+  yrange <- range(0.0, yrange)
+
   # empty plot for correct axes
   plot(xrange, yrange, type='n', xlab="Time point", ylab="Time totals")
 

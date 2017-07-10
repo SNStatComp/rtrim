@@ -361,6 +361,9 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   ylim = 2 * yrange1[2]
   if (yrange[2] > ylim) yrange[2] = ylim
 
+  # Ensure y-axis starts at 0.0
+  yrange <- range(0.0, yrange)
+
   # Now plot layer-by-layer (using ColorBrewer colors)
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
