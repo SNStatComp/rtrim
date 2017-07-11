@@ -221,6 +221,7 @@ coef.trim <- function(object,
 #'
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which select what totals to compute (see \code{Details} section).
+#' @param obs Flag to include total observations (or not).
 #'
 #' @return A \code{data.frame} with subclass \code{trim.totals}
 #'  (for pretty-printing). The columns are \code{time}, \code{fitted}
@@ -249,7 +250,7 @@ coef.trim <- function(object,
 #'
 #' totals(z, "both") # mimics classic TRIM
 #'
-totals <- function(x, which=c("imputed","fitted","both")) {
+totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE) {
   stopifnot(class(x)=="trim")
 
   # Select output columns from the pre-computed time totals
@@ -257,8 +258,9 @@ totals <- function(x, which=c("imputed","fitted","both")) {
   totals <- switch(which
     , fitted  = x$time.totals[c(1,2,3)]
     , imputed = x$time.totals[c(1,4,5)]
-    , both    = x$time.totals
+    , both    = x$time.totals[1:5]
   )
+  if (obs) totals$observed <- x$time.totals$observed
 
   # wrap the time.index field in a list and make it an S3 class
   # (so that it becomes recognizable as a TRIM time-indices)
@@ -355,6 +357,12 @@ plot.trim.totals <- function(t1, ..., leg.pos="topleft") {
 
     polygon(xx,ci, col=aqua[i], border=NA)
     lines(x,y, col=opaque[i])
+
+    # optionally include observed time totals
+    if ("observed" %in% names(tt[[i]])) {
+      y = tt[[i]][["observed"]]
+      lines(x,y, col=opaque[i], lty="dashed")
+    }
   }
 
   # third pass: legend

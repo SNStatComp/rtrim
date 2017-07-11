@@ -1494,6 +1494,10 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   tt_imp     <- if (model==4) apply(wimp, 2, sum) else colSums(wimp)
   se_tt_imp <- round(sqrt(diag(var_tt_imp)))
 
+  # also compute OBSERVED time totals
+  wobs <- if (use.weights) wt * f  else f
+  tt_obs <- if (model==4) apply(wobs, 2, sum, na.rm=TRUE) else colSums(wobs, na.rm=TRUE)
+
   # Store in TRIM output
   z$tt_mod <- tt_mod
   z$tt_imp <- tt_imp
@@ -1501,11 +1505,12 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   z$var_tt_imp <- var_tt_imp
 
   z$time.totals <- data.frame(
-    time    = time.id,
-    fitted  = round(tt_mod),
-    se_fit  = se_tt_mod,
-    imputed = round(tt_imp),
-    se_imp  = se_tt_imp
+    time     = time.id,
+    fitted   = round(tt_mod),
+    se_fit   = se_tt_mod,
+    imputed  = round(tt_imp),
+    se_imp   = se_tt_imp,
+    observed = round(tt_obs)
   )
 
   # Indices for covariates. First baseline
