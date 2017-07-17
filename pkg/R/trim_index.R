@@ -84,7 +84,7 @@
 
 # ========================================================== User interface ====
 
-#' Extract time-indices from trim output. Infices are obtained by dividing the modelled or imputed time totals by a reference value.
+#' Extract time-indices from trim output. Indices are obtained by dividing the modelled or imputed time totals by a reference value.
 #' Most commonly, the time totals for the first time point are used as reference.
 #' As a result, the index value for this first time point will be 1.0, with a standard error of 0.0 by definition.
 #' Alternatively, a range of time points can be used as reference. In this case, the mean time totals for this range will be used as
@@ -277,8 +277,9 @@ plot.trim.index <- function(x, covar="auto", ...) {
     yrange <- yrange1
   }
 
-  # Ensure y-axis starts at 0
-  yrange <- range(0.0, yrange)
+  # Ensure y-axis includes at least 0 (for honest scaling)
+  # and 1.1 (for a visible index=1 line)
+  yrange <- range(0.0, 1.1, yrange)
 
   # Plot 'empty' overall index
   par(las=1)
@@ -321,6 +322,7 @@ plot.trim.index <- function(x, covar="auto", ...) {
   if (use.covars)
     legend("topleft", legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
 }
+
 
 plot.midx <- function(idx1, ..., main="", leg.pos="topleft")
 {
@@ -423,3 +425,4 @@ plot.midx <- function(idx1, ..., main="", leg.pos="topleft")
     legend(leg.pos, legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
   }
 }
+
