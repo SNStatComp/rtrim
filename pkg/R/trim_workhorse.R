@@ -94,7 +94,11 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
   }
 
   if (isTRUE(stepwise) && model != 2){
-    stop(sprintf("Stepwise removal only works for model 2"), call.=FALSE)
+    stop("Stepwise removal only works for model 2", call.=FALSE)
+  }
+
+  if (isTRUE(serialcor) && !is.null(month)) {
+    stop("serialcor=TRUE not allowed when using monthly data", call.=FALSE)
   }
 
   t1 <- Sys.time()
@@ -200,6 +204,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   ncovar = length(covars)
   use.covars <- ncovar>0
   if (use.covars) {
+    if (use.months) stop("Covariates not implemented yet for use with months")
     # convert to numerical values
     icovars <- vector("list", ncovar)
     for (i in 1:ncovar) if (any(is.na(covars[[i]])))
@@ -238,8 +243,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # For backward compatibility, model 4 is mapped to model 3
   stopifnot(model %in% 1:4)
   if (model==4) {
+    warning("Model 4 is deprecated. Please use model 1-3 in combination with month=...")
     model <- 3
-    if (!use.months) stop("Model 4 cannot be specified without month data", call. = FALSE)
   }
 
   # # Collapse Model 2 to Model 1 if there are no changepoints
@@ -439,11 +444,9 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (!use.beta) {
     # Model 1 or Model 2 without changepoints.
     # These run easier if we have a fake beta with a fixed value of 1. Therefore, create a corresponding B
-    J <- nyear
     B <- matrix(0, J, 1)
   } else if (model==2) {
     # normal model 2, with changepoints
-    J <- nyear
     ncp  <-  length(changepoints)
     B <- matrix(0, J, ncp)
     for (i in 1:ncp) {
@@ -456,15 +459,17 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   } else if (model==3) {
     # Model 3 in it's canonical form uses a single time parameter $\gamma$ per time step,
     # so design matrix $B$ is essentially a $J\times$J identity matrix.
-    # Note, hoewever, that by definition $\gamma_1=0$, so effectively there are $J-1$ $\gamma$-values to consider.
+    # Note, hoewever, that by definition $\gamma_1 \equiv 0$, so effectively there are $J-1$ $\gamma$-values to consider.
     # As a consequence, the first column is deleted.
-    B <- diag(nyear) # Construct $J\times$J identity matrix
-    B <- B[ ,-1]     # Remove first column
-  } else if (model==4) {
-    # Model 4 is model 3 adapted for months
-    B <- unitB <- diag(J)
-    for (m in 2:M) B <- rbind(B, unitB)
-    B <- B[ ,-1]
+    B <- diag(J)  # Construct $J\times$J identity matrix...
+    B <- B[ ,-1, drop=FALSE]  # ...and remove the first column to account for $gamma_1\equiv 0$
+  } else stop("Can't happen.")
+
+  # When using months...
+  if (use.months) {
+    # ...we have to paste together M copies of B
+    B <- do.call("rbind", replicate(M, B, simplify=FALSE))
+    # and add links to the (M-1) month factors as well
     D <- matrix(rep(diag(M), each=J), J*M)
     D <- D[ ,-1, drop=FALSE]
     B <- cbind(B, D) # combine year effects and month effects
@@ -526,24 +531,26 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # alpha <- matrix(log(rowMeans(f*wt, na.rm=TRUE)));
 
   # Parameter $\beta$ is model dependent.
-  if (model==1) {
-    nbeta <- 1
-  } else if (model==2) {
-    # For model 2 we have one $\beta$ per change points (if any)
-    nbeta <- if (use.changepoints) length(changepoints) else 1
-  } else if (model==3) {
-    # For model 3, we have one $\beta$ per time $j>1$
-    nbeta = nyear - 1
-  } else if (model==4) {
-    nbeta <- (J-1) + (M-1)
-  }
+  # if (model==1) {
+  #   nbeta <- 1
+  # } else if (model==2) {
+  #   # For model 2 we have one $\beta$ per change points (if any)
+  #   nbeta <- if (use.changepoints) length(changepoints) else 1
+  # } else if (model==3) {
+  #   # For model 3, we have one $\beta$ per time $j>1$
+  #   nbeta = nyear - 1
+  # } else if (model==4) {
+  #   nbeta <- (J-1) + (M-1)
+  # }
+  nbeta <- ncol(B0)
+
   # If we have covariates, $\beta$'s are repeated for each covariate class $>1$.
   nbeta0 <- nbeta # Number of `baseline' (i.e., without covariates) $\beta$'s.
   if (use.covars) {
     nbeta <- nbeta0 * (sum(nclass-1)+1)
   }
 
-  # Now that we know much parameters are requested, check if we do have enough observations.
+  # Now that we know how much parameters are requested, check if we do have enough observations.
   # For this, we ignore the `0' observations
   nalpha <- length(alpha)
   if (sum(nobs) < (nalpha+nbeta)) {
@@ -860,9 +867,14 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   update_mu <- function(fill) {
     for (i in 1:nsite) {
       B = make.B(i)
-      if (use.months)       mu[i, , ] <<-  (exp(alpha[i] + B %*% beta) / as.vector(wt[i,,]))
-      else if (use.weights) mu[i, ]   <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
-      else                  mu[i, ]   <<-  exp(alpha[i] + B %*% beta)
+
+      if (use.months) {
+        if (use.weights) mu[i, , ] <<- (exp(alpha[i] + B %*% beta) / as.vector(wt[i,,]))
+        else             mu[i, , ] <<-  exp(alpha[i] + B %*% beta)
+      } else {
+        if (use.weights) mu[i, ]   <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
+        else             mu[i, ]   <<-  exp(alpha[i] + B %*% beta)
+      }
 
       # Do not allow very small estimates, because that screws up the computation of $V$.
       # Anyway, the model is not designed to predict 0's
@@ -1074,8 +1086,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   time.id <- as.numeric(levels(timept))
   site.id <- factor(levels(site.id))
 
-  z <- list(title=title, f=f, nsite=nsite, nyear=nyear, ntime=nyear, time.id=time.id,
-            site.id = site.id,
+  z <- list(title=title, f=f, nsite=nsite, nyear=nyear, ntime=nyear, nmonth=nmonth,
+            time.id=time.id, site.id = site.id,
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints, converged=converged,
             mu=mu, imputed=imputed, alpha=alpha)
@@ -1190,69 +1202,58 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     # Note that, because $\gamma_1\equiv0$, it was not estimated,
     # and as a results $j=1$ was not incuded in $i_b$, nor in $\var{gamma}$ as computed above.
     # We correct this by adding the `missing' 0 (or 1 for multiplicative parameters) during output
-    idx = 1:nbeta0
-    coefs <- data.frame(
-      time   = 1:J,
-      add    = c(0, gamma[idx]),
-      se_add = c(0, se_gamma[idx]),
-      mul    = c(1, g[idx]),
-      se_mul = c(0, g[idx] * se_gamma[idx])
-    )
-
-    # Covariate categories ($>1$)
-    if (use.covars) {
-      prefix = data.frame(covar="baseline", cat=0)
-      coefs <- cbind(prefix, coefs)
-      for (i in 1:ncovar) {
-        for (j in 2:nclass[i]) {
-          idx <- idx + nbeta0
-          df <- data.frame(
-            covar  = names(covars)[i],
-            cat    = j,
-            time   = 1:J,
-            add    = c(0, gamma[idx]),
-            se_add = c(0, se_gamma[idx]),
-            mul    = c(1, g[idx]),
-            se_mul = c(0, g[idx] * se_gamma[idx])
-          )
-          coefs <- rbind(coefs, df)
+    if (!use.months) { # Normal version (years, no months)
+      idx = 1:(J-1)
+      coefs <- data.frame(
+        time   = 1:J,
+        add    = c(0, gamma[idx]),
+        se_add = c(0, se_gamma[idx]),
+        mul    = c(1, g[idx]),
+        se_mul = c(0, g[idx] * se_gamma[idx])
+      )
+      # Covariate categories ($>1$)
+      if (use.covars) {
+        prefix = data.frame(covar="baseline", cat=0)
+        coefs <- cbind(prefix, coefs)
+        for (i in 1:ncovar) {
+          for (j in 2:nclass[i]) {
+            idx <- idx + nbeta0
+            df <- data.frame(
+              covar  = names(covars)[i],
+              cat    = j,
+              time   = 1:J,
+              add    = c(0, gamma[idx]),
+              se_add = c(0, se_gamma[idx]),
+              mul    = c(1, g[idx]),
+              se_mul = c(0, g[idx] * se_gamma[idx])
+            )
+            coefs <- rbind(coefs, df)
+          }
         }
       }
+      z$coefficients <- coefs
+    } else { # with months
+      yidx = 1:(J-1)
+      midx = 1:(M-1) + J-1
+      ycoefs <- data.frame(
+        what   = factor("year"),
+        which   = 1:J,
+        add    = c(0, gamma[yidx]),
+        se_add = c(0, se_gamma[yidx]),
+        mul    = c(1, g[yidx]),
+        se_mul = c(0, g[yidx] * se_gamma[yidx])
+      )
+      mcoefs <- data.frame(
+        what   = factor("month"),
+        which  = 1:M,
+        add    = c(0, gamma[midx]),
+        se_add = c(0, se_gamma[midx]),
+        mul    = c(1, g[midx]),
+        se_mul = c(0, g[midx] * se_gamma[midx])
+      )
+      # z$coefficients = list(yearly=ycoefs, monthly=mcoefs)
+      z$coefficients = rbind(ycoefs, mcoefs)
     }
-    z$coefficients <- coefs
-  } # if model==3
-
-  if (model==4) {
-    # Similar to model 3 except for splitting between year-effects and
-    # month-effects
-    gamma <- beta
-
-    var_gamma <-  -solve(i_b) # BUG: should be var_beta (inc covin effect)
-    se_gamma  <-  sqrt(diag(var_gamma))
-
-    g    <- exp(gamma)
-    se_g <- g * se_gamma
-
-    yidx = 1:(J-1)
-    midx = 1:(M-1) + J-1
-    ycoefs <- data.frame(
-      what   = factor("year"),
-      which   = 1:J,
-      add    = c(0, gamma[yidx]),
-      se_add = c(0, se_gamma[yidx]),
-      mul    = c(1, g[yidx]),
-      se_mul = c(0, g[yidx] * se_gamma[yidx])
-    )
-    mcoefs <- data.frame(
-      what   = factor("month"),
-      which  = 1:M,
-      add    = c(0, gamma[midx]),
-      se_add = c(0, se_gamma[midx]),
-      mul    = c(1, g[midx]),
-      se_mul = c(0, g[midx] * se_gamma[midx])
-    )
-    # z$coefficients = list(yearly=ycoefs, monthly=mcoefs)
-    z$coefficients = rbind(ycoefs, mcoefs)
   }
 
 
@@ -1486,17 +1487,17 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
 
   # Time totals of the model, and it's standard error
   wmu <- if (use.weights) wt * mu else mu
-  tt_mod    <- if (model==4) apply(wmu, 2, sum) else colSums(wmu)
+  tt_mod    <- if (use.months) apply(wmu, 2, sum) else colSums(wmu)
   se_tt_mod <- round(sqrt(diag(var_tt_mod)))
 
   wimp <- if (use.weights) wt * imputed  else imputed #kan eleganter
 
-  tt_imp     <- if (model==4) apply(wimp, 2, sum) else colSums(wimp)
+  tt_imp     <- if (use.months) apply(wimp, 2, sum) else colSums(wimp)
   se_tt_imp <- round(sqrt(diag(var_tt_imp)))
 
   # also compute OBSERVED time totals
   wobs <- if (use.weights) wt * f  else f
-  tt_obs <- if (model==4) apply(wobs, 2, sum, na.rm=TRUE) else colSums(wobs, na.rm=TRUE)
+  tt_obs <- if (use.months) apply(wobs, 2, sum, na.rm=TRUE) else colSums(wobs, na.rm=TRUE)
 
   # Store in TRIM output
   z$tt_mod <- tt_mod
@@ -1515,7 +1516,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
 
   # Indices for covariates. First baseline
   if (use.covars) {
-    if (model==4) stop("Covariates not implemented for model 4")
+    if (use.months) stop("Covariates not implemented for use with months")
     z$covar_tt <- list()
     for (i in 1:ncovar) {
       cvname <- names(covars)[i]
@@ -1610,7 +1611,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   #   &\mathbf{T}_{(i,j)}=-\frac{1}{J}-\frac{1}{D}d_{i-1}d_j &\quad(i=2,\ldots,J+1,j=1,\ldots,J,i-1 \neq j)
   # \end{align}
 
-  if (model==3 && !use.covars) {
+  if (model==3 && !use.covars && !use.months) {
 
     TT <- matrix(0, nyear+1, nyear)
     J <- nyear
