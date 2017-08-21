@@ -1,4 +1,6 @@
 # ##################################################### Stepwise refinement ####
+#
+# #TODO: use premove/penter in trim() calls
 
 # =============================================== Main refinement prodecure ====
 
@@ -13,6 +15,8 @@
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
 #' @param changepoints a numerical vector change points (only for Model 2)
+#' @param premove threshold probability for removal of parameters.
+#' @param penter threshold probability for re-introduction of parameters.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -20,7 +24,8 @@
 #' @keywords internal
 trim_refine <- function(count, site.id, year, month, covars=list(),
                         model=2, serialcor=FALSE, overdisp=FALSE,
-                        changepoints=integer(0), weights=numeric(0))
+                        changepoints=integer(0), weights=numeric(0),
+                        premove=0.2, penter=0.15)
 {
   org_cp = changepoints
   ncp <- length(org_cp)
@@ -41,7 +46,7 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
     if (sum(active)>0) {
       W <- wald(z)
       max_p = max(W$dslope$p)
-      if (max_p > 0.2) {
+      if (max_p > premove) {
         i = which.max(W$dslope$p)
         del_cp <- cur_cp[i]
         del_p  <- max_p
@@ -99,7 +104,7 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
     # A changepoint is re-inserted if the minimum signficance is lower than a
     # specified threshold
     min_p <- min(p)
-    if (min_p < 0.15) {
+    if (min_p < penter) {
       i <- which.min(p)
       active[i] <- TRUE
       ins_cp <- org_cp[i]
