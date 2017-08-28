@@ -1,3 +1,6 @@
+version 1.3.0
+- Integration of experimental monthly version
+
 version 1.2.0
 - Introduced time-window-based indexing
 - Automatically converts non-factor covariates to factors
