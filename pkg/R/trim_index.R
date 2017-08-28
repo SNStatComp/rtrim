@@ -123,6 +123,7 @@
 #' # Extract standard errors for the imputed data
 #' SE <- index(z,"imputed")$se_mod
 #' # Include covariates
+#' skylark$Habitat <- factor(skylark$Habitat) # hack
 #' z <- trim(count ~ site + time + Habitat, data=skylark, model=2)
 #' ind <- index(z, covars=TRUE)
 #' plot(ind)
@@ -219,6 +220,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
 #' @examples
 #'
 #' data(skylark)
+#' skylark$Habitat <- factor(skylark$Habitat) # hack
 #' z <- trim(count ~ site + time + Habitat, data=skylark, model=2)
 #' idx <- index(z, covars=TRUE)
 #' plot(idx, covar="Habitat", main="Skylark")

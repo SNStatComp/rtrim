@@ -151,6 +151,7 @@
 #'
 #' @examples
 #' data(skylark)
+#' skylark$Habitat <- factor(skylark$Habitat) # hack
 #' m <- trim(count ~ site + time, data=skylark, model=2)
 #' summary(m)
 #' coefficients(m)
@@ -163,15 +164,16 @@
 #' # run model
 #' m <- trim(count ~ site + time, data=skylark, model=3, weights=weights)
 #'
-#'
 #' # An example using change points, a covariate, and overdispersion
 #' # 1 is added as cp automatically
+#'
 #' cp <- c(2,6)
 #' m <- trim(count ~ site + time + Habitat, data=skylark, model=2, changepoints=cp, overdisp=TRUE)
 #' coefficients(m)
 #' # check significance of changes in slope
 #' wald(m)
 #' plot(overall(m))
+#'
 trim <- function(x,...){
   UseMethod('trim')
 }
@@ -225,7 +227,7 @@ trim.trimcommand <- function(x,...){
 #'
 #' @rdname trim
 #' @export
-trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time"
+trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time", season.id=NULL
                             , covars=character(0)
                             , model = 2
                             , weights=numeric(0)
@@ -287,19 +289,18 @@ trim.data.frame <- function(x, count.id = "count", site.id="site", time.id="time
   stopifnot(all(weights>0), length(weights) == 0  || length(weights) == nrow(x))
 
   # estimate the model and return
+  month <- if (is.null(season.id)) NULL else x[[season.id]]
   trim_estimate(
-    count = x[,count.id]
-    , site.id = x[,site.id]
-    , time.id = x[,time.id]
-    , covars = x[covars]
-    , model = model
-    , serialcor=serialcor
-    , overdisp=overdisp
-    , changepoints = changepoints
-    , stepwise = stepwise
-    , autodelete = autodelete
-    , weights = weights
-    , ...
+    count   = x[[count.id]],
+    site.id = x[[site.id]],
+    time.id = x[[time.id]],
+    month = month,
+    covars  = x[covars],
+    model   = model,
+    serialcor =serialcor, overdisp=overdisp, changepoints = changepoints,
+    stepwise  = stepwise, autodelete = autodelete,
+    weights   = weights,
+    ...
   )
 }
 
@@ -312,33 +313,55 @@ trim.formula <- function(x, data=NULL, model=2, weights=numeric(0)
           , changepoints=ifelse(model==2, 1L, integer(0))
           , stepwise=FALSE
           , autodelete=FALSE, ...) {
+  # Parameter 'data' MUST be a data.frame
   if (is.null(data)) stop("No data given")
   stopifnot(inherits(data,"data.frame"))
-  L <- parse_formula(x, names(data))
+  # Parse formula 'x' and make an interpretation based on the data type
+  # L <- parse_formula(x, names(data))
+  # Formula 'x' is organized as operator / operand1 / operand2.
+  # The left-hand side of the formula is therefore the second list element
+  lhs <- all.vars(x[[2]])
+  if ( length(lhs) != 1)
+    stop(sprintf("Expected precisely one dependent variable, got %s",pr(lhs)))
+  # Idem for the right hand side, which is the 3th list element
+  rhs <- all.vars(x[[3]])
+  if ( length(rhs) < 2 )
+    stop(sprintf("Expected at least two dependent variables, got %s",pr(rhs)))
+  # Combine and check if all formula vars exist as columns in the data.frame
+  all_vars   <- c(lhs,rhs)
+  valid_vars <- all_vars %in% names(data)
+  if (!all(valid_vars)){
+    stop(sprintf("Variables %s not found in data", pr(all_vars[!valid_vars])))
+  }
+  # Now, unpack the formula. First 3 terms are mandatory: count ~ site + year
+  count.id <- lhs
+  site.id  <- rhs[1]
+  time.id  <- rhs[2]
+  # season/month MAY be present as a fourth term. Recognize it by its data type
+  if (length(rhs)>2) {
+    term <- rhs[3]
+    if ("integer" %in% class(data[[term]]) || "numeric" %in% class(data[[term]])) {
+      season.id <- term
+      covar.id  <- rhs[-(1:3)]
+    } else {
+      season.id <- NULL
+      covar.id  <- rhs[-(1:2)]
+    }
+  } else {
+    season.id <- NULL
+    covar.id  <- character(0)
+  }
+
+  # Fix changepoints=NA --> int(0)
+  # TODO: try to remove
   if (length(changepoints)>0 && is.na(changepoints)) changepoints <- integer(0) # fix
+
+  # pass on to trim.data.frame
   trim.data.frame(x=data
-      , count.id=L$count, site.id=L$site, time.id=L$time, covars = L$cov
+      , count.id=count.id, site.id=site.id, time.id=time.id, season.id=season.id, covars = covar.id
       , model=model, weights=weights
       , serialcor=serialcor, overdisp=overdisp, changepoints=changepoints
       , stepwise=stepwise, autodelete=autodelete, ...)
 }
-
-
-parse_formula <- function(x, vars){
-  lhs <- all.vars(x[[2]])
-  if ( length(lhs) != 1)
-    stop(sprintf("Expected precisely one dependent variable, got %s",pr(lhs)))
-  rhs <- all.vars(x[[3]])
-  if ( length(rhs) < 2 )
-    stop(sprintf("Expected at least two dependent variables, got %s",pr(rhs)))
-  all_vars <- c(lhs,rhs)
-  valid_vars <- all_vars %in% vars
-  if (!all(valid_vars)){
-    stop(sprintf("Variables %s not found in data", pr(all_vars[!valid_vars])))
-  }
-  list(count = lhs, site=rhs[1], time = rhs[2], cov=rhs[-(1:2)])
-}
-
-
 
 

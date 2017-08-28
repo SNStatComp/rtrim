@@ -258,6 +258,9 @@ test_that("testing skylark-2a",{
   tc <- read_tcf("outfiles/skylark-2a.tcf")
   dat <- read_tdf(tc)
 
+  # Force 'Habitat' to be a factor, otherwise it will be used as month data...
+  dat$Habitat <- factor(dat$Habitat)
+
   m <- trim(count ~ site + time + Habitat, data=dat
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7, autodelete=FALSE)

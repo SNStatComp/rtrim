@@ -54,6 +54,9 @@ library(rtrim)
 data(skylark)
 # inspect the dataset
 head(skylark,3)
+
+skylark$Habitat    <- factor(skylark$Habitat)    # hack to force is to be interpreted as covariate (instead of month)
+skylark$Deposition <- factor(skylark$Deposition) # hack
 ```
 Here, `skylark` is a regular R `data.frame`.
 
