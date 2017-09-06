@@ -875,6 +875,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         if (use.weights) mu[i, ]   <<- (exp(alpha[i] + B %*% beta) / wt[i, ])
         else             mu[i, ]   <<-  exp(alpha[i] + B %*% beta)
       }
+      # browser()
 
       # Do not allow very small estimates, because that screws up the computation of $V$.
       # Anyway, the model is not designed to predict 0's
@@ -1133,17 +1134,55 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (model==2 && use.beta) {
     se_beta  <- sqrt(diag(var_beta))
 
-    ncp <- length(changepoints)
-    from_cp <- changepoints
-    upto_cp <- if (ncp==1) J else c(changepoints[2:ncp], J)
-    coefs = data.frame(
-      from   = time.id[from_cp],
-      upto   = time.id[upto_cp],
-      add    = beta,
-      se_add = se_beta,
-      mul    = exp(beta),
-      se_mul = exp(beta) * se_beta
-    )
+    # browser()
+
+    # bera-coefficients are stored in a particular order.
+    # We always have the baseline changepoint beta's, optionally followd by the baseline
+    # monthly beta's. This is the baseline `set'.
+    # Optionally, we have multiple sets, one each for every covariate category (expcept the first)
+    nset <- ifelse(use.covars, num.extra.beta.sets+1, 1)
+
+    coefs <- data.frame() # start withh empty data frame
+
+    offset <- 0L
+    for (set in 1:nset) {
+      # annual (i.e., changepoint-related) coefficients
+      ncp <- length(changepoints)
+      from_cp <- changepoints
+      upto_cp <- if (ncp==1) J else c(changepoints[2:ncp], J)
+      yidx <- (1 : ncp) + offset
+      ycoefs = data.frame(
+        from   = time.id[from_cp],
+        upto   = time.id[upto_cp],
+        add    = beta[yidx],
+        se_add = se_beta[yidx],
+        mul    = exp(beta[yidx]),
+        se_mul = exp(beta[yidx]) * se_beta[yidx]
+      )
+
+      # Optionally we have monthly parameters as well
+      if (use.months) {
+        # First add an extra column identifying yearly/monthy coefs
+        ycoefs <- cbind(data.frame(what=factor("year")), ycoefs)
+        midx <- 1 : (M-1) + ncp + offset
+        stopifnot(max(midx)==nbeta) # check
+        mcoefs <- data.frame(
+          what = factor("month"),
+          from = 1 : M,
+          upto = 1 : M,
+          add    = c(0, beta[midx]),
+          se_add = c(0, se_beta[midx]),
+          mul    = c(1, exp(beta[midx])),
+          se_mul = c(0, exp(beta[midx]) * se_beta[midx])
+        )
+      }
+
+      # add coeficients to the growing collection of sets
+      coefs <- rbind(coefs, ycoefs)
+      if (use.months) coefs <- rbind(coefs, mcoefs)
+
+      offset <- offset + nbeta0 # pick up params for next set
+    }
 
     if (use.covars) {
       # Add some prefix columns with covariate and factor ID

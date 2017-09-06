@@ -214,6 +214,7 @@ trim.trimcommand <- function(x,...){
 #' @param count.id \code{[character]} name of the column holding species counts
 #' @param site.id \code{[character]} name of the column holding the site id
 #' @param time.id \code{[character]} name of the column holding the time of counting
+#' @param season.id \\code{[character]} optional name of the column holding the season of counting
 #' @param covars \code{[character]} name(s) of column(s) holding covariates
 #' @param model \code{[numeric]} TRIM model type 1, 2, or 3.
 #' @param weights \code{[numeric]} Optional vector of site weights. The length of
