@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 ## Introduction
 
 As an example of the use of TRIM, counts of the Skylark (*Alauda arvensis*) will be analysed
-(the data are obtained from the Breeding Bird Monitoring Scheme of SOVON and Statistics Netherlands).
+(the data are obtained from the Breeding Bird Monitoring Scheme in the Netherlands of Sovon and Statistics Netherlands).
 A first view of the overall structure of the data can be obtained from base R functions.
 
 
@@ -38,7 +38,7 @@ If one or more of the actual data columns have different names, these can be spe
 ```{r}
 count_summary(skylark2, time.id="year")
 ```
-In this case, we do find that the Skylark dataset contains counts for 55 sites in 8 years (1984--1991).
+In this case, we find that the Skylark dataset contains counts for 55 sites in 8 years (1984--1991).
 Of these 440 Site by Year combinations 202 were observed and the other 238 were missing.
 Two covariates are included: *Habitat*, which distinguishes between Dunes and Heathland sites
 and *Deposition*, which indicates the amount of acidic aerial deposition
@@ -61,7 +61,7 @@ Output from `summary()` includes:
 * The call to `trim` used to estimate the model.
 * Details on the model, estimation method, and the numerical solution.
 * The estimated model parameters (from both the additive and the multiplicative perspective), and the associated standard errors.
-* Estiations of overdispersion and serial correlation parameters, if applicable.
+* Estimations of overdispersion and serial correlation parameters, if applicable.
 * Several model goodness-of-fit measures.
 
 The goodness-of-fit test (Likelihood Ratio) for this model amounts 194.8, with 140 degrees of freedom and p<0.05,
@@ -69,36 +69,35 @@ which implies that the model has to be rejected.
 
 ## Covariates
 
-A possible improvement might be the inclusion of the *Habitat* covariate.
+A possible improvement of the model for a better fit might be the inclusion of the *Habitat* covariate.
 ```{r}
 z2 <- trim(count ~ site + year + habitat, data=skylark2, model=3, serialcor=TRUE, overdisp=TRUE)
 summary(z2)
 ```
 
-Now, the p-value is (just slightly) above the classical threshold value of 0.05, and we decide to accept this model.
+Now, the $p$-value of the likelihood ratio is (just slightly) above the classical threshold value of 0.05, and we decide to accept this model.
 
 ## Model simplification
 
 The advantage of Model 3 is, as argued above, the absence of any assumptions regarding the temporal trend.
 This, however, comes at a price: Postive counts are required for all individual years to allow estimation of the model parameters.
 So, this model cannot be used for cases where one or more years are missing.
-Furthermore, the model is far from being parsimonious. Even if the Skylark population follows a perflectly theoretical trend with constant population growth (or decay) parameters, each year is assigned it's own parameters, even if these are identicial as last years.
+Furthermore, the model is far from being parsimonious. Even if the Skylark population follows a perfectly theoretical trend with constant population increase or decrease, each year is assigned it's own growth parameters, even if these are identical to last year's.
 
-For both reasons it may be prefarable to replace model 3 by model 2 (piecewise linear), especially because in one extreme case these models are equivalent. This is the case when all years are treated as change points' where one trend changes into a different one. Let's first check this.
+For both reasons it may be preferable to replace model 3 by model 2 (piecewise linear), especially because in one extreme case these models are equivalent. This is the case when all years are treated as change points, and each year the trend changes into a different one. Let's first check this.
 ```{r}
 z3 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="all", serialcor=TRUE, overdisp=TRUE)
 summary(z3)
 ```
 
-and indeed this results in a similar model fit (altough parameter values are different, of course).
+and indeed this results in a similar model fit (although parameter values are different, of course).
 
-The graphical display of the time-totals suggests that after an initial decline in counts, Skylark population recovers with approximately the same rate. One could either just argue if this recovery starts in 1985 or in 1987, and to what extent the recovery rate is 'constant', or one can look at the model statistics to see if the estimation process is of any help.
-In this case, we look at the Wald statistics associated with the Habitat covariate, and the individual changepoints:
+The graphical display of the time-totals suggests that after an initial decline in counts, Skylark population recovers with approximately the same rate. One could either just argue if this recovery starts in 1985 or in 1987, and to what extent the recovery rate is 'constant', or one can look at the model statistics tfor a more objective analysis. In this case, we look at the Wald statistics associated with the Habitat covariate, and the individual changepoints:
 ```{r}
 wald(z3)
 ```
-The first test shows that there is a significant (at the 5% significance level) effect of the Habitat covariate on slopes (or year indices), showing that the slopes (year indices) for Dunes are different from those for Heathland.
-The tests for the significance of changes in slopes show that the only significant changes are for the years 1984, which means that the slope between 1984 and 1985 is different from zero, and 1985 which means that the slope between 1985 and 1986 is different from the slope between 1984 and 1985.
+The first test shows that there is a significant (at the 5% level) effect of the Habitat covariate on slopes (or year indices), showing that the slopes (year indices) for Dunes are different from those for Heathland.
+The tests for the significance of changes in slopes show that the only significant changes are for the years 1984, which means that the slope between 1984 and 1985 is different from zero, and 1985, which means that the slope between 1985 and 1986 is different from the slope between 1984 and 1985.
 This suggests that it should be possible to describe these data with a model with less than the full set of seven changepoints.
 To investigate this possibility, the stepwise procedure for selection of changepoints can be used by including `stepwise=TRUE` in the call to `trim()`:
 ```{r}
@@ -127,21 +126,21 @@ p
 
 Since $p \gg 0.05$ the $H_0$ hypothesis that model z4 is a submodel of z3 in the sense that z4 can be obtained from z3 by setting some of z4 parameters to 0, cannot be rejected at the $alpha=0.05$ level. In other words, both models are practically equivalent. The model z4, however, is the most sparse model, as shown by Akaike's Information Criterion.
 
-Concerning model z4, the Wald-test for the significance of the effects of the covariate on the slope parameters show that this effect is very significant (p=0.0001) and the Wald-tests for the significance of changes in slope show that both changes (at 1984 and 1985) are, as expected, also very significant (p is 0.004 and 0.0007, respectively).
+Concerning model z4, the Wald-test for the significance of the effects of the covariate on the slope parameters shows that this effect is very significant (p=0.0001) and the Wald-tests for the significance of changes in slope shows that both changes (at 1984 and 1985) are, as expected, also very significant (p is 0.004 and 0.0007, respectively).
 
 The slope (in the additive parameterization) for a site is the sum of the constant term and the effects for the covariate values for that site.
 The effect for the first category of a covariate is zero and omitted from the output of `summary()` and `coefs()`.
 Thus, sites with covariate value 1 (Dunes) have slope -0.269 between 1984 and 1985 and -0.078 from 1985 onwards.
-The corresponding multiplicative parameters show that for Dunes there is a sharp decrease (76%) between 1984 and 1985 and a much smaller annual decrease (93%) from 1985 to 1991.
+The corresponding multiplicative parameters show that for Dunes there is a sharp decrease (the multipicative coefficient of 0.76 corresponds to $(1-0.76)\times100=24\%$ decrease) between 1984 and 1985 and a much smaller annual decrease (0.93, equivalent to 7% decrease) from 1985 to 1991.
 For sites with covariate value 2 (Heathland) the slope between 1984 and 1985 is $-0.269 - 0.020 = -0.289$ corresponding with a multiplicative effect of $0.764 \times 0.980 = 0.75$ which is only slightly different from the effect for Dunes for this time period.
-Apparently, the significant effect of the covariate has to do with the trend from 1985 onwards.
-The parameters show, indeed, that for Heathland there is an increase rather than the decrease that was found for Dunes.
+Apparently, the significant effect of the covariate is mainly determined by the trend from 1985 onwards.
+The parameters show indeed that Skylark populations increase in Heathland, while they decrease in Dunes.
 The slope is 0.097 (additive) and 1.10 multiplicative, corresponding to an annual increase of 10%.
 
-## Indices
+## Indices and time-totals
 
-Model-based and imputed overall indices (based on the time-totals for all sites) can be obtained from TRIM output by calling `index()`.
-By default, only imputed indices are returned. Model-based indices can be added by using the `which="both"` option.
+Model-based and imputed overall indices (based on the time-totals for all sites) can be obtained from TRIM output by calling `index()` or `totals()`.
+By default, only imputed indices or time-totals are returned. Model-based indices or time-totals can be added by using the `which="both"` option.
 ```{r}
 index(z4, which="both")
 ```
@@ -187,7 +186,7 @@ wald(z5)
 
 ## Weighting
 
-So far, the overall indices are the indices that correpond with the time totals summed over all sites.
+So far, the overall indices are the indices that correspond with the time totals summed over all sites.
 The next run shows the results if the sites in Dunes are weighted 10 times.
 ```{r}
 z6 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="auto", serialcor=TRUE, overdisp=TRUE, weights=skylark2$weight)

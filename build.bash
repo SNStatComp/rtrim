@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Bash script to build the rtrim R package
+# version 1: Mark van der Loo
+# version 2: Patrick Bogaart
+# - added generation of install script 
+
 R=R
 CHECKARG=""
 while [ $# -gt 0 ] ; do
@@ -30,6 +35,16 @@ do
     $R CMD check $CHECKARG $x
 done
 
+echo "######## Creating installation script..."
+TARGET=install.R
+PRE="install.packages(\""
+TGZ=$(eval ls -1 *.tar.gz | head -1)
+POST="\", repos=NULL, type=\"source\")"
+echo "# R script to install rtrim package from source" > $TARGET
+echo $PRE$TGZ$POST >> $TARGET
+
 echo "**BUILT USING $R"
 $R --version
+
+
 

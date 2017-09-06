@@ -47,7 +47,7 @@ Executing a TRIM command file is as easy as reading the file using `read_tcf` an
 tc <- read_tcf("skylark.tcf")
 m <- trim(tc)
 ```
-The resulting `trim` object can be evaluated as described in the [getting started](rtrim_for_TRIM_users.html) vignette. For example
+The resulting `trim` object can be evaluated as described in the [Getting Started](rtrim_for_TRIM_users.html) vignette. For example
 ```{r}
 wald(m)
 ``` 
@@ -59,9 +59,9 @@ tc
 ```
 
 
-**NOTE.** Be aware that R has its own present working directory. If relative paths (that is, file names not starting with the full path to their location) are used in the TRIM command file, R wil interpret them as relative to the current working directory. 
+**NOTE.** Be aware that R has its own present working directory. If relative paths (that is, file names not starting with the full path to their location) are used in the TRIM command file, R will interpret them as relative to the current working directory. 
 
 
 ## TRIM data files
 
-TRIM data files are basically space-separated, tabular tekstfiles where the order and type of columns is fixed by a few parameters. Given such a specification, a file can be read with `read_tdf`. 
+TRIM data files are basically space-separated, tabular texstfiles where the order and type of columns is fixed by a few parameters. Given such a specification, a file can be read with `read_tdf`. 

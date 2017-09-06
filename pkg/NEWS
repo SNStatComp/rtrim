@@ -1,5 +1,6 @@
 version 1.3.1
-- fixed bug concerning covariates
+- Fixed bug concerning covariates
+- Fixed typos and minor edits in vignettes (thanks to Martin Poot)
 
 version 1.3.0
 - Integration of experimental monthly version

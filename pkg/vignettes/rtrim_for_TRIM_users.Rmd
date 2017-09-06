@@ -103,8 +103,8 @@ The names of variables in the dataset are not important and neither is their ord
 are designed to estimate the number of counts at counting sites, the formula specifying the model
 has to satisfy certain rules.
 
-- The single variable at the left-hand side must represent the number of counts.
-- The **first variable** on the right-hand side must represent the **site** variable.
+- The single variable at the left-hand side of hr tilde must represent the counted numbers.
+- The **first variable** on the right-hand of the tilde side must represent the **site** variable.
 - The **second variable** on the right-hand side must represent the **time** identifier.
 - All other variables on the right-hand-side are interpreted as covariates.
 
@@ -114,7 +114,7 @@ For example, to use the variable `Habitat` as covariate when analysing the `skyl
 m2 <- trim(count ~ site + time + Habitat, data=skylark, model=2)
 ```
 
-It is also possible to specify weights by passing `trim` a `weights` argument.
+It is also possible to apply weights by specifyinga `weights` argument.
 The TRIM options `overdisp` (for overdispersion) and `serialcor` (for serial
 correlation),  are simple `TRUE/FALSE` toggles. The breaks of
 the piecewise loglinear model can be specified with the `changepoints` option.
@@ -135,7 +135,7 @@ In this example, the data sets consists of 8 time points, so time points 1 to 7 
 
 Alternatively the `stepwise` algorithm can be used. This algorithm removes changepoints
 when the slope does not change significantly from before to after a changepoint, yielding a
-simpler (more robust) model.
+simpler (more sparse) model.
 ```{r}
 m4 <- trim(count ~ site + time + Habitat, data=skylark, model=2
      , overdisp = TRUE, serialcor = TRUE, changepoints=1:7, stepwise = TRUE)
@@ -159,5 +159,5 @@ The TRIM model can only be computed when sufficient data is present. With the fu
 ```{r}
 check_observations(skylark, model=2, changepoints=c(1,4))
 ```
-The result is a `list` with booean element `sufficient`. If `sufficient==FALSE`, the element `errors`
-contains a `data.frame` with the sites/times/covariates with insuffiecient counts.
+The result is a `list` with boolean element `sufficient`. If `sufficient==FALSE`, the element `errors`
+contains a `data.frame` with the sites/times/covariates with insufficient counts.
