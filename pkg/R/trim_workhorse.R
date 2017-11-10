@@ -11,61 +11,29 @@ compatible <- FALSE
 #' TRIM estimation function
 #'
 #' @param count a numerical vector of count data.
-#' @param site.id a numerical vector time points for each count data point.
-#' @param time.id a numerical vector time points for each count data point.
+#' @param site an integer/numerical/factor vector of site identifiers for each count data point
+#' @param year a numerical vector time points for each count data point.
+#' @param weights an optional numerical vector of weights.
 #' @param covars an optional data frame withcovariates
 #' @param model a model type selector (1, 2 or 3)
+#' @param changepoints a numerical vector change points (only for Model 2)
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
-#' @param changepoints a numerical vector change points (only for Model 2)
 #' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
 #' @param autodelete a flag indicating auto-deletion of changepoints with too little observations.
-#' @param weights a numerical vector of weights.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame()
-                         , model=2, serialcor=FALSE, overdisp=FALSE
-                         , changepoints=1L
-                         , autodelete=TRUE, weights=numeric(0)
-                         , stepwise=FALSE, covin=list()
-                         , ...)
+trim_estimate <- function(count, site, year, month, weights, covars
+                         , model, changepoints, overdisp, serialcor
+                         , autodelete, stepwise, ...)
 {
   call <- sys.call(1)
 
-  year <- time.id # change conventions (from timept to year/month)
-  time.id <- NULL
-
   # kick out missing/zero sites
-  # useful <- count>0
-  # ok = rep(TRUE, length(count))
-  # sites = unique(site.id)
-  # del.sites = character(0)
-  # nkickout = 0
-  # for (site in sites) {
-  #   idx = site.id==site
-  #   if (!any(count[idx]>0, na.rm=TRUE)) {
-  #     ok[idx] = FALSE
-  #     nkickout = nkickout+1
-  #     del.sites <- c(del.sites, site)
-  #   }
-  # }
-  # if (nkickout>0) {
-  #   count <- count[ok]
-  #   year  <- year[ok]
-  #   if(!is.null(month)) month <- month[ok]
-  #   site.id = site.id[ok]
-  #   if (length(weights)>0) weights = weights[ok]
-  #   rprintf("Removed %d %s without observations: (%s)\n", nkickout,
-  #           ifelse(nkickout==1, "site","sites"), paste0(del.sites, collapse=", "))
-  #   # Prevent the formation of 'empty' levels
-  #
-  # }
-
-  # kick out missing/zero sites
-  tot_count <- tapply(count, site.id, function(x) sum(x>0, na.rm=TRUE)) # Count total observations per site
+  tot_count <- tapply(count, site, function(x) sum(x>0, na.rm=TRUE)) # Count total observations per site
   full_sites  <- names(tot_count)[tot_count>0]
   empty_sites <- names(tot_count)[tot_count==0]
   nkickout <- length(empty_sites)
@@ -73,19 +41,19 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
   if (nkickout>0) {
     rprintf("Removed %d %s without observations: (%s)\n", nkickout,
             ifelse(nkickout==1, "site","sites"), paste0(empty_sites, collapse=", "))
-    idx <- site.id %in% full_sites
+    idx <- site %in% full_sites
     count <- count[idx]
+    site <- site[idx]
+    if (is.factor(site)) site <- droplevels(site)
     year  <- year[idx]
     if(!is.null(month)) month <- month[idx]
-    site.id <- site.id[idx]
-    if (is.factor(site.id)) site.id <- droplevels(site.id)
-    if (length(weights)>0) weights <- weights[idx]
+    if (!is.null(weights)) weights <- weights[idx]
     # Don't forget to adjust the covariates as well!
     if (nrow(covars)>0) covars <- covars[idx, ,drop=FALSE] # prevent data.frame -> vector degradation!
   }
 
   # Handle "auto" changepoints
-  if (is.character(changepoints)) {
+  if (model==2 && is.character(changepoints)) {
     if (changepoints %in% c("all","auto")) {
       if (changepoints == "auto") stepwise=TRUE
       J <- length(unique(year))
@@ -103,8 +71,8 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
 
   t1 <- Sys.time()
   if (isTRUE(stepwise)) {
-    m <- trim_refine(count, site.id, year, month, covars, model, serialcor
-          , overdisp, changepoints, weights)
+    m <- trim_refine(count, site, year, month, weights, covars,
+                     model, changepoints, overdisp, serialcor, autodelete, stepwise, ...)
   } else {
     # data input checks: throw error if not enough counts available.
     if (model == 2 && length(changepoints)>0 && autodelete){
@@ -120,10 +88,10 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
     }
 
     # compute actual model
-    m <- trim_workhorse(count, site.id, year, month, covars, model
-          , serialcor, overdisp, changepoints, weights, covin
-          , ...)
+    m <- trim_workhorse(count, site, year, month, weights, covars,
+                        model, changepoints, overdisp, serialcor, autodelete, stepwise, ...)
   }
+
   t2 <- Sys.time()
   m$dt <- difftime(t2,t1)
   rprintf("Running trim took %8.4f %s\n",m$dt,attr(m$dt,"units"))
@@ -137,7 +105,7 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
 #' TRIM workhorse function
 #'
 #' @param count a numerical vector of count data.
-#' @param site.id a numerical vector time points for each count data point.
+#' @param site a numerical vector time points for each count data point.
 #' @param time.id an numerical vector time points for each count data point.
 #' @param covars an optional data frame with covariates
 #' @param model a model type selector
@@ -156,13 +124,12 @@ trim_estimate <- function(count, site.id, time.id, month=NULL, covars=data.frame
 #'
 #'
 #' @keywords internal
-trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame(),
-                         model=2, serialcor=FALSE, overdisp=FALSE,
-                         changepoints=1L, weights=numeric(0),
-                         covin = list(),
-                         conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
-                         sig2fix=1.0,
-                         soft=FALSE, debug=FALSE)
+trim_workhorse <- function(count, site, year, month, weights, covars,
+                           model, changepoints, overdisp, serialcor, autodelete, stepwise,
+                           covin = list(),
+                           conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
+                           sig2fix=1.0,
+                           soft=FALSE, debug=FALSE)
 {
   if (debug) browser()
   # =========================================================== Preparation ====
@@ -171,19 +138,22 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   stopifnot(class(count) %in% c("integer","numeric"))
   n = length(count)
 
-  # \verb!time.id! should be an ordered factor, or a vector of consecutive years or numbers
+  # \verb!year! should be an ordered factor, or a vector of consecutive years or numbers
   # Note the use of "any" because of multiple classes for ordered factors
-  stopifnot(any(class(year) %in% c("integer","numeric")))
-  if (any(class(year) %in% c("integer","numeric"))) {
-    check = unique(diff(sort(unique(year))))
-    stopifnot(check==1 && length(check)==1)
-  }
-  stopifnot(length(year)==n)
-  # Convert the time points to a factor
+  # stopifnot(any(class(year) %in% c("integer","numeric")))
+  # if (any(class(year) %in% c("integer","numeric"))) {
+  #   check <- unique(diff(sort(unique(year))))
+  #   stopifnot(check==1 && length(check)==1)
+  # }
+  stopifnot(class(year) %in% c("integer","numeric"))
+  check <- unique(diff(sort(unique(year))))
+  ok <- check==1 && length(check)==1
+  if (!ok) stop("'year' data is not consecutive")
+  stopifnot(length(year)==length(count))
 
-  # \verb!site.id! should be a vector of numbers, strings or factors
-  stopifnot(class(site.id) %in% c("integer","character","factor"))
-  stopifnot(length(site.id)==n)
+  # \verb!site! should be a vector of numbers, strings or factors
+  stopifnot(class(site) %in% c("integer","character","factor"))
+  stopifnot(length(site)==length(count))
 
   # `Month' specifiers should be similar to years
   if (is.null(month)) {
@@ -191,25 +161,26 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   } else {
     use.months <- TRUE
     # Include the same tests as for years
-    stopifnot(any(class(month) %in% c("integer","numeric")))
-    if (any(class(month) %in% c("integer","numeric"))) {
-      check = unique(diff(sort(unique(month))))
-      stopifnot(check==1 && length(check)==1)
-    }
-    stopifnot(length(month)==n)
+    stopifnot(class(month) %in% c("integer","numeric"))
+    check <- unique(diff(sort(unique(month))))
+    ok <- check==1 && length(check)==1
+    if (!ok) stop("'month' data is not consecutive")
+    stopifnot(length(month)==length(count))
   }
 
   # \verb!covars! should be a list where each element (if any) is a vector
   stopifnot(class(covars)=="data.frame")
-  ncovar = length(covars)
+  ncovar <- length(covars)
   use.covars <- ncovar>0
   if (use.covars) {
-    if (use.months) stop("Covariates not implemented yet for use with months")
-    # convert to numerical values
+    # convert to numerical values (1...nlevel)
     icovars <- vector("list", ncovar)
-    for (i in 1:ncovar) if (any(is.na(covars[[i]])))
-      stop(sprintf('NA values not allowed for covariate "%s".', names(covars)[i]), call.=FALSE)
-    for (i in 1:ncovar) icovars[[i]] = as.integer((covars[[i]]))
+    for (i in 1:ncovar) {
+      if (any(is.na(covars[[i]]))) {
+        stop(sprintf('NA values not allowed for covariate "%s".', names(covars)[i]), call.=FALSE)
+      }
+      icovars[[i]] <- as.integer((covars[[i]]))
+    }
 
     # Also, each covariate $i$ should be a number (ID) ranging $1\ldots nclass_i$
     nclass <- numeric(ncovar)
@@ -228,30 +199,19 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   while (any(nclass==1)) {
     idx <-  which(nclass==1)[1]
     warning(sprintf("Removing covariate \"%s\" which has only one class.", names(covars)[idx])
-            , call. = FALSE)
+            , call.=FALSE, immediate.=TRUE)
     covars <-  covars[-idx]
     icovars <- icovars[-idx]
     nclass <- nclass[-idx]
     ncovar <- ncovar-1
     if (ncovar==0) {
-      warning("No covariates left", call. = FALSE)
+      warning("No covariates left", call.=FALSE, immediate.=TRUE)
       use.covars <- FALSE
     }
   }
 
   # \verb!model! should be in the range 1 to 3
-  # For backward compatibility, model 4 is mapped to model 3
-  stopifnot(model %in% 1:4)
-  if (model==4) {
-    warning("Model 4 is deprecated. Please use model 1-3 in combination with month=...")
-    model <- 3
-  }
-
-  # # Collapse Model 2 to Model 1 if there are no changepoints
-  # if (model==2 & length(changepoints)==0) {
-  #   rprintf("Model 2 without changepoints; collapsing to Model 1\n")
-  #   model <- 1
-  # }
+  stopifnot(model %in% 1:3)
 
   # beta parameters are used only if we have model2+changepoints, or model3
   if (model==1) {
@@ -263,45 +223,55 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   } else stop("Should not happen")
 
   # Weights should be either absent, or aligned with the counts
-  if (length(weights)>0) {
+  if (is.null(weights)) {
+    use.weights <- FALSE
+  } else {
     use.weights <- TRUE
     stopifnot(length(weights)==length(count))
-  } else use.weights <- FALSE
+  }
 
   # User-specified covariance
   use.covin <- length(covin)>0
 
   # Convert time and site to factors, if they're not yet
-  timept <- ordered(year)
-  J <- nyear <- length(levels(timept))
+  year_type <- class(year) # record for later use
+  year_fctr <- ordered(year)
+  year_id <- as.integer(year_fctr)
+  J <- nyear <- max(year_id)
 
   if (use.months) {
-    mon <- ordered(month)
-    M <- nmonth <- length(levels(mon))
+    month_fctr <- ordered(month)
+    month_id   <- as.integer(month_fctr)
+    M <- nmonth <- length(levels(month_fctr))
   } else M <- nmonth <- 1L
 
   #org.site.id <- site.id # Remember the original values for output purposes.
-  if (class(site.id) %in% c("integer","numeric")) site.id <- factor(site.id)
-  I <- nsite <- length(levels(site.id))
+  if (class(site)=="factor") {
+    site_fctr <- site
+  } else if (class(site) %in% c("integer","numeric")) {
+    site_fctr <- factor(site)
+  } else stop("Can't happen: invalid site class")
+  site_id <- as.integer(site_fctr)
+  I <- nsite <- max(site_id)
 
   # check for double data
   stopifnot(length(count) <= I*J*M)
   if (use.months) {
-    check <- tapply(count, list(site.id, timept, mon), length)
+    check <- tapply(count, list(site, year_fctr, month_fctr), length)
     if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year/month combination.", call.=FALSE)
   } else {
-    check <- tapply(count, list(site.id, timept), length)
+    check <- tapply(count, list(site, year_fctr), length)
     if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year combination.", call.=FALSE)
   }
 
   # Check for sufficient data
-  # # todo: speedup by using as.integer(mon) etc.
+  # # todo: speedup by using as.integer(month_fctr) etc.
 
   for (i in 1:I) {
-    cur_site <- levels(site.id)[i]
-    site_idx <- site.id == cur_site
+    cur_site <- levels(site)[i]
+    site_idx <- site_id==i
     # for (m in 1:M) {
-      # cur_month = levels(mon)[m]
+      # cur_month = levels(month_fctr)[m]
       # month_idx = month == cur_month
       idx <- site_idx # & month_idx
       nobs <- sum(idx)
@@ -319,8 +289,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # translate to NA values.
   if (!use.months) {
     f <- matrix(NA, nsite, nyear) # ??? check if we should not use NA instead of 0!!!
-    rows <- as.integer(site.id) # `site.id' is a factor, thus this results in $1\ldots I$.
-    cols <- as.integer(timept) # idem, $1 \ldots J$.
+    rows <- site_id # works because site_id = 1...I
+    cols <- year_id # idem
     idx <- (cols-1)*nsite+rows   # Create column-major linear index from row/column subscripts.
     f[idx] <- count    # ... such that we can paste all data into the right positions
   } else {
@@ -328,9 +298,9 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     f <- array(NA, dim=c(nsite,nyear,nmonth))
     for (m in 1:M) {
       fm <- matrix(NA, nsite, nyear)
-      midx = as.integer(mon) == m # month factor -> 1,2,3,etc
-      rows <- as.integer(site.id[midx])
-      cols <- as.integer(timept[midx])
+      midx <- month_id == m # month factor -> 1,2,3,etc
+      rows <- site_id[midx]
+      cols <- year_id[midx]
       idx <- (cols-1)*nsite+rows
       fm[idx] <- count[midx]
       f[ , ,m] <- fm
@@ -344,12 +314,12 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (sum(totals)==0) stop("No positive observations in the data.")
   if (totals[1]==0) {
     n = which(totals>0)[1] - 1L
-    warning(sprintf("Data starts with %d years without positive observations.", n))
+    warning(sprintf("Data starts with %d years without positive observations.", n), call.=FALSE, immediate.=TRUE)
   }
   totals <- rev(totals)
   if (totals[1]==0) {
     n = which(totals>0)[1] - 1L
-    warning(sprintf("Data ends with %d years without positive observations.", n))
+    warning(sprintf("Data ends with %d years without positive observations.", n), call.=FALSE, immediate.=TRUE)
   }
 
   # Create similar matrices for all covariates
@@ -374,9 +344,9 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     if (use.weights) {
       for (m in 1:M) {
         wtm <- matrix(1.0, nsite, nyear)
-        midx = as.integer(mon) == m # month factor -> 1,2,3,etc
-        rows <- as.integer(site.id[midx])
-        cols <- as.integer(timept[midx])
+        midx = month_id==m
+        rows <- site_id[midx]
+        cols <- year_id[midx]
         idx <- (cols-1)*nsite+rows
         wtm[idx] <- weights[midx]
         wt[ , ,m] <- wtm
@@ -391,9 +361,8 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # These are conveniently found by combining the following indices:
   observed <- is.finite(f)  # Flags observed (TRUE) / missing (FALSE) data
   positive <- is.finite(f) & f > 0.0 # Flags useful ($f_{i,j}>0$) observations
-  site <- as.vector(slice.index(f,1)) # row(f) # Internal site identifiers are the row numbers of the original matrix.
-  time <- as.vector(slice.index(f,2)) # Idem for time points.
-  if (use.months) monm <- as.vector(slice.index(f,3))
+  site_ii <- as.vector(slice.index(f,1)) # # Internal site identifiers are the row numbers of the original matrix.
+  #TODO: check site_ii==site_id
   nobs <- rowSums(observed) # Number of actual observations per site (alwso works with months)
   npos <- rowSums(positive) # Number of useful ($f_{i,j}>0$) observations per site.
 
@@ -423,7 +392,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # For model 2, test that changepoints (if any) are in the range [1,J>.
   use.changepoints <- model==2 && length(changepoints)>0
   if (use.changepoints) {
-    years <- as.integer(levels(timept))
+    years <- as.integer(levels(year_fctr))
     if (all(changepoints %in% years)) {
       # Convert changepoints in years  to 1..J
       changepoints <- match(changepoints, years)
@@ -800,7 +769,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
       df <- sum(nobs) - length(alpha) - length(beta) # degrees of freedom
       sig2 <<- if (df>0) sum(r^2, na.rm=TRUE) / df else 1.0
       if (sig2 < 1e-7) stop("Overdispersion apparently 0; consider setting overdisp=FALSE")
-      if (sig2 < 1) warning(sprintf("Overdispersion %.1f <1; consider setting overdisp=FALSE", sig2), call.=FALSE)
+      if (sig2 < 1) warning(sprintf("Overdispersion %.1f <1; consider setting overdisp=FALSE", sig2), call.=FALSE, immediate.=TRUE)
     }
     if (!is.finite(sig2)) stop("Overdispersion problem")
   }
@@ -884,7 +853,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
           mu_check <- mu[i, ,m] < 1e-12
           if (any(mu_check)) {
             j <- which(mu_check)[1]
-            y <- as.numeric(levels(timept))[j]
+            y <- as.numeric(levels(year_fctr))[j]
             msg <- sprintf("Zero expected value at year %d month %d\n", y, m)
             stop(msg, call.=FALSE)
           }
@@ -893,7 +862,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
         mu_check <- mu[i, ] < 1e-12
         if (any(mu_check)) {
           j <- which(mu_check)[1]
-          y <- as.numeric(levels(timept))[j]
+          y <- as.numeric(levels(year_fctr))[j]
           msg <- sprintf("Zero expected value at year %d\n", y)
           stop(msg, call.=FALSE)
         }
@@ -1035,7 +1004,7 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   if (serialcor && rho < 0.2) {
     status <- ifelse(rho<0, "negative", "very low")
     msg <- sprintf("Serial correlation is %s (rho=%.3f); consider disabling it.", status, rho)
-    warning(msg, call. = FALSE)
+    warning(msg, call.=FALSE, immediate.=TRUE)
   }
 
   # Run the final model
@@ -1048,16 +1017,16 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
     UUT <- matrix(0,nbeta,nbeta)
     for (i in 1:nsite) {
       B <- make.B(i)
-      # mu_i <- mu[site==i & observed]
+      # mu_i <- mu[site_ii==i & observed]
       # n_i <- length(mu_i)
       # d_mu_i <- diag(mu_i, n_i) # Length argument guarantees diag creation
       # OM <- Omega[[i]]
       # d_i <- sum(OM) # equivalent with z' Omega z, as in the TRIM manual
-      Bi <- B[observed[site==i], ,drop=FALSE]
+      Bi <- B[observed[site_ii==i], ,drop=FALSE]
       var_fi <- covin[[i]]
       vi <- rowSums(var_fi)
       vipp <- sum(var_fi)
-      mui <- mu[site==i & observed]
+      mui <- mu[site_ii==i & observed]
       muip <- sum(mui)
       term1 <- var_fi
       term2 <- vi %*% t(mui) / muip
@@ -1077,15 +1046,14 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   # $f_{i,j}$ by the model-based estimates $\mu_{i,j}$.
   imputed <- ifelse(observed, f, mu)
 
-
   # ============================================= Output and postprocessing ====
 
   # Measured, modelled and imputed count data are stored in a TRIM output object,
   # together with parameter values and other usefull information.
 
   # Convert time point back to their original (numerical) values
-  time.id <- as.numeric(levels(timept))
-  site.id <- factor(levels(site.id))
+  time.id <- as.numeric(levels(year_fctr))
+  site.id <- factor(levels(site_fctr))
 
   z <- list(title=title, f=f, nsite=nsite, nyear=nyear, ntime=nyear, nmonth=nmonth,
             time.id=time.id, site.id = site.id,
@@ -1303,12 +1271,12 @@ trim_workhorse <- function(count, site.id, year, month=NULL, covars=data.frame()
   ib <- 0
   for (i in 1:nsite) {
     B <- make.B(i)
-    mu_i <- mu[site==i & observed]
+    mu_i <- mu[site_ii==i & observed]
     n_i <- length(mu_i)
     d_mu_i <- diag(mu_i, n_i) # Length argument guarantees diag creation
     OM <- Omega[[i]]
     d_i <- sum(OM) # equivalent with z' Omega z, as in the TRIM manual
-    B_i <- B[observed[site==i], ,drop=FALSE]
+    B_i <- B[observed[site_ii==i], ,drop=FALSE]
     om <- colSums(OM)
     OMzzOM <- om %*% t(om) # equivalent with OM z z' OM, as in the TRIM manual
     term <- t(B_i) %*% (OM - (OMzzOM) / d_i) %*% B_i

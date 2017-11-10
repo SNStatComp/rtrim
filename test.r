@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#!/usr/local/bin/Rscript
 
 suppressPackageStartupMessages({
   if (!require("docopt")) stop("docopt not installed")

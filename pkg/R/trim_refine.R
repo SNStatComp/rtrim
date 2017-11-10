@@ -22,10 +22,8 @@
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
-trim_refine <- function(count, site.id, year, month, covars=list(),
-                        model=2, serialcor=FALSE, overdisp=FALSE,
-                        changepoints=integer(0), weights=numeric(0),
-                        premove=0.2, penter=0.15)
+trim_refine <- function(count, site, year, month, weights, covars,
+                        model, changepoints, ..., premove=0.2, penter=0.15)
 {
   org_cp = changepoints
   ncp <- length(org_cp)
@@ -33,7 +31,8 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
 
   # Always start with an estimation using all proposed changepoints
   cur_cp <- org_cp
-  z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
+  z <- trim_workhorse(count, site, year, month, weights, covars,
+                      model, changepoints=org_cp, ...)
 
   # # Hack: remove all except the first changepoints
   # n <- length(org_cp)
@@ -67,7 +66,8 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
     # If a changepoint has been removed, we'll need to re-estimate the model
     if (removed) {
       cur_cp = org_cp[active] # collapes to numeric(0) if no active changepoints, as intended
-      z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site, year, month, weights, covars,
+                          model, changepoints=cur_cp, ...)
     }
 
     # Phase 2: try to re-insert previously removed changepoints
@@ -115,7 +115,8 @@ trim_refine <- function(count, site.id, year, month, covars=list(),
     # If a changepoint has been re-inserted, we'll need to re-estimate the model
     if (added) {
       cur_cp <- org_cp[active]
-      z <- trim_workhorse(count, site.id, year, month, covars, model, serialcor, overdisp, cur_cp, weights)
+      z <- trim_workhorse(count, site, year, month, weights, covars,
+                          model, changepoints=cur_cp, ...)
     }
 
     # Finished refinement?

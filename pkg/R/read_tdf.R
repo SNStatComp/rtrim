@@ -54,7 +54,6 @@ read_tdf.trimcommand <- function(x,...){
 
 # workhorse function for the S3 interfaces
 tdfread <- function(file, missing, weight, ncovars, labels){
-
   if ( ncovars > 0 && length(labels) == 0 ){
     labels <- paste0("cov",seq_len(ncovars))
   } else if ( ncovars != length(labels)) {

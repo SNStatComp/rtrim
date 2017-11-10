@@ -258,18 +258,17 @@ test_that("testing skylark-2a",{
   tc <- read_tcf("outfiles/skylark-2a.tcf")
   dat <- read_tdf(tc)
 
-  # Force 'Habitat' to be a factor, otherwise it will be used as month data...
-  dat$Habitat <- factor(dat$Habitat)
-
   m <- trim(count ~ site + time + Habitat, data=dat
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7, autodelete=FALSE)
   to <- read_tof("outfiles/skylark-2a.out")
+
   # formula-data interface
   trimtest(m,to,tc)
+
   # data-formula interface: note: nothing should be auto-deleted.
-  m <- trim(dat, count.id="count", site.id="site", time.id="time"
-            , covars="Habitat"
+  m <- trim(dat, count_col="count", site_col="site", year_col="time"
+            , covar_cols="Habitat"
             , serialcor=TRUE, overdisp = TRUE, model=2
             , changepoints=1:7,autodelete=TRUE)
   trimtest(m,to,tc)
