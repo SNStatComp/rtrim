@@ -1,7 +1,7 @@
 ---
 title: "TRIM by example"
 author: "Jeroen Pannekoek, Arco van Strien and Patrick Bogaart"
-date: "`r Sys.Date()`"
+date: "23 November 2017"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -189,7 +189,7 @@ wald(z5)
 So far, the overall indices are the indices that correspond with the time totals summed over all sites.
 The next run shows the results if the sites in Dunes are weighted 10 times.
 ```{r}
-z6 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="auto", serialcor=TRUE, overdisp=TRUE, weights=skylark2$weight)
+z6 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="auto", serialcor=TRUE, overdisp=TRUE, weights="weight")
 idx = index(z6, "fitted", covars=TRUE)
 plot(idx)
 ```

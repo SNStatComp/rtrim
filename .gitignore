@@ -7,6 +7,8 @@
 
 # RStudio files
 .Rproj.user/
+pkg/.Rbuildignore
+rtrim.Rproj
 
 # produced vignettes
 pkg/vignettes/*.html

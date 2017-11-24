@@ -1,0 +1,17 @@
+---
+title: "rtrim extensions"
+output: html_notebook
+---
+
+
+## Plotting indices
+
+Once a TRIM model has been estimated, and indices are computed, these latter can be plotted using the generic plot command **plot** (which, behind the screens, calls **plot.trim.index**).
+
+```{r}
+library(rtrim)
+data(skylark2) # load Skylark data
+m <- trim(count ~ site + year, data=skylark2, model=3) # Run a fairly basic TRIM model
+idx <- index(m) # By default, the indices for the imputed data set
+plot(idx)
+```

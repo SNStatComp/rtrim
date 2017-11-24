@@ -1,7 +1,7 @@
 ---
 title: "Working with TRIM command files and TRIM data files"
 author: "Patrick Bogaart, Mark van der Loo, and Jeroen Pannekoek"
-date: "`r Sys.Date()`"
+date: "23 November 2017"
 output: 
   rmarkdown::html_vignette:
     toc: true

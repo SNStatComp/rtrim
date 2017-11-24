@@ -84,7 +84,9 @@
 
 # ========================================================== User interface ====
 
-#' Extract time-indices from trim output. Indices are obtained by dividing the modelled or imputed time totals by a reference value.
+#' Extract time-indices from TRIM output.
+#'
+#' Indices are obtained by dividing the modelled or imputed time totals by a reference value.
 #' Most commonly, the time totals for the first time point are used as reference.
 #' As a result, the index value for this first time point will be 1.0, with a standard error of 0.0 by definition.
 #' Alternatively, a range of time points can be used as reference. In this case, the mean time totals for this range will be used as

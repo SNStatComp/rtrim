@@ -1,7 +1,7 @@
 ---
 title: "rtrim for TRIM users"
 author: "Patrick Bogaart, Mark van der Loo and Jeroen Pannekoek"
-date: "`r Sys.Date()`"
+date: "23 November 2017"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -63,12 +63,17 @@ Here, `skylark` is a regular R `data.frame`.
 The central function for computing TRIM models is called `trim`. Calling this function is very similar to calling basic R modeling functions like `lm`. Here, we compute TRIM model 2.
 
 ```{r}
-m1 <- trim(count ~ site + time, data=skylark,model=2)
+m1 <- trim(count ~ site + time, data=skylark, model=2)
 ```
-**Note** Since `site` and `time` are treated differently by the model, the order matters (see also [model specification](#modelspec)). Alternatively, one can do this:
+Note that the data is passed to `trim` as an R data.frame. Information on which columns in the data frame represent the counts, the site ID's etc is encoded in the first argument, which is of the special type `formula'.
+Because site identifiers and time points are treated differently by the model, the order matters (see also [model specification](#modelspec)).
+
+Alternatively, one can just pass the data frame as argument 1, and explictly tell `trim` in which columns the counts etc are:
 ```{r}
-m1 <- trim(skylark, count.id="count", site.id="site", time.id="time", model=2)
+m1 <- trim(skylark, count_col="count", site_col="site", year_col="time", model=2)
 ```
+Note that although the name `year_col` suggests that counts must be on an annual interval, this is not necesarily the case.
+
 The result is an object of class `trim`. Just like with objects of class `lm`, its various components can be extracted using specialized functions. Here are some examples.
 ```{r}
 # summarize the model

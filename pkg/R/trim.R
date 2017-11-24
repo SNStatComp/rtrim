@@ -1,8 +1,6 @@
-#' Estimate TRIM model parameters
+#' Estimate TRIM model parameters.
 #'
-#'
-#' Compute TRIM model parameters.
-#'
+#' Given some count observations, estimate a TRIM model and use these to impute the data set if nescessary.
 #'
 #' @section Models:
 #'
@@ -54,7 +52,8 @@
 #' \code{\link{gof}} (for goodness of fit), \code{\link[=summary.trim]{summary}}
 #' or \code{\link{totals}}. Refer to the `See also' section for an overview.
 #'
-#' @section {Using yearly and monthly counts}
+#'
+#' @section Using yearly and monthly counts:
 #'
 #' In many data sets will use use only yearly count data, in which case the
 #' time \eqn{j} will reflect the year number.
@@ -74,7 +73,8 @@
 #'
 #' For the same reason why \eqn{\beta_1=0} for Model 3, \eqn{\gamma_1=0} in case of montly parameters.
 #'
-#' #' @section {Using covariates}:
+#'
+#' @section Using covariates:
 #'
 #' In the basic case of Models 2 and 3, the growth parameter \eqn{\beta} does
 #' not vary accross sites. If auxiliary information is available (for instance
@@ -155,14 +155,11 @@
 #' model.
 #'
 #'
-#'
-#' @param x a \code{\link{trimcommand}}, a \code{data.frame}, or a \code{formula}
-#'  If \code{x} is a \code{formula}, the dependent variable (left-hand-side)
+#' @param object Either a \code{data.frame}, a \code{formula} or a \code{\link{trimcommand}}.
+#'  If \code{object} is a \code{formula}, the dependent variable (left-hand-side)
 #'  is treated as the 'counts' variable. The first and second independent variable
 #'  are treated as the 'site' and 'time' variable, \bold{in that specific order}. All
 #'  other variables are treated as covariates.
-#' @param ... Currently unused
-#'
 #'
 #' @export
 #'
@@ -193,92 +190,69 @@
 #' wald(m)
 #' plot(overall(m))
 #'
-trim <- function(x, ...){
-  UseMethod('trim')
-}
-
-#' @rdname trim
-#' @export
-trim.trimcommand <- function(tcf, ...) {
-  call <- sys.call()
-
-  dat <- read_tdf(tcf)
-  covars <- tcf$labels[tcf$covariates]
-
-  if (isTRUE(tcf$weighting)) { wgt <- dat$weight }
-  else                       { wgt <- NULL }
-
-  if (isTRUE(tcf$covin)) covin <- read_icv(x)
-  else                   covin <- list()
-
-  # Create 'automatic' changepoint #1
-  if (tcf$model==2 && length(tcf$changepoints)==0) tcf$changepoints=1L
-
-  trim_estimate(count=dat$count
-      , site=dat$site
-      , year=dat$time
-      , month=NULL
-      , weights=wgt
-      , covars=dat[covars]
-      , model=tcf$model
-      , changepoints=tcf$changepoints
-      , overdisp=tcf$overdisp
-      , serialcor=tcf$serialcor
-      , stepwise=tcf$stepwise
-      , autodelete=tcf$autodelete
-      , ...)
+trim <- function(object, ...) {
+  UseMethod("trim", object)
 }
 
 
+################################################################################
+#                                                                trim.data.frame
+################################################################################
 
-#' @param count_col \code{[character]} name of the column holding species counts
-#' @param site_col \code{[character]} name of the column holding the site id
-#' @param year_col \code{[character]} name of the column holding the time of counting
-#' @param month_col \\code{[character]} optional name of the column holding the season of counting
-#' @param model \code{[numeric]} TRIM model type 1, 2, or 3.
-#' @param weights_col \code{[numeric]} Optional vector of site weights. The length of
-#' @param covar_cols \code{[character]} name(s) of column(s) holding covariates
-#' @param serialcor \code{[logical]} Take serial correlation into account (See `Estimation details')
-#' @param overdisp \code{[logical]} Take overdispersion into account (See `Estimation options').
+
+## ' @param df \code{[data.frame]} data frame containing the observations
+#' @param count_col    \code{[character]} name of the column holding species counts
+#' @param site_col     \code{[character]} name of the column holding the site id
+#' @param year_col     \code{[character]} name of the column holding the time of counting
+#' @param month_col    \code{[character]} optional name of the column holding the season of counting
+#' @param weights_col  \code{[numeric]} Optional vector of site weights. The length of
+#' @param covar_cols   \code{[character]} name(s) of column(s) holding covariates
+#' @param model        \code{[numeric]} TRIM model type 1, 2, or 3.
+#' @param serialcor    \code{[logical]} Take serial correlation into account (See `Estimation details')
+#' @param overdisp     \code{[logical]} Take overdispersion into account (See `Estimation options').
 #' @param changepoints \code{[numeric]} Indices for changepoints (`Models').
-#' @param stepwise \code{[logical]} Perform stepwise refinement of changepoints.
-#' @param autodelete \code{[logical]} Auto-delete changepoints when number of observations is too small. (See
+#' @param stepwise     \code{[logical]} Perform stepwise refinement of changepoints.
+#' @param autodelete   \code{[logical]} Auto-delete changepoints when number of observations is too small. (See
 #'  `Demands on data').
+#' @param ... More parameters
 #'
 #' @rdname trim
+#' @method trim data.frame
 #' @export
-trim.data.frame <- function(data, count_col="count", site_col="site", year_col="year", month_col=NULL
+trim.data.frame <- function(object, count_col="count", site_col="site", year_col="year", month_col=NULL
                             , weights_col=NULL, covar_cols=NULL
                             , model=2, changepoints=ifelse(model==2, 1L, integer(0))
                             , overdisp=FALSE, serialcor=FALSE
                             , stepwise=FALSE, autodelete=TRUE, ...) {
 
+  df <- object
+
   # check data source
-  stopifnot(class(data)=="data.frame")
-  stopifnot(nrow(data)>0)
+  stopifnot(class(df)=="data.frame")
+  stopifnot(nrow(df)>0)
 
   # check data columns
-  stopifnot(count_col %in% names(data))
-  count <- data[[count_col]]
+  stopifnot(count_col %in% names(df))
+  count <- df[[count_col]]
 
-  stopifnot(site_col %in% names(data))
-  site <- data[[site_col]]
+  stopifnot(site_col %in% names(df))
+  site <- df[[site_col]]
 
-  stopifnot(year_col %in% names(data))
-  year <- data[[year_col]]
+  stopifnot(year_col %in% names(df))
+  year <- df[[year_col]]
 
   if (is.null(month_col)) {
     month <- NULL
   } else {
-    stopifnot(month_col %in% names(data))
-    month <- data[[month_col]]
+    stopifnot(month_col %in% names(df))
+    month <- df[[month_col]]
   }
 
   if (is.null(weights_col)) {
     weights <- NULL
   } else {
-    stopifnot(weights_col %in% names(data))
-    weights <- data[[weights_col]]
+    stopifnot(weights_col %in% names(df))
+    weights <- df[[weights_col]]
   }
 
   if (is.null(covar_cols)) {
@@ -287,9 +261,9 @@ trim.data.frame <- function(data, count_col="count", site_col="site", year_col="
     covars <- data.frame()
   } else {
     for (covar_col in covar_cols) {
-      stopifnot(covar_col %in% names(data))
+      stopifnot(covar_col %in% names(df))
     }
-    covars <- data[covar_cols]
+    covars <- df[covar_cols]
   }
 
   # Check model specification and parameters
@@ -312,17 +286,44 @@ trim.data.frame <- function(data, count_col="count", site_col="site", year_col="
                 ...)
 }
 
+################################################################################
+#                                                                   trim.formula
+################################################################################
 
+
+##  ' @param f \code{[formula]} R formula identifying the model variables
+#' @param data \code{[data.frame]} Data frame containing at least counts, sites, and times
+#' @param weights \code{[character]} name of the column in \code{data} which respresents weights (optional)
+#'
 #' @rdname trim
-#' @param data \code{[data.frame]} Data containing at least counts, sites, and times
 #' @export
-trim.formula <- function(f, data=NULL, weights=NULL, monthly=FALSE, ...)
+trim.formula <- function(object, data=NULL, weights=NULL, ...)
 {
-  # internal function
+  f <- object
+
+  # Check arguments
+  if (is.null(data)) stop("no data given")
+  if (class(data)!="data.frame") stop("argument 'data' should be a data frame")
+  if (!is.null(weights)) {
+    if (class(weights)!="character") stop("argument 'weights' should be character")
+    if (!(weights %in% names(data))) stop("weights column not found in data frame")
+  }
+
+  # Internal functions
+
   unpack_formula <- function(f) {
+    # Return a text representation of formula f
     if (length(f)==1) {
+      # formula has only one element; just return a text representation
       out <- as.character(f)
+    } else if (length(f)==2) {
+      # formula has 2 elements; only allowed in the form ( ...
+      opr <- unpack_formula(f[[1]])
+      stopifnot(opr=="(")
+      op1 <- unpack_formula(f[[2]])
+      out <- c("(", op1, ")")
     } else if (length(f)==3) {
+      # formula has 3 elements: <operator> <operand 1> <operand 2>
       opr <- unpack_formula(f[[1]]) # operator
       op1 <- unpack_formula(f[[2]]) # operand 1
       op2 <- unpack_formula(f[[3]]) # operand 2
@@ -331,116 +332,120 @@ trim.formula <- function(f, data=NULL, weights=NULL, monthly=FALSE, ...)
     out
   }
 
-  # argument 'data' MUST be data frame
-  if (is.null(data)) stop("no data given")
-  if (class(data)!="data.frame") stop("data should be a data frame")
+  fs <- deparse(f, width.cutoff=500) # convert to string; discourage cutoff
 
   # first check if all elements of the formula are known.
   vars <- all.vars(f)
   known <- vars %in% names(data)
   if (!all(known)) {
     unknown <- vars[!known]
-    msg <- sprintf("Model contains unkown variable: %s", paste(unknown, collapse=", "))
+    msg <- sprintf("Model '%s' contains unknown variable: %s", fs, paste(unknown, collapse=", "))
     stop(msg)
   }
 
   terms <- all.names(f)
   operators <- terms[!(terms %in% vars)]
-  allowed <- operators %in% c("~","+",":")
+  allowed <- operators %in% c("~","+",":","(")
   if (!all(allowed)) {
     forbidden <- operators[!allowed]
-    msg <- sprintf("Model contains unallowed operator: %s", paste(forbidden, collapse=", "))
+    msg <- sprintf("Model '%s' contains unallowed operator: %s", fs, paste(forbidden, collapse=", "))
     stop(msg)
   }
 
   terms <- unpack_formula(f)
-  # first part should be LHS ~ site + year ...
-  if (length(terms)<5)   stop("model should have form 'count ~ site + year ...")
-  if (terms[[2]] != "~") stop("model should have form 'count ~ ...'")
-  if (terms[[4]] != "+") stop("model should have form 'count ~ site + year ...")
+  # first part should be LHS ~ site + ...
+  if (length(terms)<4)   stop(sprintf("Model '%s' should have form 'count ~ site + ...", fs))
+  if (terms[[2]] != "~") stop(sprintf("Model '%s' should have form 'count ~ ...'", fs))
+  if (terms[[4]] != "+") stop(sprintf("Model '%s' should have form 'count ~ site + ...", fs))
 
   count_col <- terms[1]
   site_col  <- terms[3]
-  year_col  <- terms[5]
-  # printf("found count ID: %s\n", count)
-  # printf("found site ID: %s\n", site)
-  # printf("found year ID: %s\n", year)
-  terms <- terms[-(1:5)]
+  # printf("  found count ID: %s\n", count_col)
+  # printf("  found site ID: %s\n", site_col)
+  terms <- terms[-(1:4)]
 
-  # optionally: month specifier
-  if (length(terms)>0 && terms[1]==":") {
-    month_col <- terms[2]
-    # printf("found month ID: %s\n", month)
-    terms <- terms[-(1:2)]
+  # Time specifier is either YEAR or (YEAR + MONTH)
+  if (terms[1]=="(") {
+    if (length(terms)<5) stop(sprintf("Unexpected time specification in model '%s'", fs))
+    if (terms[3]!="+") stop(sprintf("Unexpected time specification in model '%s'", fs))
+    if (terms[5]!=")") stop(sprintf("Unexpected time specification in model '%s'", fs))
+    year_col  <- terms[2]
+    month_col <- terms[4]
+    # printf("  found year ID: %s\n", year)
+    # printf("  found month ID: %s\n", month)
+    terms <- terms[-(1:5)]
+  } else {
+    if (length(terms)<1) stop(sprintf("Unexpected time specification in model '%s'", fs))
+    year_col <- terms[1]
+    # printf("found year ID: %s\n", year)
+    terms <- terms[-1]
+    # optionally: month specifier
+    if (length(terms)>0 && terms[1]==":") {
+      month_col <- terms[2]
+      # printf("found month ID: %s\n", month)
+      terms <- terms[-(1:2)]
+    }
+    else month_col <- NULL
   }
-  else month_col <- NULL
 
   # optionally: covariates
   covar_cols <- character(0)
   while (length(terms)>0) {
-    if (terms[1]!="+") {
-      msg <- sprintf("covariates should be included using the '+' operator ('%s' found)", terms[1])
-      stop(msg)
-    }
-    covar <- terms[2]
-    covar_cols <- c(covar_cols, covar)
+    if (terms[1]!="+") stop(sprintf("Covariates should be included using the '+' operator ('%s' found)", terms[1]))
+    covar_cols <- c(covar_cols, terms[2])
     terms <- terms[-(1:2)]
   }
-  if (length(covar_cols)==0) covar_cols <- NULL
   # if (length(covars)>0) {
   #   printf("found covars: %s\n", paste(covars, collapse=", "))
-  # }
-
-
-  ########################
-  # # Parameter 'data' MUST be a data.frame
-  # if (is.null(data)) stop("No data given")
-  # stopifnot(inherits(data,"data.frame"))
-  #
-  # # Parse formula 'f'.
-  # # As a first check, all terms of the formula must be in the data frame.
-  # all_vars <- all.vars(f)
-  # for (v in all_vars) {
-  #   if (!v %in% names(data)) {
-  #     msg <- sprintf("model term '%s' not found in data.", v)
-  #     hint <- sprintf("(data columns are: '%s').", paste(names(data), collapse="','"))
-  #     stop(paste(msg, hint))
-  #   }
-  # }
-  #
-  # # formula's are stored in reverse polish notation, i.e.,
-  # # z ~ x + y is stored as ~(z,(x,y)) or general: (~, lhs, rhs)
-  # lhs <- all.vars(f[[2]])
-  # if (length(lhs)!=1) stop("Model should have 1 LHS term")
-  # count_col <- lhs
-  #
-  # rhs <- all.vars(f[[3]])
-  # nrhs <- length(rhs)
-  # if (nrhs<2) stop("Model should have at least 2 RHS term")
-  # site_col <- rhs[1]
-  # year_col <- rhs[2]
-  # nused <- 2L
-  #
-  # # if TRIM is used in montly mode, a third RHS value identifies the month column
-  # if (monthly) {
-  #   if (nrhs<3) stop(" Montly models require at least 3 RHS terms")
-  #   month_col <- rhs[3]
-  #   nused <- nused + 1L
-  # } else {
-  #   month_col <- NULL
-  # }
-  #
-  # # Any additional columns specify covariates.
-  # if (nrhs > nused) {
-  #   covar_cols <- rhs[(nused+1) : nrhs]
-  # } else {
-  #   covar_cols <- NULL
   # }
 
   weights_col <- weights # rename for consistency in call below
 
   # pass on to trim.data.frame
-  trim.data.frame(data=data, count_col=count_col, site_col=site_col, year_col=year_col,
+  trim.data.frame(data, count_col=count_col, site_col=site_col, year_col=year_col,
       month_col=month_col, weights_col=weights_col, covar_cols=covar_cols,
       ...)
 }
+
+################################################################################
+#                                                               trim.trimcommand
+################################################################################
+
+
+## ' @param tcf \code{\link{trimcommand}} TRIM commands as read by \link{read_tcf}.
+#'
+#' @rdname trim
+#' @method trim trimcommand
+#' @export
+trim.trimcommand <- function(object, ...) {
+  tcf <- object
+  call <- sys.call()
+
+  dat <- read_tdf(tcf)
+  covars <- tcf$labels[tcf$covariates]
+
+  if (isTRUE(tcf$weighting)) wgt <- dat$weight
+  else                       wgt <- NULL
+
+  if (isTRUE(tcf$covin)) covin <- read_icv(tcf)
+  else                   covin <- list()
+
+  # Create 'automatic' changepoint #1
+  if (tcf$model==2 && length(tcf$changepoints)==0) tcf$changepoints=1L
+
+  trim_estimate(count=dat$count
+                , site=dat$site
+                , year=dat$time
+                , month=NULL
+                , weights=wgt
+                , covars=dat[covars]
+                , model=tcf$model
+                , changepoints=tcf$changepoints
+                , overdisp=tcf$overdisp
+                , serialcor=tcf$serialcor
+                , stepwise=tcf$stepwise
+                , autodelete=tcf$autodelete
+                , ...)
+}
+
+
