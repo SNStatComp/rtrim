@@ -213,6 +213,9 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
 #' @param covar \code{[character]} the name of a covariate to include in the plot.
 #'   If set to \code{"auto"} (the default), the first (or only) covariate is used.
 #'   If set to \code{"none"} plotting of covariates is suppressed and only the overall index is shown.
+#' @xlab a title for the x-axis. The default value is "auto" will be changed to "Time Point" if the time ID's start at 1, and to "Year" otherwise.
+#' @ylab a title for the y-axis. The default value is "Index".
+#' @pct  Switch to show the index values as percent instead as fraction (i.e., for the base year it will be 100 instead of 1)
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @export
@@ -227,7 +230,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
 #' idx <- index(z, covars=TRUE)
 #' plot(idx, covar="Habitat", main="Skylark")
 #'
-plot.trim.index <- function(x, covar="auto", ...) {
+plot.trim.index <- function(x, covar="auto", xlab="auto", ylab="Index", pct=FALSE, ...) {
   z <- x # hack
   # Create custom palette based on Color Brewer Set 1
   brewer_set1 <- c("#E41A1C","#377EB8","#4DAF4A","#984EA3","#FF7F00","#FFFF33","#A65628","#F781BF","#999999")
@@ -265,17 +268,20 @@ plot.trim.index <- function(x, covar="auto", ...) {
     overall <- z
   }
 
+  # Handle the "pct" switch
+  yscale <- ifelse(pct, 100L, 1L)
+
   x = overall$time
-  y1 = overall[[idx_col]]
-  ylo1 = y1 - overall[[err_col]]
-  yhi1 = y1 + overall[[err_col]]
+  y1 = overall[[idx_col]] * yscale
+  ylo1 = y1 - overall[[err_col]] * yscale
+  yhi1 = y1 + overall[[err_col]] * yscale
   yrange1 = range(y1, ylo1, yhi1)
 
 
   if (use.covars) {
     other$category <- factor(other$category)
-    yrange2 <- range(other[[idx_col]] - other[[err_col]])
-    yrange3 <- range(other[[idx_col]] + other[[err_col]])
+    yrange2 <- range(other[[idx_col]] - other[[err_col]]) * yscale
+    yrange3 <- range(other[[idx_col]] + other[[err_col]]) * yscale
     yrange <- range(yrange1, yrange2, yrange3)
   } else {
     yrange <- yrange1
@@ -283,12 +289,17 @@ plot.trim.index <- function(x, covar="auto", ...) {
 
   # Ensure y-axis includes at least 0 (for honest scaling)
   # and 1.1 (for a visible index=1 line)
-  yrange <- range(0.0, 1.1, yrange)
+  yrange <- range(0.0, 1.1*yscale, yrange)
+
+  # Determine axis labels iff automatic
+  if (xlab=="auto") {
+    xlab <- ifelse(x[1]==1, "Time Point", "Year")
+  }
 
   # Plot 'empty' overall index
   par(las=1)
-  plot(x, y1, type='n', ylim=yrange, xlab="Time point", ylab="Index", ...)
-  abline(h=1.0, lty="dashed")
+  plot(x, y1, type='n', ylim=yrange, xlab=xlab, ylab=ylab, ...)
+  abline(h=yscale, lty="dashed")
   xx = c(x, rev(x))
 
   # set up legend
@@ -300,9 +311,9 @@ plot.trim.index <- function(x, covar="auto", ...) {
     cidx <- 2 # color index to use (first element is for overall index)
     for (cat in levels(other$category)) {
       rows <- other$category==cat
-      y = other[rows, idx_col]
-      ylo = y - other[rows, err_col]
-      yhi = y + other[rows, err_col]
+      y = other[rows, idx_col] * yscale
+      ylo = y - other[rows, err_col] * yscale
+      yhi = y + other[rows, err_col] * yscale
       yy = c(ylo, rev(yhi))
       polygon(xx,yy,col=aqua[cidx], border=NA)
       lines(x, y, col=opaque[cidx], lwd=2)
