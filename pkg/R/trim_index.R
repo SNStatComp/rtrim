@@ -213,9 +213,9 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
 #' @param covar \code{[character]} the name of a covariate to include in the plot.
 #'   If set to \code{"auto"} (the default), the first (or only) covariate is used.
 #'   If set to \code{"none"} plotting of covariates is suppressed and only the overall index is shown.
-#' @xlab a title for the x-axis. The default value is "auto" will be changed to "Time Point" if the time ID's start at 1, and to "Year" otherwise.
-#' @ylab a title for the y-axis. The default value is "Index".
-#' @pct  Switch to show the index values as percent instead as fraction (i.e., for the base year it will be 100 instead of 1)
+#' @param xlab a title for the x-axis. The default value is "auto" will be changed to "Time Point" if the time ID's start at 1, and to "Year" otherwise.
+#' @param ylab a title for the y-axis. The default value is "Index".
+#' @param pct  Switch to show the index values as percent instead as fraction (i.e., for the base year it will be 100 instead of 1)
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @export
@@ -224,11 +224,22 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
 #'
 #' @examples
 #'
-#' data(skylark)
-#' skylark$Habitat <- factor(skylark$Habitat) # hack
-#' z <- trim(count ~ site + time + Habitat, data=skylark, model=2)
+#' # Simple example
+#' data(skylark2)
+#' z <- trim(count ~ site + year, data=skylark2, model=3)
+#' idx <- index(z)
+#' plot(idx)
+#'
+#' # Example with user-modified title, and different y-axis scaling
+#' plot(idx, main="Skylark", pct=TRUE)
+#'
+#' # Using covariates:
+#' z <- trim(count ~ site + year + habitat, data=skylark2, model=3)
 #' idx <- index(z, covars=TRUE)
-#' plot(idx, covar="Habitat", main="Skylark")
+#' plot(idx)
+#'
+#' # Suppressing the plotting of covariate indices:
+#' plot(idx, covar="none")
 #'
 plot.trim.index <- function(x, covar="auto", xlab="auto", ylab="Index", pct=FALSE, ...) {
   z <- x # hack
