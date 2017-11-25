@@ -211,9 +211,10 @@ trim <- function(object, ...) {
 #' @param serialcor    \code{[logical]} Take serial correlation into account (See `Estimation details')
 #' @param overdisp     \code{[logical]} Take overdispersion into account (See `Estimation options').
 #' @param changepoints \code{[numeric]} Indices for changepoints (`Models').
-#' @param stepwise     \code{[logical]} Perform stepwise refinement of changepoints.
 #' @param autodelete   \code{[logical]} Auto-delete changepoints when number of observations is too small. (See
 #'  `Demands on data').
+#' @param stepwise     \code{[logical]} Perform stepwise refinement of changepoints.
+#' @param covin a list of variance-covariance matrices; one per pseudo-site.
 #' @param ... More parameters
 #'
 #' @rdname trim
@@ -223,7 +224,10 @@ trim.data.frame <- function(object, count_col="count", site_col="site", year_col
                             , weights_col=NULL, covar_cols=NULL
                             , model=2, changepoints=ifelse(model==2, 1L, integer(0))
                             , overdisp=FALSE, serialcor=FALSE
-                            , stepwise=FALSE, autodelete=TRUE, ...) {
+                            , autodelete=TRUE
+                            , stepwise=FALSE
+                            , covin=list()
+                            , ...) {
 
   df <- object
 
@@ -282,7 +286,7 @@ trim.data.frame <- function(object, count_col="count", site_col="site", year_col
   trim_estimate(count=count, site=site, year=year, month=month, weights=weights,
                 covars=covars, model=model, changepoints=changepoints,
                 overdisp=overdisp, serialcor=serialcor,
-                stepwise=stepwise, autodelete=autodelete,
+                autodelete=autodelete, stepwise=stepwise, covin=covin,
                 ...)
 }
 

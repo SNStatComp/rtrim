@@ -19,8 +19,9 @@ compatible <- FALSE
 #' @param changepoints a numerical vector change points (only for Model 2)
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
-#' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
 #' @param autodelete a flag indicating auto-deletion of changepoints with too little observations.
+#' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
+#' @param covin a list of variance-covariance matrices; one per pseudo-site.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -28,7 +29,7 @@ compatible <- FALSE
 #' @keywords internal
 trim_estimate <- function(count, site, year, month, weights, covars
                          , model, changepoints, overdisp, serialcor
-                         , autodelete, stepwise, ...)
+                         , autodelete, stepwise, covin, ...)
 {
   call <- sys.call(1)
 
@@ -72,7 +73,7 @@ trim_estimate <- function(count, site, year, month, weights, covars
   t1 <- Sys.time()
   if (isTRUE(stepwise)) {
     m <- trim_refine(count, site, year, month, weights, covars,
-                     model, changepoints, overdisp, serialcor, autodelete, stepwise, ...)
+                     model, changepoints, overdisp, serialcor, autodelete, stepwise, covin, ...)
   } else {
     # data input checks: throw error if not enough counts available.
     if (model == 2 && length(changepoints)>0 && autodelete){
@@ -89,7 +90,7 @@ trim_estimate <- function(count, site, year, month, weights, covars
 
     # compute actual model
     m <- trim_workhorse(count, site, year, month, weights, covars,
-                        model, changepoints, overdisp, serialcor, autodelete, stepwise, ...)
+                        model, changepoints, overdisp, serialcor, autodelete, stepwise, covin, ...)
   }
 
   t2 <- Sys.time()
@@ -113,7 +114,7 @@ trim_estimate <- function(count, site, year, month, weights, covars
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
 #' @param changepoints a numerical vector change points (only for Model 2)
 #' @param weights a numerical vector of weights.
-#' @param covin ...
+#' @param covin a list of variance-covariance matrices; one per pseudo-site.
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
 #' @param max_beta maximum value for beta parameters
