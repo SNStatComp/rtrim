@@ -249,9 +249,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   #org.site.id <- site.id # Remember the original values for output purposes.
   if (class(site)=="factor") {
     site_fctr <- site
-  } else if (class(site) %in% c("integer","numeric")) {
+  } else if (class(site) %in% c("integer","numeric","character")) {
     site_fctr <- factor(site)
-  } else stop("Can't happen: invalid site class")
+  } else stop(sprintf("Can't happen: invalid site class: %s", class(site)))
   site_id <- as.integer(site_fctr)
   I <- nsite <- max(site_id)
 
