@@ -397,25 +397,25 @@ plot.trim.totals <- function(t1, ..., leg.pos="topleft") {
 #'
 #' @param object TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which \code{[character]} Selector to distinguish between variance-covariance based on the
-#' imputed data (default), or the modelled data.
-#' @param ... Arguments to pass to or from other methods (currently unused)
+#' imputed counts (default), or the fitted counts.
+#' @param ... Arguments to pass to or from other methods (currently unused; included for consistency with \code{\link[stats]{vcov}}).
 #'
-#' @return a JxJ matrix, where J is the number of time points.
+#' @return a J x J matrix, where J is the number of years (or time-points).
 #' @export
 #'
 #' @family analyses
 #' @examples
 #' data(skylark)
-#' z <- trim(count ~ site + time, data=skylark, model=2);
+#' z <- trim(count ~ site + time, data=skylark, model=3);
 #' totals(z)
-#' vcv1 <- vcov(z)       # Use imputed data
-#' vcv2 <- vcov(z,"model") # Use modelled data
-vcov.trim <- function(object, which = c("imputed","model"), ... ) {
+#' vcv1 <- vcov(z)          # Use imputed data
+#' vcv2 <- vcov(z,"fitted") # Use fitted data
+vcov.trim <- function(object, which = c("imputed","fitted"), ... ) {
   stopifnot(inherits(object,"trim"))
   which <- match.arg(which)
 
   vcv <- switch(which
-    , model   = object$var_tt_mod
+    , fitted  = object$var_tt_mod
     , imputed = object$var_tt_imp
   )
   vcv
