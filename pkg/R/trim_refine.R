@@ -7,14 +7,14 @@
 #' TRIM stepwise refinement
 #'
 #' @param count a numerical vector of count data.
-#' @param site.id a vector (numerical or factor) of site identifiers for each count data point.
-#' @param year    a numerical vector of annual time points for each count data point.
-#' @param month   an optional numerical vector of monthly time points
-#' @param covars an optional list of covariates
-#' @param model a model type selector
-#' @param serialcor a flag indication of autocorrelation has to be taken into account.
-#' @param overdisp a flag indicating of overdispersion has to be taken into account.
+#' @param site a vector (numerical or factor) of site identifiers for each count data point.
+#' @param year a numerical vector of annual time points for each count data point.
+#' @param month an optional numerical vector of monthly time points.
+#' @param weights an optional numerical vector of weights.
+#' @param covars an optional list of covariates.
+#' @param model a model type selector.
 #' @param changepoints a numerical vector change points (only for Model 2)
+#'
 #' @param premove threshold probability for removal of parameters.
 #' @param penter threshold probability for re-introduction of parameters.
 #'
