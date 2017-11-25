@@ -232,7 +232,7 @@ trim.data.frame <- function(object, count_col="count", site_col="site", year_col
   df <- object
 
   # check data source
-  stopifnot(class(df)=="data.frame")
+  stopifnot(inherits(df,"data.frame"))
   stopifnot(nrow(df)>0)
 
   # check data columns
@@ -307,7 +307,7 @@ trim.formula <- function(object, data=NULL, weights=NULL, ...)
 
   # Check arguments
   if (is.null(data)) stop("no data given")
-  if (class(data)!="data.frame") stop("argument 'data' should be a data frame")
+  if (!inherits(data,"data.frame")) stop("argument 'data' should be a data frame")
   if (!is.null(weights)) {
     if (class(weights)!="character") stop("argument 'weights' should be character")
     if (!(weights %in% names(data))) stop("weights column not found in data frame")
