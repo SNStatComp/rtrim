@@ -284,109 +284,291 @@ export.trim.totals <- function(x, species, stratum) {
 
 #------------------------------------------------------------------ Plot -----
 
-plot.trim.totals <- function(t1, ..., leg.pos="topleft") {
 
-  # Create custom palette based on Color Brewer Set 1
+#' Plot time-totals from trim output.
+#'
+#' This function plots a time series of one or more \code{trim.totals} objects, i.e. the output of \code{totals}.
+#' Both the time totals themselves, as the associated standard errros will be plotted,
+#' the former as a solid line with markers, the latter as a transparent band.
+#'
+#' Additionally, the observed counts will be plotted (as a line) when this was asked for in the call to \code{totals}.
+#'
+#' Multiple time-total data sets can be compared in a single plot
+#'
+#' @param x       an object of class \code{trim.totals}, as resulting from e.g. a call to \code{totals}.
+#' @param ...     optional additional \code{trim.totals} objects.
+#' @param names   optional character vector with names for the various series.
+#' @param xlab    x-axis label. The default value of "auto" will be changed into "Year" or "Time Point", whichever is more appropriate.
+#' @param ylab    y-axis label.
+#' @param leg.pos legend position, similar as in \code{\link[graphics]{legend}}.
+#'
+#' @export
+#'
+#' @family graphical post-processing
+#'
+#' @examples
+#'
+#' # Simple example
+#' data(skylark2)
+#' z <- trim(count ~ site + year, data=skylark2, model=3)
+#' plot(totals(z))
+#'
+#' # Extended example
+#' z1 <- trim(count ~ site + year + habitat, data=skylark2, model=3)
+#' z2 <- trim(count ~ site + year, data=skylark2, model=3)
+#' t1 <- totals(z1, obs=TRUE)
+#' t2 <- totals(z2, obs=TRUE)
+#' plot(t1, t2, names=c("with covariates", "without covariates"), main="Skylark", leg.pos="bottom")
+#'
+plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals", leg.pos="topleft") {
+
+  special <- "time totals" # disinguish between "time totals" and "index" modes
+
+  # 1. Parse ellipsis (...) arguments: collect trim.totals objects and their names
+
+  zz <- list(x)
+  nz <- 1L
+
+  ellipsis <- as.list(substitute(list(...)))[-1L]
+  n <- length(ellipsis) # number of ellipsis arguments
+  if (n>0) {
+    keep <- rep(TRUE, n) # records which (named!) arguments to keep for passing to plot()
+    if (is.null(names(ellipsis))) { # none has names
+      named <- rep(FALSE, n)
+    } else {                        # some have names
+      named <- nchar(names(ellipsis)) > 0
+    }
+    for (i in seq_along(ellipsis)) {
+      if (named[i]) next # skip over named arguments that are captured in the ...
+      item <- ellipsis[[i]]
+      if (is.symbol(item)) item <- eval(item) # needed to convert symbol -> data.frame
+      if (inherits(item, "trim.totals")) {
+        nz <- nz + 1L
+        zz[[nz]] <- item
+        keep[i] <- FALSE # additional index data sets are removed from the ellipsis argument
+      } else if (class(item)=="character") {
+        # todo: check if this arguments immediately follows an index argument
+        attr(zz[[nz]], "tag") <- item
+        keep[i] <- FALSE
+      } else stop("Unknown type for unnamed argument")
+    }
+    ellipsis <- ellipsis[keep]
+  }
+  stopifnot(nz==length(zz)) # check
+
+
+  # 2. Create color palette
+
   brewer_set1 <- c("#E41A1C","#377EB8","#4DAF4A","#984EA3","#FF7F00","#FFFF33","#A65628","#F781BF","#999999")
   opaque <- brewer_set1
   aqua   <- brewer_set1
-  for (i in 1:9) aqua[i] <- adjustcolor(aqua[i], 0.2)
+  for (i in seq_along(aqua)) aqua[i] <- adjustcolor(aqua[i], 0.5)
 
 
-  # Build a list of time-totals with optional titles
-  tt = list(t1)
-  optional = list(...)
+  # 3. Setup series
 
-  # cat("tt pre:\n")
-  # str(tt)
+  series <- list()
+  nseries <- 0
 
-  # cat("optional:\n")
-  # str(optional)
-
-  nopt = length(optional)
-  for (i in seq_len(nopt)) {
-    x = optional[[i]]
-    if ("character" %in% class(x)) {
-      attr(tt[[length(tt)]], "tag") <- x
-    } else if ("trim.totals" %in% class(x)) {
-      tt[[length(tt)+1]] <- x
-    } else {
-      stop(sprintf("Invalid data type for optional argument %d: %s", i, class(x)))
+  if (nz==1) {
+    x   <- zz[[1]][[1]] # Time point or years
+    y   <- zz[[1]][[2]] # Imputed or fitted totals
+    err <- zz[[1]][[3]] # Standard error
+    obs <- zz[[1]]$observed # might be NULL, which is OK
+    ylo = y - err
+    yhi = y + err
+    nseries <- 1
+    name <- attr(zz[[1]], "tag") # might be NULL
+    series[[1]] <- list(x=x,y=y,ylo=y-err,yhi=y+err, fill=aqua[1], stroke=opaque[1], lty="solid", name=name, obs=obs)
+  } else {
+    # Create or handle names
+    if (is.null(names)) names <- sprintf("<no name> #%d", 1:nz) # default names
+    if (length(names)!=nz) stop("Number of names is not equal to number of series")
+    for (i in seq.int(nz)) {
+      name <- attr(zz[[i]], "tag")
+      if (!is.null(name)) names[i] <- name
+    }
+    # Now create the series
+    for (i in seq.int(nz)) {
+      x   <- zz[[i]][[1]] # Time point or years
+      y   <- zz[[i]][[2]] # Imputed or fitted totals
+      err <- zz[[i]][[3]] # Standard error
+      obs <- zz[[i]]$observed # might be NULL, which is OK
+      ylo = y - err
+      yhi = y + err
+      nseries <- nseries + 1
+      series[[i]] <- list(x=x,y=y,ylo=y-err,yhi=y+err, fill=aqua[i], stroke=opaque[i], lty="solid", name=names[i], obs=obs)
     }
   }
 
-  # cat("tt post:\n")
-  # str(tt)
 
-  # cat("leg.pos:\n")
-  # str(leg.pos)
+  # 4. Some further analysis
 
-  # First pass to compute total range
-  n = length(tt)
-  for (i in 1:n) {
-    x = tt[[i]][[1]] # Time point or years
-    y = tt[[i]][[2]] # imputed or fitted
-    s = tt[[i]][[3]] # Standard error
-    ylo = y-s
-    yhi = y+s
-    if (i==1) {
-      xrange <- range(x)
-      yrange <- range(ylo, yhi)
-    } else {
-      xrange <- range(xrange, range(x))
-      yrange <- range(yrange, range(ylo, range(yhi)))
+  # Determine axis labels iff automatic (just use the last 'x' defined)
+  if (xlab=="auto") {
+    xlab <- ifelse(x[1]==1, "Time Point", "Year")
+  }
+
+  xrange <- range(x)
+  yrange <- range(series[[1]]$ylo, series[[1]]$yhi)
+  if (nseries>1) for (i in 2:nseries) {
+    yrange <- range(series[[i]]$ylo, series[[i]]$yhi, yrange)
+  }
+  yrange <- range(yrange, 0.0) # honest scaling
+
+
+  # 5. Plotting
+
+  # Start with an 'empty' plot for starters
+  # (we do need some special tricks to pass the plot-specific elements of ...)
+  par(las=1)
+  args <- ellipsis
+  args$x <- NULL
+  args$y <- NULL
+  args$type='n'
+  args <- c(list(x=NULL,y=NULL, type='n', xlim=xrange, ylim=yrange, xlab=xlab, ylab=ylab), ellipsis)
+  # plot(NULL, NULL, type='n', xlim=xrange, ylim=yrange, xlab=xlab, ylab=ylab, ...) # won't work
+  do.call(plot, args) # does work
+
+  if (special=="index") abline(h=yscale, lty="dashed")
+
+  # Bottom layer: error bars
+
+  for (i in rev(1:nseries)) { # reverse order to have the first series on top
+    ser <- series[[i]]
+    xx <- c(ser$x, rev(ser$x))
+    yy <- c(ser$ylo, rev(ser$yhi))
+    polygon(xx, yy, col=ser$fill, border=NA)
+    segments(ser$x, ser$ylo, ser$x, ser$yhi, col="white", lwd=2)
+  }
+
+  # Top layer: lines
+
+  for (i in rev(1:nseries)) {
+    ser <- series[[i]]
+    lines(ser$x, ser$y, col=ser$stroke, lwd=2, lty=ser$lty)
+    points(ser$x, ser$y, col=ser$stroke, pch=16)
+  }
+
+  # Optional: observations (sans standard error)
+
+  for (i in rev(1:nseries)) {
+    ser <- series[[i]]
+    if (!is.null(ser$obs)) {
+      lines(ser$x, ser$obs, col=ser$stroke, lwd=2, lty=ser$lty)
     }
   }
 
-  # Ensure y-axis starts at 0.0
-  yrange <- range(0.0, yrange)
+  # Optional a legend
 
-  # empty plot for correct axes
-  plot(xrange, yrange, type='n', xlab="Time point", ylab="Time totals")
-
-  # Second pass: plot them
-  for (i in 1:n) {
-    x = tt[[i]][[1]] # Time point or years
-    y = tt[[i]][[2]] # imputed or fitted
-    s = tt[[i]][[3]] # Standard error
-    ylo = y-s
-    yhi = y+s
-
-    xx = c(x, rev(x))
-    ci = c(ylo, rev(yhi))
-
-    polygon(xx,ci, col=aqua[i], border=NA)
-    lines(x,y, col=opaque[i])
-
-    # optionally include observed time totals
-    if ("observed" %in% names(tt[[i]])) {
-      y = tt[[i]][["observed"]]
-      lines(x,y, col=opaque[i], lty="dashed")
+  if (nseries>1) {
+    leg.names <- leg.colors <- leg.lty <- character(nseries)
+    for (i in 1:nseries) {
+      leg.names[i]  <- series[[i]]$name
+      leg.colors[i] <- series[[i]]$stroke
+      leg.lty[i]    <- series[[i]]$lty
     }
+    legend(leg.pos, legend=leg.names, col=leg.colors, lty=leg.lty, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
   }
 
-  # third pass: legend
-  nnamed  = 0
-  nnoname = 0
-  for (i in 1:n) {
-    s <- attr(tt[[i]],"tag")
-    if (is.null(s)) {
-      nnoname <- nnoname + 1
-      s <- sprintf("<unnamed> %d", nnoname)
-    } else {
-      nnamed = nnamed + 1
-    }
-    if (i==1) {
-      leg.colors <- opaque[i]
-      leg.names  <- s
-    } else {
-      leg.colors <- c(leg.colors, opaque[i])
-      leg.names <- c(leg.names, s)
-    }
-  }
-  if (n>1 | nnamed>0) {
-    legend(leg.pos, legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
-  }
+
+  #### old ####
+
+
+  # # Build a list of time-totals with optional titles
+  # tt = list(t1)
+  # optional = list(...)
+  #
+  # # cat("tt pre:\n")
+  # # str(tt)
+  #
+  # # cat("optional:\n")
+  # # str(optional)
+  #
+  # nopt = length(optional)
+  # for (i in seq_len(nopt)) {
+  #   x = optional[[i]]
+  #   if ("character" %in% class(x)) {
+  #     attr(tt[[length(tt)]], "tag") <- x
+  #   } else if ("trim.totals" %in% class(x)) {
+  #     tt[[length(tt)+1]] <- x
+  #   } else {
+  #     stop(sprintf("Invalid data type for optional argument %d: %s", i, class(x)))
+  #   }
+  # }
+  #
+  # # cat("tt post:\n")
+  # # str(tt)
+  #
+  # # cat("leg.pos:\n")
+  # # str(leg.pos)
+  #
+  # # First pass to compute total range
+  # n = length(tt)
+  # for (i in 1:n) {
+  #   x = tt[[i]][[1]] # Time point or years
+  #   y = tt[[i]][[2]] # imputed or fitted
+  #   s = tt[[i]][[3]] # Standard error
+  #   ylo = y-s
+  #   yhi = y+s
+  #   if (i==1) {
+  #     xrange <- range(x)
+  #     yrange <- range(ylo, yhi)
+  #   } else {
+  #     xrange <- range(xrange, range(x))
+  #     yrange <- range(yrange, range(ylo, range(yhi)))
+  #   }
+  # }
+  #
+  # # Ensure y-axis starts at 0.0
+  # yrange <- range(0.0, yrange)
+  #
+  # # empty plot for correct axes
+  # plot(xrange, yrange, type='n', xlab="Time point", ylab="Time totals")
+  #
+  # # Second pass: plot them
+  # for (i in 1:n) {
+  #   x = tt[[i]][[1]] # Time point or years
+  #   y = tt[[i]][[2]] # imputed or fitted
+  #   s = tt[[i]][[3]] # Standard error
+  #   ylo = y-s
+  #   yhi = y+s
+  #
+  #   xx = c(x, rev(x))
+  #   ci = c(ylo, rev(yhi))
+  #
+  #   polygon(xx,ci, col=aqua[i], border=NA)
+  #   lines(x,y, col=opaque[i])
+  #
+  #   # optionally include observed time totals
+  #   if ("observed" %in% names(tt[[i]])) {
+  #     y = tt[[i]][["observed"]]
+  #     lines(x,y, col=opaque[i], lty="dashed")
+  #   }
+  # }
+  #
+  # # third pass: legend
+  # nnamed  = 0
+  # nnoname = 0
+  # for (i in 1:n) {
+  #   s <- attr(tt[[i]],"tag")
+  #   if (is.null(s)) {
+  #     nnoname <- nnoname + 1
+  #     s <- sprintf("<unnamed> %d", nnoname)
+  #   } else {
+  #     nnamed = nnamed + 1
+  #   }
+  #   if (i==1) {
+  #     leg.colors <- opaque[i]
+  #     leg.names  <- s
+  #   } else {
+  #     leg.colors <- c(leg.colors, opaque[i])
+  #     leg.names <- c(leg.names, s)
+  #   }
+  # }
+  # if (n>1 | nnamed>0) {
+  #   legend(leg.pos, legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
+  # }
 }
 
 # ============================================== Variance-Covariance matrix ====
