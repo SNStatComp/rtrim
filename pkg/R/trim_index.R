@@ -212,17 +212,19 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
 #' Plot time-indices from trim output
 #'
 #' @param x an object of class \code{trim.index}, as resulting from e.g. a call to \code{\link{index}}.
+#' @param ... additional \code{trim.index} objects, or parameters that will be passed on to \code{\link[graphics]{plot}}.
+#' @param names   optional character vector with names for the various series.
 #' @param covar \code{[character]} the name of a covariate to include in the plot.
 #'   If set to \code{"auto"} (the default), the first (or only) covariate is used.
 #'   If set to \code{"none"} plotting of covariates is suppressed and only the overall index is shown.
 #' @param xlab a title for the x-axis. The default value is "auto" will be changed to "Time Point" if the time ID's start at 1, and to "Year" otherwise.
 #' @param ylab a title for the y-axis. The default value is "Index".
 #' @param pct  Switch to show the index values as percent instead as fraction (i.e., for the base year it will be 100 instead of 1)
-#' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @export
 #'
 #' @family analyses
+#' @family graphical post-processing
 #'
 #' @examples
 #'
