@@ -449,6 +449,7 @@ trim.trimcommand <- function(object, ...) {
                 , serialcor=tcf$serialcor
                 , stepwise=tcf$stepwise
                 , autodelete=tcf$autodelete
+                , covin=covin
                 , ...)
 }
 
