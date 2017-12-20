@@ -250,7 +250,7 @@ coef.trim <- function(object,
 #'
 #' totals(z, "both") # mimics classic TRIM
 #'
-totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE) {
+totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL) {
   stopifnot(class(x)=="trim")
 
   # Select output columns from the pre-computed time totals
@@ -261,6 +261,14 @@ totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE) {
     , both    = x$time.totals[1:5]
   )
   if (obs) totals$observed <- x$time.totals$observed
+
+  # Optionally add a confidence interval
+  if (!is.null(level)) {
+    if (ncol(total)!=3) stop("Confidence intervals can only be computed for either imputed or fitted time totals, but not for both")
+    mul <- .multipliers(lambda=totals[[2]], sig2=x$sig2, level=level)
+    totals$lo <- totals[[2]] - totals[[3]] * mul$lo
+    totals$hi <- totals[[2]] + totals[[3]] * mul*hi
+  }
 
   # wrap the time.index field in a list and make it an S3 class
   # (so that it becomes recognizable as a TRIM time-indices)
@@ -430,6 +438,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
   # plot(NULL, NULL, type='n', xlim=xrange, ylim=yrange, xlab=xlab, ylab=ylab, ...) # won't work
   do.call(plot, args) # does work
 
+  yscale <- 1.0
   if (special=="index") abline(h=yscale, lty="dashed")
 
   # Bottom layer: error bars
@@ -570,6 +579,77 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
   #   legend(leg.pos, legend=leg.names, col=leg.colors, lty=1, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
   # }
 }
+
+# #################################################### Confidence Intervals ####
+
+
+#' Compute Std.err ==> conf.int multipliers.
+#'
+#' @param lambda mean
+#' @param sig2   overdispersion parameter
+#' @param level  the confidence level required
+#'
+#' @return matrix with multipliers. col1=lo; col2=hi
+.multipliers <- function(lambda, sig2=NULL, level=0.95)
+{
+  if (is.null(sig2)) sig2 <- 1.0
+  if (sig2<1) stop("Overdispersion must be >= 1")
+  # Quantiles
+  qhi <- qgamma(p=1-(1-level)/2, shape=lambda/sig2, scale=sig2)
+  qlo <- qgamma(p=  (1-level)/2, shape=lambda/sig2, scale=sig2)
+  # Standard deviation
+  sd <- sqrt(sig2 * lambda)
+  # Multipliers
+  data.frame(lomul = (qhi-lambda) / sd,
+             himul = (lambda-qlo) / sd)
+}
+
+
+# ----------------------------------------------------------------- confint ----
+
+#' Compute time-totals confidence interval
+#'
+#' Computes confidence intervals for the time-totals of a TRIM model.
+#' Both imputed and fitted time-totals are supported, and the confidence level can be specified.
+#'
+#' @param x      a TRIM output object
+#' @param parm   parameter specification: imputed or fitted time-totals.
+#' @param level  the confidence level required.
+#'
+#' @export
+#'
+#' @family analyses
+#'
+#' @examples
+#' data(skylark2)
+#' z <- trim(count ~ site + year, data=skylark2, model=3)
+#' CI <- confint(z)
+confint.trim <- function(x, parm=c("imputed","fitted"), level=0.95) {
+  # Get time-totals
+  parm <- match.arg(parm)
+  tt <- totals(x, parm)
+  lambda <- tt[[2]] # imputed or fitted time totals
+  se     <- tt[[3]] # std.err.
+
+  sig2 <- 1.0
+
+  # Lower bound:
+  qlo <- qgamma(p=(1-level)/2,   shape=lambda) # Compute multipliers
+  lmul <- (lambda-qlo) / sqrt(lambda)
+  lo <- lambda - se * lmul # Compute CI bounds
+  # Upper bound
+  qhi <- qgamma(p=1-(1-level)/2, shape=lambda)
+  umul <- (qhi-lambda) / sqrt(lambda)
+  hi <- lambda + se * umul
+  # Combine and label
+  CI <- cbind(lo, hi)
+  pctlo <- sprintf("%.1f %%", 100 * ((1-level)/2))
+  pcthi <- sprintf("%.1f %%", 100 * (1-(1-level)/2))
+  colnames(CI) <- c(pctlo,pcthi)
+  # Return
+  CI
+}
+
 
 # ============================================== Variance-Covariance matrix ====
 
