@@ -52,7 +52,7 @@
 }
 
 
-.index <- function(tt, var_tt, base) {
+.index <- function(tt, var_tt, base, level=NULL, sig2=NULL) {
 
   nbase <- length(base)
 
@@ -80,6 +80,14 @@
   }
 
   out <- list(tau=tau, var_tau=var_tau)
+
+  # Optionally add confidence interval
+  if (!is.null(level)) {
+    mul <- .multipliers(lambda=tt, sig2=sig2, level=level)
+    out$lo_tau <- tau - mul$lo * sqrt(var_tau)
+    out$hi_tau <- tau + mul$hi * sqrt(var_tau)
+  }
+  out
 }
 
 # ========================================================== User interface ====
@@ -133,7 +141,7 @@
 #' index(z, base=3)
 #' # Use average of first 5 years as reference for indexing
 #' index(z, base=1:5)
-index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
+index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, level=NULL) {
   stopifnot(inherits(x,"trim"))
 
   # Match base to actual time points
@@ -142,6 +150,10 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
     stopifnot(all(base %in% x$time.id))
     # Then convert year to time point
     for (i in seq_along(base)) base[i] <- which(base[i] == x$time.id)
+  } else if (base<1 || base>x$nyear) {
+    msg <- sprintf("Invalid base year %d. Must be either %d--%d or %d--%d",
+                   base, 1, x$nyear, x$time.id[1], x$time.id[x$nyear])
+    stop(msg)
   }
 
   # Start with overall indices (i.e. ignoring covariate categories, if applicable)
@@ -149,19 +161,28 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
   which <- match.arg(which)
   if (which=="fitted") {
     # Call workhorse function to do the actual computation
-    mod <- .index(x$tt_mod, x$var_tt_mod, base)
+    mod <- .index(x$tt_mod, x$var_tt_mod, base, level, x$sig2)
     # Store results in a data frame
     out <- data.frame(time  = x$time.id,
                       fitted = mod$tau,
                       se_fit = sqrt(mod$var_tau))
+    if (!is.null(level)) {
+      out$lo <- mod$lo
+      out$hi <- mod$hi
+    }
   } else if (which=="imputed") {
     # Idem, using the imputed time totals instead
-    imp <- .index(x$tt_imp, x$var_tt_imp, base)
+    imp <- .index(x$tt_imp, x$var_tt_imp, base, level, x$sig2)
     out = data.frame(time    = x$time.id,
                      imputed = imp$tau,
                      se_imp  = sqrt(imp$var_tau))
+    if (!is.null(level)) {
+      out$lo <- imp$lo
+      out$hi <- imp$hi
+    }
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
+    if (is.finit(level)) stop("Confidence intervals can only be computed for either imputed or fitted indices, but not for both")
     mod <- .index(x$tt_mod, x$var_tt_mod, base)
     imp <- .index(x$tt_imp, x$var_tt_imp, base)
     out = data.frame(time    = x$time.id,
@@ -190,14 +211,22 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1) {
         df = data.frame(covariate=ttij$covariate, category=catname, time=x$time.id)
         # Compute model index+variance
         if (which %in% c("fitted","both")) {
-          idx <- .index(ttij$mod, ttij$var_mod, base)
+          idx <- .index(ttij$mod, ttij$var_mod, base, level, x$sig2)
           df2 <- data.frame(fitted=idx$tau, se_fit=sqrt(idx$var_tau))
+          if (!is.null(level)) {
+            df2$lo <- idx$lo
+            df2$hi <- idx$hi
+          }
           df <- cbind(df, df2)
         }
         # Idem for imputed index + variance
         if (which %in% c("imputed","both")) {
-          idx <- .index(ttij$imp, ttij$var_imp, base)
+          idx <- .index(ttij$imp, ttij$var_imp, base, level, x$sig2)
           df2 <- data.frame(imputed=idx$tau, se_imp=sqrt(idx$var_tau))
+          if (!is.null(level)) {
+            df2$lo <- idx$lo
+            df2$hi <- idx$hi
+          }
           df <- cbind(df, df2)
         }
         out <- rbind(out, df)
