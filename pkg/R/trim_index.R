@@ -370,11 +370,15 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
     x <- z$time
     y <- z[[idx_col]] * yscale
     err <- z[[err_col]] * yscale
-    ylo = y - err
-    yhi = y + err
+    yslo = y - err # 's' means std err
+    yshi = y + err
     nseries <- 1
+    yclo <- z$lo * yscale # 'c' means confidence interval, might be NULL which is OK
+    ychi <- z$hi * yscale
     name <- attr(z, "tag") # might be NULL
-    series[[1]] <- list(x=x,y=y,ylo=y-err,yhi=y+err, fill=aqua[1], stroke=opaque[1], lty="solid", name=name)
+    series[[1]] <- list(x=x, y=y,
+                        yslo=yslo, yshi=yshi, yclo=yclo, ychi=ychi,
+                        fill=aqua[1], stroke=opaque[1], lty="solid", name=name)
   } else if (mode==2) {
     # Create or handle names
     if (is.null(names)) names <- sprintf("<no name> #%d", 1:nidx) # default names
@@ -391,10 +395,14 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       x <- zi$time
       y <- zi[[idx_col[i]]] * yscale
       err <- z[[err_col[i]]] * yscale
-      ylo = y - err
-      yhi = y + err
+      yslo = y - err
+      yshi = y + err
+      yclo <- zi$lo * yscale # 'c' means confidence interval, might be NULL which is OK
+      ychi <- zi$hi * yscale
       nseries <- nseries + 1
-      series[[i]] <- list(x=x,y=y,ylo=y-err,yhi=y+err, fill=aqua[i], stroke=opaque[i], lty="solid", name=names[i])
+      series[[i]] <- list(x=x, y=y,
+                          yslo=yslo,yshi=yshi, yclo=yclo, ychi=ychi,
+                          fill=aqua[i], stroke=opaque[i], lty="solid", name=names[i])
     }
   } else if (mode==3) {
     # Setup series for covariate categories
@@ -410,12 +418,16 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
     x <- overall$time
     y <- overall[[idx_col]] * yscale
     err <- overall[[err_col]] * yscale
-    ylo = y - err
-    yhi = y + err
+    yslo = y - err
+    yshi = y + err
+    yclo <- overall$lo * yscale # 'c' means confidence interval, might be NULL which is OK
+    ychi <- overall$hi * yscale
     nseries <- 1
     name <- attr(overall, "tag")
     if (is.null(name)) name <- "Overall"
-    series[[nseries]] <- list(x=x,y=y,ylo=y-err,yhi=y+err, fill=aqua[1], stroke=opaque[1], lty="solid", name=name)
+    series[[nseries]] <- list(x=x,y=y,
+                              yslo=yslo, yshi=yshi, yclo=yclo, ychi=ychi,
+                              fill=aqua[1], stroke=opaque[1], lty="solid", name=name)
 
     # ... then the covariate categories
     cats <- levels(factor(other$category)) # Determine the *actual* categories
@@ -425,8 +437,14 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       x <- overall$time
       y <- other[rows, idx_col] * yscale
       err <- other[rows, err_col] * yscale
+      yslo = y - err
+      yshi = y + err
+      yclo <- other$lo[rows] * yscale # 'c' means confidence interval, might be NULL which is OK
+      ychi <- other$hi[rows] * yscale
       name <- sprintf("%s: %s", covar, cat)
-      series[[nseries]] <- list(x=x, y=y, ylo=y-err, yhi=y+err, fill=aqua[nseries], stroke=opaque[nseries], lty="dashed", name=name)
+      series[[nseries]] <- list(x=x, y=y,
+                                yslo=yslo, yshi=yshi, yclo=yclo, ychi=ychi,
+                                fill=aqua[nseries], stroke=opaque[nseries], lty="dashed", name=name)
     }
   } else stop("Can't happen.")
 
@@ -439,11 +457,16 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
 
   xrange <- range(x)
 
-  # Compute the y-range of all series
-  yrange <- range(series[[1]]$ylo, series[[1]]$yhi)
+  # Compute the y-range of all series: std.err ranges
+  yrange <- range(series[[1]]$yslo, series[[1]]$yshi)
   if (nseries>1) for (i in 2:nseries) {
-    yrange <- range(series[[i]]$ylo, series[[i]]$yhi, yrange)
+    yrange <- range(series[[i]]$yslo, series[[i]]$yshi, yrange)
   }
+  # ... CI ranges
+  for (i in 1:nseries) {
+    yrange <- range(series[[i]]$yclo, series[[i]]$ychi, yrange)
+  }
+  # ... some extras
   yrange <- range(yrange, 0.0) # honest scaling
   yrange <- range(yrange, 1.1*yscale) # include index=1 (or 100%)
 
@@ -471,9 +494,16 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
   for (i in rev(1:nseries)) {
     ser <- series[[i]]
     xx <- c(ser$x, rev(ser$x))
-    yy <- c(ser$ylo, rev(ser$yhi))
+    yy <- c(ser$yslo, rev(ser$yshi))
     polygon(xx, yy, col=ser$fill, border=NA)
-    segments(ser$x, ser$ylo, ser$x, ser$yhi, col="white", lwd=2)
+    segments(ser$x, ser$yslo, ser$x, ser$yshi, col="white", lwd=2)
+  }
+  # Optionally confidence intervals
+  for (i in rev(1:nseries)) {
+    ser <- series[[i]]
+    if (is.null(ser$yclo)) next # No CI: skip series
+    lines(ser$x, ser$yclo, col=ser$stroke, lwd=1, lty="dashed")
+    lines(ser$x, ser$ychi, col=ser$stroke, lwd=1, lty="dashed")
   }
   # ... and then the indices themselves
   for (i in rev(1:nseries)) {
