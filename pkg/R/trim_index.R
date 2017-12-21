@@ -110,6 +110,9 @@
 #' The base time points can be given in the interval 1...J, or,
 #' if the time points are proper years, say year1...yearn, the base year can be given.
 #' So, if the data range 2000...2016, \code{base=2} and \code{base=2001} are equivalent.
+#' @param level \code{[numeric]} the confidence interval required.
+#' Must be in the range 0 to 1. A value of 0.95 results in 95\% confidence intervals.
+#' The default value of NULL results in no confidence interval to be computed.
 #'
 #' @return A data frame containing indices and their uncertainty expressed as
 #'   standard error. Depending on the chosen output, columns \code{fitted}
@@ -118,6 +121,7 @@
 #'   individual covariate categories. In this case additional columns
 #'   \code{covariate} and \code{category} are present. The overall indices are
 #'   marked as covariate `Overall' and category 0.
+#'
 #'
 #' @export
 #'
