@@ -468,7 +468,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
   # Optionally: confidence interval
   for (i in rev(1:nseries)) {
     ser <- series[[i]]
-    if (is.null(ser$y_ci_lo)) next # skip if no CI
+    if (length(ser$y_ci_lo)==0) next # skip if no CI
     lines(ser$x, ser$y_ci_lo, col=ser$stroke, lwd=1, lty="dashed")
     lines(ser$x, ser$y_ci_hi, col=ser$stroke, lwd=1, lty="dashed")
   }

@@ -186,7 +186,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
     }
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
-    if (is.finite(level)) stop("Confidence intervals can only be computed for either imputed or fitted indices, but not for both")
+    if (!is.null(level)) stop("Confidence intervals can only be computed for either imputed or fitted indices, but not for both")
     mod <- .index(x$tt_mod, x$var_tt_mod, base)
     imp <- .index(x$tt_imp, x$var_tt_imp, base)
     out = data.frame(time    = x$time.id,
@@ -508,7 +508,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
   # Optionally confidence intervals
   for (i in rev(1:nseries)) {
     ser <- series[[i]]
-    if (is.null(ser$yclo)) next # No CI: skip series
+    if (length(ser$yclo)==0) next # No CI: skip series
     lines(ser$x, ser$yclo, col=ser$stroke, lwd=1, lty="dashed")
     lines(ser$x, ser$ychi, col=ser$stroke, lwd=1, lty="dashed")
   }
