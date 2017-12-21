@@ -415,7 +415,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
       series[[i]] <- list(x=x, y=y,
                           y_se_lo=y_se_lo, y_se_hi=y_se_hi,
                           y_ci_lo=y_ci_lo, y_ci_hi=y_ci_hi,
-                          fill=aqua[1], stroke=opaque[i], lty="solid", name=names[i], obs=obs)
+                          fill=aqua[i], stroke=opaque[i], lty="solid", name=names[i], obs=obs)
     }
   }
 
