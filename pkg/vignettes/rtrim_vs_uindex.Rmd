@@ -1,0 +1,61 @@
+---
+title:  "RTRIM vs UIndex"
+author: "Patrick Bogaart""
+date:   "21 december 2017""
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{rtrim-vs-uindex}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.width  = 7,
+  fig.height = 5
+)
+```
+
+# Introduction
+
+While in the past TRIM was used to analyse count data with an annual resolution (i.e. one observation per site per year), the software package UIndex [Underhill, 1998; Underhill and Pryce-Jones, 1995] was used to analyse count data with higher (e.g., monthly) resolution. The current R implementation of TRIM is extended to accept and analyse monthly data as well. This vignette demonstrates the application of RTRIM to monthly data, and compares the output with that of UIndex.
+
+# UIndex
+
+UIndex was used to analyse the monthly Oystercatcher counts, collected by SOVON Netherlands. Here we show the pre-saved output of UIndex, as the main trend, and the 90\% `consistency intervals'. Note also the use of 2004 as base year.
+```{r}
+rm(list=ls())
+load("UIndex_Oystercatcher_output.RData")
+yrange <- range(uidx$index, uidx$lower, uidx$upper)
+plot(uidx$year, uidx$index, type='l', xlab="Year", ylab="Index", ylim=yrange)
+segments(uidx$year, uidx$lower, uidx$year,uidx$upper)
+legend("topright", "UIndex", col="black", lty="solid")
+
+# Add index=1 line for reference
+abline(h=1.0, lty="dashed", col=gray(0.5))
+
+# Mark the base year
+ibase <- match(2004, uidx$year)
+points(uidx$year[ibase], uidx$index[ibase], pch=16)
+```
+# RTRIM
+
+Here is the corresponding call to rtrim. Note the way monthly data is included in the model formula.
+
+```{r}
+library(rtrim)
+data(oystercatcher)
+z <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE)
+idx <- index(z, level=0.9, base=2004)
+plot(idx)
+
+# UIndex on top
+lines(uidx$year, uidx$index)
+segments(uidx$year, uidx$lower, uidx$year,uidx$upper)
+
+legend("bottom", c("UIndex","TRIM"), col=c("black","red"), lty="solid")
+```
+
+Note that the indices as computed by UIndex and TRIM are virtually identical, and that the 90% confidence intervals of TRIM are very well comparable to the 90% consistency intervals of TRIM, although both are there estimated using completely different approaches. In the case of TRIM, confidence intervals are based on standard errors which are derived analytically as part of the GEE estimation process and ultimately are based on the variance within the orginal data. See the vignettes `models and statistical methods in rtrim' and `TRIM confidence intervals' for more information. Consistency intervals in UIndex are estimated by means of a bootstrap method. See the papers Underhill (1998) and Underhill and Pryce-Jones (19950) for more information.
