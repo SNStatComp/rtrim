@@ -383,11 +383,16 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
     y   <- zz[[1]][[2]] # Imputed or fitted totals
     err <- zz[[1]][[3]] # Standard error
     obs <- zz[[1]]$observed # might be NULL, which is OK
-    ylo = y - err
-    yhi = y + err
+    y_se_lo = y - err
+    y_se_hi = y + err
+    y_ci_lo = zz[[1]]$lo # might be NULL, which is OK
+    y_ci_hi = zz[[1]]$hi # idem
     nseries <- 1
     name <- attr(zz[[1]], "tag") # might be NULL
-    series[[1]] <- list(x=x,y=y,ylo=y-err,yhi=y+err, fill=aqua[1], stroke=opaque[1], lty="solid", name=name, obs=obs)
+    series[[1]] <- list(x=x, y=y,
+                        y_se_lo=y_se_lo, y_se_hi=y_se_hi,
+                        y_ci_lo=y_ci_lo, y_ci_hi=y_ci_hi,
+                        fill=aqua[1], stroke=opaque[1], lty="solid", name=name, obs=obs)
   } else {
     # Create or handle names
     if (is.null(names)) names <- sprintf("<no name> #%d", 1:nz) # default names
@@ -402,10 +407,15 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
       y   <- zz[[i]][[2]] # Imputed or fitted totals
       err <- zz[[i]][[3]] # Standard error
       obs <- zz[[i]]$observed # might be NULL, which is OK
-      ylo = y - err
-      yhi = y + err
+      y_se_lo = y - err
+      y_se_hi = y + err
+      y_ci_lo = zz[[1]]$lo # might be NULL, which is OK
+      y_ci_hi = zz[[1]]$hi # idem
       nseries <- nseries + 1
-      series[[i]] <- list(x=x,y=y,ylo=y-err,yhi=y+err, fill=aqua[i], stroke=opaque[i], lty="solid", name=names[i], obs=obs)
+      series[[i]] <- list(x=x, y=y,
+                          y_se_lo=y_se_lo, y_se_hi=y_se_hi,
+                          y_ci_lo=y_ci_lo, y_ci_hi=y_ci_hi,
+                          fill=aqua[1], stroke=opaque[i], lty="solid", name=names[i], obs=obs)
     }
   }
 
@@ -418,9 +428,13 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
   }
 
   xrange <- range(x)
-  yrange <- range(series[[1]]$ylo, series[[1]]$yhi)
+  yrange <- range(series[[1]]$y_se_lo, series[[1]]$y_se_hi)
   if (nseries>1) for (i in 2:nseries) {
-    yrange <- range(series[[i]]$ylo, series[[i]]$yhi, yrange)
+    yrange <- range(series[[i]]$y_se_lo, series[[i]]$y_se_hi, yrange)
+  }
+  # also include optional CI range
+  for (i in 1:nseries) {
+    yrange <- range(series[[i]]$y_ci_lo, series[[i]]$y_ci_hi, yrange)
   }
   yrange <- range(yrange, 0.0) # honest scaling
 
@@ -446,9 +460,17 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
   for (i in rev(1:nseries)) { # reverse order to have the first series on top
     ser <- series[[i]]
     xx <- c(ser$x, rev(ser$x))
-    yy <- c(ser$ylo, rev(ser$yhi))
+    yy <- c(ser$y_se_lo, rev(ser$y_se_hi))
     polygon(xx, yy, col=ser$fill, border=NA)
-    segments(ser$x, ser$ylo, ser$x, ser$yhi, col="white", lwd=2)
+    segments(ser$x, ser$y_se_lo, ser$x, ser$y_se_hi, col="white", lwd=2)
+  }
+
+  # Optionally: confidence interval
+  for (i in rev(1:nseries)) {
+    ser <- series[[i]]
+    if (is.null(ser$y_ci_lo)) next # skip if no CI
+    lines(ser$x, ser$y_ci_lo, col=ser$stroke, lwd=1, lty="dashed")
+    lines(ser$x, ser$y_ci_hi, col=ser$stroke, lwd=1, lty="dashed")
   }
 
   # Top layer: lines
