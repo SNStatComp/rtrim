@@ -186,7 +186,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
     }
   } else if (which=="both") {
     # Idem, using both modelled and imputed time totals.
-    if (is.finit(level)) stop("Confidence intervals can only be computed for either imputed or fitted indices, but not for both")
+    if (is.finite(level)) stop("Confidence intervals can only be computed for either imputed or fitted indices, but not for both")
     mod <- .index(x$tt_mod, x$var_tt_mod, base)
     imp <- .index(x$tt_imp, x$var_tt_imp, base)
     out = data.frame(time    = x$time.id,
@@ -242,7 +242,10 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
 }
 
 
-#' Plot time-indices from trim output
+#' Plot time-indices from trim output.
+#'
+#' Uncertainty ranges exressed as standard errors are always plotted.
+#' Confidence intervals are plotted when they are present in the \code{trim.index} object, i.e. when requested for in the call to \code{\link{index}}.
 #'
 #' @param x an object of class \code{trim.index}, as resulting from e.g. a call to \code{\link{index}}.
 #' @param ... additional \code{trim.index} objects, or parameters that will be passed on to \code{\link[graphics]{plot}}.
