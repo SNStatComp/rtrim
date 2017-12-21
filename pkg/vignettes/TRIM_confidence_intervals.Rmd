@@ -467,3 +467,10 @@ plot(tt1, main=sprintf("Skylark; overdispersion=%.2f", overdispersion(m1)))
 ```
 
 In this case, the effect of overdispersion is very limited. For an example where overdispersion is large, see the vignettes `Taming overdispersion' and `TRIM vs UIndex'.
+
+Finally, an example of how confidence intervals are computed and plotted for indices as well:
+```{r}
+idx <- index(m1, level=0.95)
+plot(idx, pct=TRUE)
+```
+
