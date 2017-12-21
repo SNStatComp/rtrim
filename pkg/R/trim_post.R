@@ -222,6 +222,8 @@ coef.trim <- function(object,
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
 #' @param which select what totals to compute (see \code{Details} section).
 #' @param obs Flag to include total observations (or not).
+#' @param level the confidence level required.
+#'   If NULL, no confidence inetrvals are calculated.
 #'
 #' @return A \code{data.frame} with subclass \code{trim.totals}
 #'  (for pretty-printing). The columns are \code{time}, \code{fitted}
@@ -634,7 +636,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
 #' Computes confidence intervals for the time-totals of a TRIM model.
 #' Both imputed and fitted time-totals are supported, and the confidence level can be specified.
 #'
-#' @param x      a TRIM output object
+#' @param object a TRIM output object
 #' @param parm   parameter specification: imputed or fitted time-totals.
 #' @param level  the confidence level required.
 #'
@@ -646,10 +648,10 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
 #' data(skylark2)
 #' z <- trim(count ~ site + year, data=skylark2, model=3)
 #' CI <- confint(z)
-confint.trim <- function(x, parm=c("imputed","fitted"), level=0.95) {
+confint.trim <- function(object, parm=c("imputed","fitted"), level=0.95) {
   # Get time-totals
   parm <- match.arg(parm)
-  tt <- totals(x, parm)
+  tt <- totals(object, parm)
   lambda <- tt[[2]] # imputed or fitted time totals
   se     <- tt[[3]] # std.err.
 
