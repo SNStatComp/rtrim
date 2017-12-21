@@ -118,18 +118,18 @@ trim_estimate <- function(count, site, year, month, weights, covars
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
 #' @param max_beta maximum value for beta parameters
+#' @param constrain_overdisp control constraining overdispersion
 #' @param soft: specifies if trim on error returns an error code (TRUE) or just stops with a message (FALSE)
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
-#'
 #'
 #' @keywords internal
 trim_workhorse <- function(count, site, year, month, weights, covars,
                            model, changepoints, overdisp, serialcor, autodelete, stepwise,
                            covin = list(),
                            conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
-                           sig2fix=1.0,
+                           constrain_overdisp=1.0,
                            soft=FALSE, debug=FALSE)
 {
   if (debug) browser()
@@ -738,19 +738,14 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # and $r_{ij}$ are Pearson residuals (Section~\ref{r})
   sig2 <- 1.0 # default value (Maximum Likelihood case)
   update_sig2 <- function() {
-    if (isTRUE(sig2fix)) {
-      ok <- as.logical(is.finite(f)) # matrix -> vector
-      r2 <- r[ok]^2
-      Q1 <- quantile(r2, 0.25)
-      Q3 <- quantile(r2, 0.75)
-      lo <- Q1 - 3 * (Q3-Q1)
-      hi <- Q3 + 3 * (Q3-Q1)
-      cat(sprintf("Using r2 limit %f -- %f\n", lo, hi))
-      ok <- (r2>lo) & (r2<hi)
-      r2 <- r2[ok]
-      df <- length(r2) - length(alpha) - length(beta)
-      sig2 <<- if (df>0) sum(r2) / df else 1.0
-    } else if (sig2fix < 1) {
+    # analyse constrain_overdisp:
+    # 0..1 : use Chi-squared approach
+    # 1    : don't constrain
+    # >1   : use Tuckey's Fence
+    if (constrain_overdisp <= 0) {
+      stop("Invalid value for constrain_overdisp")
+    } else if (constrain_overdisp < 1) {
+      # Use Chi-squared approach
       ok <- as.logical(is.finite(f)) # matrix -> vector
       r2 <- r[ok]^2
       for (iter in 1:50) {
@@ -761,17 +756,31 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
           change <- sig2 - old_sig2
           if (abs(change) < 0.1) break
         }
-        cutoff <- sig2 * qchisq(sig2fix, 1)
+        cutoff <- sig2 * qchisq(constrain_overdisp, 1)
         ok <- r2 < cutoff
         r2 <- r2[ok]
       }
-      printf("\n\n*** sig2 converged after %d iterations\n\n", iter)
+      rprintf("sig2 converged after %d iterations\n", iter)
+    } else if (constrain_overdisp > 1) {
+      # Use Tuckey's Fence
+      ok <- as.logical(is.finite(f)) # matrix -> vector
+      r2 <- r[ok]^2
+      Q <- quantile(r2, c(0.25, 0.50, 0.75)) # Q[3] now is what you expect
+      IQR <- Q[3] - Q[1] # Interquartile range
+      lo <- Q[1] - constrain_overdisp * IQR
+      hi <- Q[3] + constrain_overdisp * IQR
+      rprintf("Using r2 limit %f -- %f\n", lo, hi)
+      ok <- (r2>lo) & (r2<hi)
+      r2 <- r2[ok]
+      df <- length(r2) - length(alpha) - length(beta)
+      sig2 <<- if (df>0) sum(r2) / df else 1.0
     } else {
+      # Unconstrained
       df <- sum(nobs) - length(alpha) - length(beta) # degrees of freedom
       sig2 <<- if (df>0) sum(r^2, na.rm=TRUE) / df else 1.0
-      if (sig2 < 1e-7) stop("Overdispersion apparently 0; consider setting overdisp=FALSE")
-      if (sig2 < 1) warning(sprintf("Overdispersion %.1f <1; consider setting overdisp=FALSE", sig2), call.=FALSE, immediate.=TRUE)
     }
+    if (sig2 < 1e-7) stop("Overdispersion apparently 0; consider setting overdisp=FALSE")
+    if (sig2 < 1) warning(sprintf("Overdispersion %.1f <1; consider setting overdisp=FALSE", sig2), call.=FALSE, immediate.=TRUE)
     if (!is.finite(sig2)) stop("Overdispersion problem")
   }
 
