@@ -1,0 +1,201 @@
+---
+title:  "Taming overdispersion"
+author: "Patrick Bogaart""
+date:   "21 december 2017""
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{taming-overdispersion}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.width  = 7,
+  fig.height = 5
+)
+```
+
+# Introduction
+
+For many species, count data is very skewed distributed. Let's look at an example for Oystercatcher data that comes with RTRIM.
+First we plot the sorted raw counts.
+
+```{r}
+rm(list=ls())
+library(rtrim)
+data(oystercatcher)
+
+# Collect all raw count data
+ok <- is.finite(oystercatcher$count) & oystercatcher$count > 0
+count <- oystercatcher$count[ok]
+plot(count, type='p', pch=16, col="red", cex=0.4)
+```
+
+Of course, sorting does help to see the big picture.
+```{r}
+count <- sort(count)
+plot(count, type='p', pch=16, col="red", cex=0.4)
+```
+
+
+So it appears that a few site/year/month combinations have the majority of all individuals.
+We can plot exactly this:
+```{r}
+cum_count <- cumsum(sort(count, decreasing = TRUE)) # cumulative counts, largest first
+cum_pct <- 100 * cum_count / sum(count)             # express as percentage of total
+n <- length(count)
+obs_pct <- 100 * (1 : n) / n
+plot(obs_pct, cum_pct, type='n', col="black")
+points(obs_pct, cum_pct, pch=16, cex=0.3, col="red")
+abline(a=100, b=-1, lty="dashed")
+grid()
+```
+
+In this case, we see the typical "Pareto-principle": 20% of the data points represent 80% of the total counts.
+This is likely to have a strong impact on estimated overdispersion.
+
+# Overdispersion for clusted observations: the problem
+
+Let's see how large overdispersion actually is:
+
+```{r}
+z <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE)
+summary(z)
+```
+
+So overdispersion is indeed huge!
+
+You may recall from the Methods paper that theformula for overdispersion is given by
+$$ \sigma^2 = \frac{1}{n-p} \sum_{ijm} r^2_{ijm}$$
+with $n$ the number of observations, $p$ the number of model parameters and $r$ Pearson residuals, given by
+$$ r = \frac{f_{ijm} -\mu_{ijm}}{\sqrt{\mu_{ijm}}} $$.
+
+Species like Oystercatcher are known to cluster: many individuals may appear at one monitoring site at one time, and at another site at another time. This clustering behaviour is unlikely to be captured in full by the TRIM model. Therefore, residuals (i.e. $f-\mu$) may be large, and more than proportionally affect overdispersion $\sigma^2$ because the nonlinearity involved (i.e. the squaring process).
+
+We can see the effect of large deviations on the computed overdispersion by skipping the 0,1,2,etc largest values from the computation.
+```{r}
+# Retrieve raw observed and modelled counts
+ok <- is.finite(z$f)
+f <- z$f[ok]
+mu <- z$mu[ok]
+
+# Compute Pearson residuals, and sort
+r <- (f - mu) / sqrt(mu)
+idx <- order(r^2, decreasing=TRUE)
+r <- r[idx]
+
+# How many obervations and parameters?
+n <- length(f)
+p <- z$nsite + z$nyear-1 + z$nmonth-1
+
+# Set up
+skips <- 0 : (n %/% 2) # skip none to approx 50% of all residuals
+sig2 <- numeric(length(skips)) # Allocate a vector with the computed overdisersion
+for (i in seq_along(skips)) {
+  r2 <- r[skips[i] : n]^2
+  df <- n - p - skips[i] # correct for skipped
+  sig2[i] <- sum(r2) / df
+}
+plot(skips, sig2, type='l', col="red")
+abline(h=0.0, lty="dashed", col="red")
+```
+
+Indeed, overdispersion appears to be very sensitive for the largest residuals, suggesting that the actual value is not very robust against the contingent observations.
+
+The question now is, how can be compute a more robust estimate of overdispersion.
+
+# Approach #1: average first, square later.
+
+The formal approach to compute overdispersion is to first square the residuals, and then do the averaging, which is very sensitive for outliers.
+Let's see what happens if we reverse this order: first we do the everaging; then the squaring. Again, formally this is not correct, but at least if gives us some hint if this phenomenon is the cause of the problem.
+```{r}
+sig2_alt1 <- numeric(length(skips))
+for (i in seq_along(skips)) {
+  rr <- r[skips[i] : n]
+  df <- n - p - skips[i] # correct for skipped
+  sig2_alt1[i] <- (sum(abs(rr))/df)^2
+}
+plot(skips, sig2, type='l', col="red")
+lines(skips, sig2_alt1, col="blue")
+```
+
+Indeed, it appears that the effect is strongly mitigated reducing $\sigma^2$ from about 850 to about 200, and converges to about the same value once all outliers have beem removed.
+But again, this approach is formally incorrect.
+
+# Approach #2: remove outliers (nonparametric)
+
+A second approach is to just remove the outliers. One way to do this is to use an nonparametric methods, such as based on the interquantile interval (`Tuckey's Fence')
+```{r}
+# residuals, and their square
+r <- (f - mu) / sqrt(mu)
+r2 <- r^2
+
+# classic overdispersion
+n <- length(f)
+p <- z$nsite + z$nyear-1 + z$nmonth-1
+sig2_std <- sum(r^2) / (n-p)
+
+# Compute interquantile distance and outlier limits
+Q <- quantile(r2, c(0.25, 0.50, 0.75)) # such that Q[3] is what you expect
+IQR <- (Q[3]-Q[1]) # Interquartile range
+k <- 3 # Tuckey's criterion for "far out"
+lo <- Q[1] - k * 
+hi <- Q[3] + k * (Q[3]-Q[1])
+cat(sprintf("Using r2 limit %f -- %f\n", lo, hi))
+cat(sprintf("  removing %d lower outliers\n", sum(r2<lo)))
+cat(sprintf("  removing %d upper outliers\n", sum(r2>hi)))
+ok <- (r2>lo) & (r2<hi)
+df <- length(r2) - p
+sig2_alt2 <- sum(r2[ok]) / df
+cat(sprintf("Reduced sig2 from %.1f to %.1f\n", sig2_std, sig2_alt2))
+```
+
+So, this approach appears to work. It is implemented in RTRIM using the constrain_overdisp argument, where value ($>1$) represents the IQR multiplier (3, for `far out', in above example)
+```{r, eval=FALSE}
+z <- trim(..., overdisp=TRUE, constrain_overdisp=3, ...)
+```
+
+
+# Approach #3: remove outliers (parametric)
+
+One of the assumptions behind TRIM is that the residuals are approximately $\Chi^2$-distributed. Thus, it makes sense to fit such an distribution to find the, say, 99% percentile, using an estimate of $\sigma^2$ as a scaling parameter, to obtain a threshold value to identify outliers. Since the value of $\sigma^$ will depend on the outliers removed, an iterative approach is required.
+```{r}
+level <- 0.99
+niter <- 50
+sig2_alt3 <- numeric(niter)
+ok <- !logical(length(r2)) # all TRUE
+for (i in 1:niter) {
+  # Compute current overdispersion
+  df <- sum(ok) - p
+  sig2_alt3[i] <- sum(r2[ok]) / df
+  # Compute new cutoff value
+  cutoff <- sig2_alt3[i] * qchisq(level, 1) # scale, because mean(r2) != 1 but approx. sig2
+  ok <- r2 < cutoff
+}
+plot(sig2_alt3, type='l', col="red", ylim=range(0,range(sig2_alt3)))
+points(sig2_alt3, pch=16, col="red")
+text(25,400, sprintf("Convergence at %.1f", sig2_alt3[niter]))
+```
+Again, this methods workt well, and is implemented in RTRIM using the constrain_overdisp option, for values in the range $0\ldots1$, e.g.
+```{r, eval=FALSE}
+z <- trim(..., overdisp=TRUE, constrain_overdisp=0.99, ...)
+```
+
+Note that constrain_overdisp has 3 possible values:
+
+* 0..1: Using Chi-squared outlier detection, with the specified level.
+* 1   : No constraints
+* >1  : Using Tuckey's Fence, with the specified IQR multiplier
+
+# Application
+
+Here is an example where the third approach is used to constrain overdispersion in the Oystercatcher example.
+```{r}
+z <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE, constrain_overdisp=0.99)
+idx <- index(z, level=0.95, base=2004)
+plot(idx)
+```
+
