@@ -59,8 +59,7 @@ tc
 ```
 
 
-**NOTE.** Be aware that R has its own present working directory. If relative paths (that is, file names not starting with the full path to their location) are used in the TRIM command file, R will interpret them as relative to the current working directory. 
-
+**NOTE.** Be aware that R has its own present working directory. If relative paths (that is, file names not starting with the full path to their location) are used in the TRIM command file, R will interpret them as relative to the current working directory.
 
 ## TRIM data files
 
