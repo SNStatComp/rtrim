@@ -117,24 +117,24 @@ The following example shows the associated workflow. Strictly for demonstration 
 
 ```{r}
 # split data
-dunes <- subset(skylark2, habitat=="dunes") # 232 records
 heath <- subset(skylark2, habitat=="heath") # 208 records
+dunes <- subset(skylark2, habitat=="dunes") # 232 records
 
 # run models
-m1 <- trim(count ~ site + year, data=dunes, model=3)
-m2 <- trim(count ~ site + year, data=heath, model=3)
+m1 <- trim(count ~ site + year, data=heath, model=3)
+m2 <- trim(count ~ site + year, data=dunes, model=3)
 
 # collect imputed time-totals (which is the default)
 t1 <- totals(m1)
 t2 <- totals(m2)
 
-plot(t1,t2, names=c("dunes", "heath"))
+plot(t1,t2, names=c("heath", "dunes"))
 ```
 
 The next step is to use the time totals for the differente habitats (`strata') as  input data for an upscaled (`superstratum') run. The habitat types now serve as site names, and imputed counts will be the input counts.
 ```{r}
-t1$region <- "dunes"
-t2$region <- "heath"
+t1$region <- "heath"
+t2$region <- "dunes"
 t12 <- rbind(t1, t2)
 head(t12)
 ```
@@ -144,7 +144,7 @@ The final preparation step is to extract the variance-covariance information for
 # Also collect the variance-covariance matrices for both runs
 vcv1 <- vcov(m1)
 vcv2 <- vcov(m2)
-vcv3 <- list(dunes=vcv1, heath=vcv2)
+vcv3 <- list(heath=vcv1, dunes=vcv2)
 ```
 
 and off we go with the superstratum run. Note the new argument **covin** to use the variance-covariance data.
