@@ -1,0 +1,200 @@
+---
+title:  "rtrim extensions"
+author: "Patrick Bogaart"
+date:   "21 december 2017"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{taming-overdispersion}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Introduction
+
+This Vigenette describes some of the extenstions to the rtrim package as per version 2.0:
+
+* Extended plotting of time-totals
+* Extended plotting of indices
+* Running TRIM in a stratified manner
+* Heatmap visualisations of both observed and imputed data
+
+See also the vignettes `rtrim vs UIndex', 'rtrim confidence intervals' and 'taming overdispersion' for additional new features.
+
+## Plotting Time-totals
+
+Once a TRIM model has been estimated, one of the first steps of analysis schould be the plotting of time-totals.
+This is done by first calling the **totals** function, and then a custim **plot** function:
+
+```{r}
+library(rtrim)
+data(skylark2) # load Skylark data
+m1 <- trim(count ~ site + year, data=skylark2, model=3)
+t1 <- totals(m1) # By default, the time-totals for the imputed data set
+plot(t1)
+```
+
+Alternatively, one may compute the fitted time-totals. the next example shows the plotting of both the imputed and fitted time-totals, and also demonstrates how series can be named, and the plot can be decorated with a main title.
+
+```{r}
+m2 <- trim(count ~ site + year, data=skylark2, model=2, changepoints=c(1,2))
+ti <- totals(m2, "imputed")
+tf <- totals(m2, "fitted")
+plot(ti, tf, names=c("imputed","fitted"), main="Skylark", leg.pos="bottomright")
+```
+
+Since imputed totals are composed of both observed and estimated counts, it might be insightful to plot the observed counts as well.
+```{r}
+m3 <- trim(count ~ site + year, data=skylark2, model=3)
+t3 <- totals(m3, obs=TRUE) # Extract observations in addition to totals
+plot(t3)
+```
+
+As can be seen, the amount of observed Skylarks is considerable smaller than the time totals suggest.
+Futhermore, it can be seen that while the observed counts decrease from 1989, the imputed counts continue to increase.
+It is thus suggested to look into more detail what is going on in different sites.
+
+
+## Plotting indices
+
+Once a TRIM model has been estimated, and indices are computed, these latter can be plotted using the generic plot command **plot** (which, behind the screens, calls **plot.trim.index**).
+
+```{r}
+library(rtrim)
+data(skylark2) # load Skylark data
+m <- trim(count ~ site + year, data=skylark2, model=3) # Run a fairly basic TRIM model
+idx <- index(m) # By default, the indices for the imputed data set
+plot(idx)
+```
+
+If required, the x-axis and y-axis labels as well as the tile can be defined,
+and the index can be expressed as a percentage, instead as a fraction.
+This example shows all these options:
+```{r}
+plot(idx, xlab="Year AD", ylab="Index (%)", main="Skylark index", pct=TRUE)
+```
+
+### Indices and covariates
+
+When covariates are involved, it can be helpful to compute and plot indices for the various covariate categories as well.
+The next example demonstrates this.
+
+```{r}
+m <- trim(count ~ site + year + habitat, data=skylark2, model=3) # Run a fairly basic TRIM model
+idx <- index(m, covars=TRUE)
+plot(idx)
+```
+
+As can be seen, indices for the various covariate categories are automatically plotted as well. This behaviour can be supressed by setting **covar="none"** in the call to **plot()**.
+
+### Combining multiple indices
+
+Indices for multiple TRIM runs can be combined in a single plot.
+
+```{r}
+data(skylark2)
+m0 = trim(count ~ site + year          , data=skylark2, model=3)
+m1 = trim(count ~ site + year + habitat, data=skylark2, model=3)
+
+idx0 <- index(m0)
+idx1 <- index(m1)
+
+plot(idx0, idx1)
+```
+As you see, a legend is inserted automatically. You can change the names of the series by using the **names** argument:
+```{r}
+plot(idx0, idx1, names=c("Without covariates", "Using 'Habitat' as covariate"))
+```
+
+
+## Stratified rtrim
+
+For several (todo: mention) reasons can it be usefull to combine TRIM results for different regions (`strata') into a single, larger scale (`superstratum'), TRIM analysis.
+In this case, the output of the lower scale TRIM runs, i.e. the time totals, are used as `observations' in the larger scale run.
+Although this procedure works out well for the estimates and indices, it doesn't work for the associated standard errors, because the time totals are not Poisson distributed, where the original counts are. To circumvent this problem, TRIM has options to export the variances of the lower scale runs and to import these into the larger scale runs.
+The following example shows the associated workflow. Strictly for demonstration purposes, we split the Skylark dataset into two `regions' associated with the habitats (dunes and heath).
+
+```{r}
+# split data
+dunes <- subset(skylark2, habitat=="dunes") # 232 records
+heath <- subset(skylark2, habitat=="heath") # 208 records
+
+# run models
+m1 <- trim(count ~ site + year, data=dunes, model=3)
+m2 <- trim(count ~ site + year, data=heath, model=3)
+
+# collect imputed time-totals (which is the default)
+t1 <- totals(m1)
+t2 <- totals(m2)
+
+plot(t1,t2, names=c("dunes", "heath"))
+```
+
+The next step is to use the time totals for the differente habitats (`strata') as  input data for an upscaled (`superstratum') run. The habitat types now serve as site names, and imputed counts will be the input counts.
+```{r}
+t1$region <- "dunes"
+t2$region <- "heath"
+t12 <- rbind(t1, t2)
+head(t12)
+```
+
+The final preparation step is to extract the variance-covariance information for the different habitats, and combine them into a single list, using habitat/region names as identifier.
+```{r}
+# Also collect the variance-covariance matrices for both runs
+vcv1 <- vcov(m1)
+vcv2 <- vcov(m2)
+vcv3 <- list(dunes=vcv1, heath=vcv2)
+```
+
+and off we go with the superstratum run. Note the new argument **covin** to use the variance-covariance data.
+```{r}
+m3 <- trim(imputed ~ region + time, data=t12, model=3, covin=vcv3)
+plot(totals(m3))
+```
+
+Now, just for comparison, we compare index plots for both the baseline run (where dunes and heath are taken together) and the upscaled `superstratum' variant.
+```{r}
+t0 <- totals(m0) # time-totals for the baseline run
+t3 <- totals(m3)
+plot(t0,t3, names=c("baseline","superstrata"))
+```
+
+Which shows that for *this* example the differences are small.
+
+## Plotting heatmaps.
+
+The detailed spatiotemporal structure of both the observed ans the imputed data can be inspected by means of the function **heatmap** that operates on the output of a TRIM call. The defauklt behaviour of this function is to display a heat map of the observed counts only:
+
+```{r}
+m <- trim(count ~ site + year, data=skylark2, model=3)
+heatmap(m, main="Skylark, observations")
+```
+Note that missing site/time combinations are marked as gray. It can be seen that the observational coverage is not constant: most sites have incomplete records, especially in the earlier years. This is a typical patern for an expanding observation program, but may have consequences for the statistical analysis.
+
+The next example shows the TRIM estimated counts:
+```{r}
+heatmap(m, "fitted", main="Skylark, TRIM estimates")
+```
+From this plot, it is clear that the variance between sites is much higher than the variance between years.
+In fact, thetrend in time can hardly be seen.
+
+The last example sows the heatmap for the imputed data, where estimates are used to fill up the missing observations.
+```{r}
+heatmap(m, "imputed", main="Skylark, imputed data sets")
+```
+
+### Heatmaps for monthly datasets
+
+For monthly data, heatmaps work slightly different, but in the same spirit:
+
+```{r}
+data(oystercatcher)
+m <- trim(count ~ site + (year + month), data=oystercatcher, model=3, overdisp=TRUE)
+heatmap(m, "imputed", main="Oystercatcher")
+```
+
+Again, observational coverage is extremely variable in both space and time.
+There appears to be a few sites that have sporadic, yet high, count observations, causing large amounts of estimated counts for this location for all other time points, which may effect the aggregated time-totals in a significant way.
+
+Also note that in this example, many site/time combinations have registered a count of 0, which is possible from an observational point of view, but difficult to reconcile with the log-linear trend assumptions made by TRIM. In this heatmap, these cases are colored white.
