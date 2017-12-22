@@ -20,6 +20,7 @@ Date: 2017-08-28
 Suggests:
     testthat,
     knitr,
-    rmarkdown
+    rmarkdown,
+    R.rsp
 RoxygenNote: 6.0.1
-VignetteBuilder: knitr
+VignetteBuilder: knitr, R.rsp
