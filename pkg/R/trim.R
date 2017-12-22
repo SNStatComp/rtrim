@@ -215,7 +215,29 @@ trim <- function(object, ...) {
 #'  `Demands on data').
 #' @param stepwise     \code{[logical]} Perform stepwise refinement of changepoints.
 #' @param covin a list of variance-covariance matrices; one per pseudo-site.
-#' @param ... More parameters
+#' @param ... More parameters, see below in the details
+#'
+#' @details
+#' All versions of \code{trim} support additional 'experts only' arguments:
+#'
+#' \describe{
+#' \item{\code{verbose}}{Logical switch to temporarily enable verbose output. (use \code{option(trim_verbose=TRUE)}) for permanent verbosity.}
+#' \item{\code{constrain_overdisp}}{Numerical value to control overdispersion.
+#'   \itemize{
+#'   \item A value in the range 0..1 uses a Chi-squared oulier detection method.
+#'   \item A value >1 uses Tukey's Fence.
+#'   \item A value of 1.0 (which is the default) results in unconstrained overdispersion.
+#'   }
+#'   See vigenette `Taming overdispersion' for more information.}
+#' \item{\code{conv_crit}}{Convergence criterion.
+#'   Used within the iterative emodel estimation algorithm.
+#'   The default value is \code{1e-5}.).
+#'   May be set to higher values in case models don't converge.}
+#' \item{\code{max_iter}}{Number of iterations. Default value is \code{200}. May be set to higher values in case models don't converge.}
+#' \item{\code{premove}}{Probability of removal of changepoints (default value: 0.2). Parameter used in stepwise refinement of models. See the vignette 'Models and statistical methods in rtrim'.}
+#' \item{\code{penter}}{Probability of re-entering of changepoints (default value: 0.15). Similar use as \code{premove}.}
+#' }
+#' conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20
 #'
 #' @rdname trim
 #' @method trim data.frame
