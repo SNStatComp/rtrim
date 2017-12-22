@@ -1,7 +1,7 @@
 ---
 title:  "RTRIM vs UIndex"
-author: "Patrick Bogaart""
-date:   "21 december 2017""
+author: "Patrick Bogaart"
+date:   "21 december 2017"
 output: 
   rmarkdown::html_vignette:
     toc: true
