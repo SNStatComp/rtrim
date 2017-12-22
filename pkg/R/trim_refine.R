@@ -18,7 +18,7 @@
 #' @param premove threshold probability for removal of parameters.
 #' @param penter threshold probability for re-introduction of parameters.
 #'
-#' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
+#' @return a list of class \code{trim}, that opcontains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
