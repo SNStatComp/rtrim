@@ -11,6 +11,13 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.width  = 7,
+  fig.height = 5
+)
+```
+
 ## Introduction
 
 This Vigenette describes some of the extenstions to the rtrim package as per version 2.0:
