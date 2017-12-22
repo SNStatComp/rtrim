@@ -1,7 +1,7 @@
 ---
 title:  "Taming overdispersion"
-author: "Patrick Bogaart""
-date:   "21 december 2017""
+author: "Patrick Bogaart"
+date:   "21 december 2017"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -142,8 +142,8 @@ sig2_std <- sum(r^2) / (n-p)
 Q <- quantile(r2, c(0.25, 0.50, 0.75)) # such that Q[3] is what you expect
 IQR <- (Q[3]-Q[1]) # Interquartile range
 k <- 3 # Tuckey's criterion for "far out"
-lo <- Q[1] - k * 
-hi <- Q[3] + k * (Q[3]-Q[1])
+lo <- Q[1] - k * IQR
+hi <- Q[3] + k * IQR
 cat(sprintf("Using r2 limit %f -- %f\n", lo, hi))
 cat(sprintf("  removing %d lower outliers\n", sum(r2<lo)))
 cat(sprintf("  removing %d upper outliers\n", sum(r2>hi)))
