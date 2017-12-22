@@ -639,6 +639,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
 #' @param object a TRIM output object
 #' @param parm   parameter specification: imputed or fitted time-totals.
 #' @param level  the confidence level required.
+#' @param ... not used [included for R compatibility reasons]
 #'
 #' @export
 #'
@@ -648,7 +649,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
 #' data(skylark2)
 #' z <- trim(count ~ site + year, data=skylark2, model=3)
 #' CI <- confint(z)
-confint.trim <- function(object, parm=c("imputed","fitted"), level=0.95) {
+confint.trim <- function(object, parm=c("imputed","fitted"), level=0.95, ...) {
   # Get time-totals
   parm <- match.arg(parm)
   tt <- totals(object, parm)
