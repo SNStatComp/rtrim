@@ -115,11 +115,11 @@ trim_estimate <- function(count, site, year, month, weights, covars
 #' @param changepoints a numerical vector change points (only for Model 2)
 #' @param weights a numerical vector of weights.
 #' @param covin a list of variance-covariance matrices; one per pseudo-site.
+#' @param constrain_overdisp control constraining overdispersion
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
 #' @param max_beta maximum value for beta parameters
-#' @param constrain_overdisp control constraining overdispersion
-#' @param soft: specifies if trim on error returns an error code (TRUE) or just stops with a message (FALSE)
+#' @param verbose flag to enable addtional output during a single run.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -128,11 +128,18 @@ trim_estimate <- function(count, site, year, month, weights, covars
 trim_workhorse <- function(count, site, year, month, weights, covars,
                            model, changepoints, overdisp, serialcor, autodelete, stepwise,
                            covin = list(),
-                           conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20,
-                           constrain_overdisp=1.0,
-                           soft=FALSE, debug=FALSE)
+                           constrain_overdisp=1.0, conv_crit=1e-5, max_iter=200, verbose=FALSE,
+                           debug=FALSE)
 {
   if (debug) browser()
+
+  saved_verbosity <- getOption("trim_verbose")
+  if (verbose) option(trim_verbose=TRUE)
+
+  # These were user options, but are now fixed
+  max_sub_step <- 7L
+  max_beta <- 20
+
   # =========================================================== Preparation ====
 
   # Check the arguments. \verb!count! should be a vector of numerics.
@@ -377,6 +384,19 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     for (i in 1:nsite) {
       obsi[[i]] <- as.vector(observed[i, ]) # use 2D
     }
+  }
+
+  # in case of covin: ensure that all matrices correspond to the right sites.
+  # These latter are refactored, so we do that as well.
+  if (use.covin && !is.null(names(covin))) {
+    covin_names <- names(covin)
+    covin_ids   <- as.integer(factor(covin_names))
+    covin_new <- vector("list", nsite)
+    for (i in 1:nsite) {
+      j <- covin_ids[i]
+      covin_new[[j]] <- covin[[i]]
+    }
+    covin <- covin_new
   }
 
   # Check if the covin matrices all have the right size.
@@ -1686,6 +1706,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   # The TRIM result is returned to the user\ldots
   rprintf("(Exiting workhorse function)\n")
+  if (verbose) option(trim_verbose=saved_verbosity)
   z
 }
 # \ldots which ends the main TRIM function.
