@@ -267,7 +267,7 @@ totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL)
   # Optionally add a confidence interval
   if (!is.null(level)) {
     if (ncol(totals)!=3) stop("Confidence intervals can only be computed for either imputed or fitted time totals, but not for both")
-    mul <- .multipliers(lambda=totals[[2]], sig2=x$sig2, level=level)
+    mul <- ci_multipliers(lambda=totals[[2]], sig2=x$sig2, level=level)
     totals$lo <- totals[[2]] - totals[[3]] * mul$lo
     totals$hi <- totals[[2]] + totals[[3]] * mul$hi
   }
@@ -614,7 +614,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
 #' @param level  the confidence level required
 #'
 #' @return matrix with multipliers. col1=lo; col2=hi
-.multipliers <- function(lambda, sig2=NULL, level=0.95)
+ci_multipliers <- function(lambda, sig2=NULL, level=0.95)
 {
   if (is.null(sig2)) sig2 <- 1.0
   if (sig2<1) stop("Overdispersion must be >= 1")

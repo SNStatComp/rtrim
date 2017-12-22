@@ -83,7 +83,7 @@
 
   # Optionally add confidence interval
   if (!is.null(level)) {
-    mul <- .multipliers(lambda=tt, sig2=sig2, level=level)
+    mul <- ci_multipliers(lambda=tt, sig2=sig2, level=level)
     out$lo_tau <- tau - mul$lo * sqrt(var_tau)
     out$hi_tau <- tau + mul$hi * sqrt(var_tau)
   }
