@@ -134,7 +134,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   if (debug) browser()
 
   saved_verbosity <- getOption("trim_verbose")
-  if (verbose) option(trim_verbose=TRUE)
+  if (verbose) options(trim_verbose=TRUE)
 
   # These were user options, but are now fixed
   max_sub_step <- 7L
@@ -545,7 +545,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   nalpha <- length(alpha)
   if (sum(nobs) < (nalpha+nbeta)) {
     msg <- sprintf("Not enough positive observations (%d) to specify %d parameters (%d alpha + %d beta)", sum(npos), nalpha+nbeta, nalpha, nbeta)
-    if (soft) return(list(error=msg)) else stop(msg, call.=FALSE)
+    stop(msg, call.=FALSE)
   }
 
   # All $\beta_j$ are initialized at 0, to reflect no trend (model 1 or 2) or no time effects (model 3)
@@ -1706,7 +1706,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   # The TRIM result is returned to the user\ldots
   rprintf("(Exiting workhorse function)\n")
-  if (verbose) option(trim_verbose=saved_verbosity)
+  if (verbose) options(trim_verbose=saved_verbosity)
   z
 }
 # \ldots which ends the main TRIM function.
