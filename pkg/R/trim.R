@@ -71,7 +71,7 @@
 #'  \eqn{\ln\mu_{i,j,m} = \alpha_i + \beta_j + \gamma_m}
 #' for Model 3.
 #'
-#' For the same reason why \eqn{\beta_1=0} for Model 3, \eqn{\gamma_1=0} in case of montly parameters.
+#' For the same reason why \eqn{\beta_1=0} for Model 3, \eqn{\gamma_1=0} in case of monthly parameters.
 #'
 #'
 #' @section Using covariates:
@@ -165,7 +165,10 @@
 #'
 #' @family analyses
 #' @family modelspec
-#' @seealso \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users}, \href{../doc/Skylark_example.html}{TRIM by example}
+#' @seealso
+#'   \href{../doc/Skylark_example.html}{TRIM by example} for a gentle introduction,
+#'   \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users} for users of the classic Delphi-based TRIM implementation,
+#'   and \href{../doc/rtrim_2_extensions.html}{rtrim 2 extensions} for the major changes from rtrim v.1 to rtrim v.2
 #'
 #' @examples
 #' data(skylark)
@@ -237,7 +240,6 @@ trim <- function(object, ...) {
 #' \item{\code{premove}}{Probability of removal of changepoints (default value: 0.2). Parameter used in stepwise refinement of models. See the vignette 'Models and statistical methods in rtrim'.}
 #' \item{\code{penter}}{Probability of re-entering of changepoints (default value: 0.15). Similar use as \code{premove}.}
 #' }
-#' conv_crit=1e-5, max_iter=200, max_sub_step=7, max_beta=20
 #'
 #' @rdname trim
 #' @method trim data.frame

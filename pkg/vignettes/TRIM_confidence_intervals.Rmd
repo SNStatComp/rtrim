@@ -1,12 +1,12 @@
 ---
-title:  "TRIM confidence intervals"
+title:  "rtrim confidence intervals"
 author: "Patrick Bogaart"
 date:   "21 december 2017"
 output: 
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{trim-confidence-intervals}
+  %\VignetteIndexEntry{rtrim confidence intervals}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

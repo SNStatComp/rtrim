@@ -1,0 +1,331 @@
+---
+title:  "rtrim 2.0 extensions"
+author: "Patrick Bogaart"
+date:   "21 december 2017"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{rtrim 2.0 extensions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.width  = 7,
+  fig.height = 5
+)
+```
+
+# Introduction
+
+This Vigenette describes some of the extenstions to the rtrim package as per version 2.0:
+
+* Extended plotting of time-totals
+* Extended plotting of indices
+* Running TRIM in a stratified manner
+* Heatmap visualisations of both observed and imputed data
+
+See also the vignettes `rtrim vs UIndex', 'rtrim confidence intervals' and 'taming overdispersion' for additional new features.
+
+
+# Monthly data
+
+One of the major improvements in rtrim 2.0 with respect to 1.0 is the handling of monthly, or any other intra-annual, data.
+For example, where a classic TRIM model 3 might look like
+$$ \ln \mu_{ij} = \alpha_i + \beta_j $$ 
+where $\mu$ is an estimated count, $\alpha_i$ is a site parameter for site $i$ and $\beta_j$ is a time point parameter for year $j$.
+the extension towards months looks like
+$$ \ln \mu_{ijm} = \alpha_i + \beta_j + \delta_m $$
+where $\delta_m$ are month parameters for month $m$.
+
+Please take a look in [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) for a full explanation, and application to other model formulations.
+
+The general syntax to specify rtrim models that use monthly data is as follows:
+```r
+  z <- trim(count ~ site + year, data=...)                   # simple annual data
+  z <- trim(count ~ site + year + habitat, data=...)         # using covariates
+  z <- trim(count ~ site + (year+month), data=...)           # using monthy data
+  z <- trim(count ~ site + (year+month) + habitat, data=...) # using both
+```
+Note the use of brackets to distinguish months from covariates.
+
+Here is a full example for Oystercatcher data, which now comes with rtrim 2.0
+```{r}
+rm(list=ls()) # always start with a clean slate
+library(rtrim)
+data(oystercatcher)
+z <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE)
+plot(index(z))
+```
+
+## Comparison with UIndex
+
+While in the past TRIM was used to analyse count data with an annual resolution (i.e. one observation per site per year), the software package UIndex [Underhill, 1998; Underhill and Pryce-Jones, 1995] was and is used to analyse count data with higher (e.g., monthly) resolution.
+As demonstrated above, the current R implementation of TRIM is extended to accept and analyse monthly data as well. This section demonstrates the application of RTRIM to monthly data, and compares the output with that of UIndex.
+
+### UIndex
+
+UIndex was used to analyse the monthly Oystercatcher counts, collected by SOVON Netherlands. Here we show the pre-saved output of UIndex, as the main trend, and the 90\% `consistency intervals'. Note also the use of 2004 as base year.
+```{r}
+load("UIndex_Oystercatcher_output.RData")
+yrange <- range(uidx$index, uidx$lower, uidx$upper)
+plot(uidx$year, uidx$index, type='l', xlab="Year", ylab="Index", ylim=yrange)
+segments(uidx$year, uidx$lower, uidx$year,uidx$upper)
+legend("topright", "UIndex", col="black", lty="solid")
+
+# Add index=1 line for reference
+abline(h=1.0, lty="dashed", col=gray(0.5))
+
+# Mark the base year
+ibase <- match(2004, uidx$year)
+points(uidx$year[ibase], uidx$index[ibase], pch=16)
+```
+### rtrim
+
+Here we show the comparision with rtrim, using the results computed above.
+
+```{r}
+# Compute and plot an index for Oystercatcher counts, using 2004 as base year and
+# adding 90% confidence intervals as well.
+idx <- index(z, level=0.9, base=2004)
+plot(idx)
+
+# Plot UIndex on top
+lines(uidx$year, uidx$index)
+segments(uidx$year, uidx$lower, uidx$year,uidx$upper, lwd=2)
+
+legend("bottom", c("UIndex","TRIM"), col=c("black","red"), lty="solid")
+```
+
+Note the computation and display of confidence intervals, which is new for rtrim 2.0, along with the standard errors of both classic TRIM and rtrim 1.0.
+
+This plot demonstrates that the indices as computed by UIndex and TRIM are virtually identical, and that the 90% confidence intervals of TRIM are very well comparable to the 90% consistency intervals of TRIM, although both are there estimated using completely different approaches. In the case of TRIM, confidence intervals are based on standard errors which are derived analytically as part of the GEE estimation process and ultimately are based on the variance within the orginal data.
+See the vignettes [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) and [TRIM_confidence_intervals.html](rtrim confidence intervals) for more information. Consistency intervals in UIndex are estimated by means of a bootstrap method. See the papers Underhill (1998) and Underhill and Pryce-Jones (19950) for more information.
+
+
+# Stratified rtrim
+
+For several (todo: mention) reasons can it be usefull to combine TRIM results for different regions ('strata') into a single, larger scale ('superstratum') TRIM analysis.
+In this case, the output of the lower scale TRIM runs, i.e., the time totals, are used as 'observations' in the larger scale run.
+Although this procedure works out well for the estimates and indices, it doesn't work for the associated standard errors, because the time totals are not Poisson distributed, where the original counts are. To circumvent this problem, TRIM has options to export the variances of the lower scale runs and to import these into the larger scale runs, to use instead.
+
+The following example shows the associated workflow. Strictly for demonstration purposes, we split the Skylark dataset into two 'regions' associated with the habitats (heath and dunes).
+
+```{r}
+# split data
+data(skylark2)
+heath <- subset(skylark2, habitat=="heath") # 208 records
+dunes <- subset(skylark2, habitat=="dunes") # 232 records
+
+# run models
+m1 <- trim(count ~ site + year, data=heath, model=3)
+m2 <- trim(count ~ site + year, data=dunes, model=3)
+
+# collect imputed time-totals (which is the default)
+t1 <- totals(m1)
+t2 <- totals(m2)
+
+plot(t1,t2, names=c("heath", "dunes"))
+```
+Note the use of multiple time-totals in a single plot. Again, this is new in rtrim 2.0
+
+The next step is to use the time totals for the differente habitats ('strata') as  input data for an upscaled ('superstratum') run. The habitat types now serve as site names, and imputed counts will be the input counts.
+```{r}
+t1$region <- "heath"
+t2$region <- "dunes"
+t12 <- rbind(t1, t2)
+head(t12)
+```
+
+The final preparation step is to extract the variance-covariance information for the different habitats, and combine them into a single list, using habitat/region names as identifier, enabling the correct match between the site identifiers in the data, and the variance-covariance matrices.
+```{r}
+# Also collect the variance-covariance matrices for both runs
+vcv1 <- vcov(m1)
+vcv2 <- vcov(m2)
+vcv3 <- list(heath=vcv1, dunes=vcv2)
+```
+
+and off we go with the superstratum run. Note the new argument **covin** to use the variance-covariance data.
+```{r}
+m3 <- trim(imputed ~ region + time, data=t12, model=3, covin=vcv3)
+plot(totals(m3))
+```
+
+Now, just for comparison, we compare index plots for both the baseline run (where dunes and heath are taken together, but do act as covariates) and the upscaled `superstratum' variant.
+```{r}
+m0 <- trim(count ~ site + year, data=skylark2, model=3) # baseline
+t0 <- totals(m0)
+t3 <- totals(m3)
+plot(t0,t3, names=c("baseline","superstrata"))
+```
+
+Which suggests that for *this* example the differences are small.
+
+# Taming overdispersion
+
+In some cases, especially with clustering bird species, overdispersion can be huge, reaching unrealistic values of more than 500.
+rtrim now contains an option to constrain the computed value of overdispersion by detecting outliers, and removing them from the computation of overdispersion (but retaining them for all other calculations). The full rationalle and methdology is described in [taming_overdispersion.html](Taming overdispersion), but the actual use is rather simple.
+
+Take for example the Oystercatcher data, which results in a huge overdispersion of about 850
+```{r}
+data(oystercatcher)
+m1 <- trim(count ~ site + (year + month), data=oystercatcher, model=3, overdisp=TRUE)
+overdispersion(m1)
+```
+
+The inclusion of the option `constrain_overdisp=0.99` triggers the detection of outliers that have a probability of 1%.
+```{r}
+m2 <- trim(count ~ site + (year + month), data=oystercatcher, model=3, overdisp=TRUE, constrain_overdisp=0.99)
+overdispersion(m2)
+```
+
+And so we get a much more reasonable result, with smaller standard errors.
+```{r}
+t1 <- totals(m1)
+t2 <- totals(m2)
+plot(t1, t2, names=c("unconstrained","constrained"), leg.pos="bottom")
+```
+
+
+
+# Output visualization
+
+## Plotting Time-totals
+
+Once a TRIM model has been estimated, one of the first steps of analysis schould be the plotting of time-totals.
+This is done by first calling the `totals()` function, and then a custom `plot()` function:
+
+```{r}
+rm(list=ls()) # time for a new blank slate
+data(skylark2) # reload Skylark data
+m1 <- trim(count ~ site + year, data=skylark2, model=3)
+t1 <- totals(m1) # By default, the time-totals for the imputed data set
+plot(t1)
+```
+
+Alternatively, one may compute the fitted time-totals. the next example shows the plotting of both the imputed and fitted time-totals, and also demonstrates how series can be named, and the plot can be decorated with a main title.
+
+```{r}
+m2 <- trim(count ~ site + year, data=skylark2, model=2, changepoints=c(1,2))
+ti <- totals(m2, "imputed")
+tf <- totals(m2, "fitted")
+plot(ti, tf, names=c("imputed","fitted"), main="Skylark", leg.pos="bottomright")
+```
+
+Since imputed totals are composed of both observed and estimated counts, it might be insightful to plot the observed counts as well.
+```{r}
+m3 <- trim(count ~ site + year, data=skylark2, model=3)
+t3 <- totals(m3, obs=TRUE) # Extract observations in addition to totals
+plot(t3)
+```
+
+As can be seen, the amount of observed Skylarks is considerable smaller than the time totals suggest.
+Futhermore, it can be seen that while the observed counts decrease from 1989, the imputed counts continue to increase.
+It is thus suggested to look into more detail what is going on in different sites.
+
+
+## Plotting indices
+
+Once a TRIM model has been estimated, and indices are computed, these latter can be plotted using the generic plot command `plot()` (which, behind the screens, calls `plot.trim.index()`).
+
+```{r}
+m <- trim(count ~ site + year, data=skylark2, model=3) # Run a fairly basic TRIM model
+idx <- index(m) # By default, the indices for the imputed data set
+plot(idx)
+```
+
+If required, the x-axis and y-axis labels as well as the tile can be defined,
+and the index can be expressed as a percentage, instead as a fraction.
+This example shows all these options:
+```{r}
+plot(idx, xlab="Year AD", ylab="Index (%)", main="Skylark index", pct=TRUE)
+```
+
+### Indices and covariates
+
+When covariates are involved, it can be helpful to compute and plot indices for the various covariate categories as well.
+The next example demonstrates this.
+
+```{r}
+m <- trim(count ~ site + year + habitat, data=skylark2, model=3) # Run a fairly basic TRIM model
+idx <- index(m, covars=TRUE)
+plot(idx)
+```
+
+As can be seen, indices for the various covariate categories are automatically plotted as well. This behaviour can be supressed by setting `covar="none"` in the call to `plot()`.
+
+### Combining multiple indices
+
+Indices for multiple TRIM runs can be combined in a single plot.
+
+```{r}
+data(skylark2)
+m0 = trim(count ~ site + year          , data=skylark2, model=3)
+m1 = trim(count ~ site + year + habitat, data=skylark2, model=3)
+
+idx0 <- index(m0)
+idx1 <- index(m1)
+
+plot(idx0, idx1)
+```
+As you see, a legend is inserted automatically. You can change the names of the series by using the `names` argument:
+```{r}
+plot(idx0, idx1, names=c("Without covariates", "Using 'Habitat' as covariate"))
+```
+
+## Adding confidence intervals.
+
+New in rtrim 2.0 is the possibility to express uncertainty as a confidence interval, in addition to the standard errors.
+Both the functions `totals()` and `index()` now accept the option `level' that specifies the confidence level and triggers the computation.
+```{r}
+m <- trim(count ~ site + year, data=skylark2, model=3)
+tt <- totals(m, level=0.95) # Compute 95% confidence intervals
+head(tt)
+```
+
+So, the lower and upper bounds of the confidence interval is stored in columns `lo` and `hi`. These are automatically pickeed up by the `plot()` function.
+```{r}
+plot(tt)
+```
+
+See vignette [TRIM_confidence_intervals.html](rtrim confidence intervals) for more information on the underlying methodology.
+
+
+## Plotting heatmaps.
+
+The detailed spatiotemporal structure of both the observed ans the imputed data can be inspected by means of the function `heatmap()` that operates on the output of a TRIM call. The default behaviour of this function is to display a heat map of the observed counts only:
+
+```{r}
+m <- trim(count ~ site + year, data=skylark2, model=3)
+heatmap(m, main="Skylark, observations")
+```
+Note that missing site/time combinations are marked as gray. It can be seen that the observational coverage is not constant: most sites have incomplete records, especially in the earlier years. This is a typical patern for an expanding observation program, but may have consequences for the statistical analysis.
+
+The next example shows the TRIM estimated counts:
+```{r}
+heatmap(m, "fitted", main="Skylark, TRIM estimates")
+```
+From this plot, it is clear that the variance between sites is much higher than the variance between years.
+In fact, thetrend in time can hardly be seen.
+
+The last example sows the heatmap for the imputed data, where estimates are used to fill up the missing observations.
+```{r}
+heatmap(m, "imputed", main="Skylark, imputed data sets")
+```
+
+### Heatmaps for monthly datasets
+
+For monthly data, heatmaps work slightly different, but in the same spirit:
+
+```{r}
+data(oystercatcher)
+m <- trim(count ~ site + (year + month), data=oystercatcher, model=3, overdisp=TRUE)
+heatmap(m, "imputed", main="Oystercatcher")
+```
+
+Again, observational coverage is extremely variable in both space and time.
+There appears to be a few sites that have sporadic, yet high, count observations, causing large amounts of estimated counts for this location for all other time points, which may effect the aggregated time-totals in a significant way.
+
+Also note that in this example, many site/time combinations have registered a count of 0, which is possible from an observational point of view, but difficult to reconcile with the log-linear trend assumptions made by TRIM. In this heatmap, these cases are colored white.
