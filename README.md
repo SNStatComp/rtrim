@@ -1,7 +1,8 @@
 [![Build Status](https://travis-ci.org/markvanderloo/rtrim.svg)](https://travis-ci.org/markvanderloo/rtrim) 
 [![Coverage Status](https://coveralls.io/repos/github/markvanderloo/rtrim/badge.svg?branch=master)](https://coveralls.io/github/markvanderloo/rtrim?branch=master)
 [![CRAN](http://www.r-pkg.org/badges/version/rtrim)](http://cran.r-project.org/web/packages/rtrim)
-[![Downloads](http://cranlogs.r-pkg.org/badges/rtrim)](http://cran.r-project.org/package=rtrim/)
+[![Downloads](http://cranlogs.r-pkg.org/badges/rtrim)](http://cran.r-project.org/package=rtrim/) [![Mentioned in Awesome Official Statistics ](https://awesome.re/mentioned-badge.svg)](http://www.awesomeofficialstatistics.org)
+
 
 # rtrim
 Reimplementation of [TRIM](https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--) for R
