@@ -3,12 +3,14 @@ title:  "Taming overdispersion"
 author: "Patrick Bogaart"
 date:   "21 december 2017"
 output: 
+  pdf_document:
+    toc: true
   rmarkdown::html_vignette:
     toc: true
 vignette: >
   %\VignetteIndexEntry{Taming overdispersion}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 ---
 
 ```{r, echo = FALSE}
@@ -20,7 +22,7 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-For many species, count data is very skewed distributed. Let's look at an example for Oystercatcher data that comes with RTRIM.
+For many species, count data is very skewly distributed. Let's look at an example for Oystercatcher data that comes with RTRIM.
 First we plot the sorted raw counts.
 
 ```{r}
@@ -161,7 +163,7 @@ z <- trim(..., overdisp=TRUE, constrain_overdisp=3, ...)
 
 # Approach #3: remove outliers (parametric)
 
-One of the assumptions behind TRIM is that the residuals are approximately $\Chi^2$-distributed. Thus, it makes sense to fit such an distribution to find the, say, 99% percentile, using an estimate of $\sigma^2$ as a scaling parameter, to obtain a threshold value to identify outliers. Since the value of $\sigma^$ will depend on the outliers removed, an iterative approach is required.
+One of the assumptions behind TRIM is that the residuals are approximately $\chi^2$-distributed. Thus, it makes sense to fit such an distribution to find the, say, 99% percentile, using an estimate of $\sigma^2$ as a scaling parameter, to obtain a threshold value to identify outliers. Since the value of $\sigma^2$ will depend on the outliers removed, an iterative approach is required.
 ```{r}
 level <- 0.99
 niter <- 50
@@ -172,7 +174,7 @@ for (i in 1:niter) {
   df <- sum(ok) - p
   sig2_alt3[i] <- sum(r2[ok]) / df
   # Compute new cutoff value
-  cutoff <- sig2_alt3[i] * qchisq(level, 1) # scale, because mean(r2) != 1 but approx. sig2
+  cutoff <- sig2_alt3[i] * qchisq(level, 1) 
   ok <- r2 < cutoff
 }
 plot(sig2_alt3, type='l', col="red", ylim=range(0,range(sig2_alt3)))

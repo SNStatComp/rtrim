@@ -3,12 +3,14 @@ title:  "rtrim 2.0 extensions"
 author: "Patrick Bogaart"
 date:   "21 december 2017"
 output: 
+  pdf_document:
+    toc: true
   rmarkdown::html_vignette:
     toc: true
 vignette: >
   %\VignetteIndexEntry{rtrim 2.0 extensions}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 ---
 
 ```{r, echo = FALSE}

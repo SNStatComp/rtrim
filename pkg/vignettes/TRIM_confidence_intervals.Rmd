@@ -3,12 +3,14 @@ title:  "rtrim confidence intervals"
 author: "Patrick Bogaart"
 date:   "21 december 2017"
 output: 
-  rmarkdown::html_vignette:
+  pdf_document:
+    toc: true
+  rmarkdown::pdf_vignette:
     toc: true
 vignette: >
   %\VignetteIndexEntry{rtrim confidence intervals}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 ---
 
 ```{r, echo = FALSE}
@@ -171,7 +173,7 @@ The approach used in TRIM is to enforce continuity by approximating the discrete
 $$ f(x; k, \theta) = \frac{1}{\Gamma(k)\theta^k} x^{k-1} e^{-x/\theta} $$
 and
 $$ F(x; k, \theta) = \frac{1}{\Gamma(k)} \gamma\left(k,\frac{x}{\theta}\right) $$
-where $k$ and $\theta$ are a\emph{shape} and \empgh{scale} parameter.
+where $k$ and $\theta$ are a \emph{shape} and \emph{scale} parameter.
 
 The first two moments are given by
 $$ \operatorname{E}[x]=k\theta  \quad\text{and}\quad  \operatorname{var}[x] = k \theta^2 $$
@@ -219,7 +221,7 @@ Which is perfectly acceptable.
 
 The next step is to compute the multipliers, i.e. the ratio between quantiles corresponding to the 95%, say, confidence interval bounds and the standard errors. Unlike the normal distribution, where this ratio is a constant (1.96), for the gamma distribution the ratio will be dependend on the distribution parameter, i.e. expected value $\lambda$.
 
-Denoting $Q_{0.025}$ and $Q_{0.975}}$ for the lower and upper quantile of the 95% C.I., the corresponding multipliers $M_{0.025}$ and $M_{0.975} are computed as
+Denoting $Q_{0.025}$ and $Q_{0.975}$ for the lower and upper quantile of the 95% C.I., the corresponding multipliers $M_{0.025}$ and $M_{0.975} are computed as
 $$ M_{0.025} = \frac{|Q_{0.025}-\operatorname{E}(x)|}{\sqrt{\operatorname{var}(x)}} = \frac{|Q_{0.025} - \lambda|}{\sqrt{\lambda}}$$
 and
 $$ M_{0.975} = \frac{\left|Q_{0.975}-\operatorname{E}(x)\right|}{\sqrt{\operatorname{var}(x)}} = \frac{|Q_{0.975} - \lambda|}{\sqrt{\lambda}}$$
