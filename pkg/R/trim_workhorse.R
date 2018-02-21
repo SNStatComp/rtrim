@@ -62,8 +62,9 @@ trim_estimate <- function(count, site, year, month, weights, covars
     }
   }
 
-  if (isTRUE(stepwise) && model != 2){
-    stop("Stepwise removal only works for model 2", call.=FALSE)
+  if (isTRUE(stepwise)) {
+    if (model != 2) stop("Stepwise refinement requires model 2", call.=FALSE)
+    if (length(changepoints)<2) stop("Stepwise refinement requires >1 changepoints.", call.=FALSE)
   }
 
   if (isTRUE(serialcor) && !is.null(month)) {
