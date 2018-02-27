@@ -286,7 +286,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
   # This function operates in 3 modes:
   # 1 : single index
   # 2 : multiple indices
-  # 3 : single index, with covariates
+  # 3 : single index, with covariate categories
 
   # Assume a simple job
   mode <- 1
