@@ -16,9 +16,10 @@ check_observations <- function(x,...){
 }
 
 #' @param model \code{[numeric]} Model 1, 2 or 3?
+#' @param count_col \code{[character|numeric]} column index of the counts in \code{x}
+#' @param year_col \code{[character|numeric]} column index of years or time points in \code{x}
+#' @param month_col \code{[character|numeric]} optional column index of months in \code{x}
 #' @param covars \code{[character|numeric]} column index of covariates in \code{x}
-#' @param time.id \code{[character|numeric]} column index of time points in \code{x}
-#' @param count.id \code{[character|numeric]} column index of the counts in \code{x}
 #' @param changepoints \code{[numeric]} Changepoints (model 2 only)
 #' @param eps \code{[numeric]} Numbers whose absolute magnitude are lesser than \code{eps} are considered zero.
 #'
@@ -48,31 +49,48 @@ check_observations <- function(x,...){
 #'
 #' @export
 #' @rdname check_observations
-check_observations.data.frame <- function(x, model, covars = list()
-  , changepoints = numeric(0), time.id="time",count.id="count", eps=1e-8, ...){
+check_observations.data.frame <- function(x, model, count_col="count", year_col="year", month_col=NULL,
+                                          covars = list(), changepoints=numeric(0), eps=1e-8, debug=FALSE){
 
-  # browser()
-  stopifnot(model %in% 1:3)
+  if (debug) browser()
+  if (!isTRUE(model %in% 1:3)) error("model must be 1, 2, or 3")
 
   out <- list()
-  if (model==3 && length(covars) == 0 ){
-    time_totals <- tapply(X = x[,count.id], INDEX = x[,time.id], FUN = sum, na.rm=TRUE)
-    ii <- time_totals <= eps
-    out$sufficient <- !any(ii)
-    out$errors <- setNames(list(x[ii,time.id]),time.id)
+  if (model==3 && length(covars) == 0) {
+    # model 3, simple mode: annual or annual + monthly
+    if (is.null(month_col)) { # annual only
+      yt <- tapply(X=x[,count_col], INDEX = x[,year_col], FUN=sum, na.rm=TRUE) # total counts per year
+      ii <- yt < eps
+      out$sufficient <- !any(ii)
+      if (!out$sufficient) {
+        out$errors <- list()
+        out$errors[[year_col]] <- names(ii)[ii]
+      }
+    } else { # annual + monthly
+      yt <- tapply(X=x[,count_col], INDEX = x[,year_col], FUN=sum, na.rm=TRUE) # total counts per year
+      mt <- tapply(X=x[,count_col], INDEX = x[,month_col], FUN=sum, na.rm=TRUE) # per month
+      ii <- yt < eps
+      jj <- mt < eps
+      out$sufficient <- !any(ii) & !any(jj)
+      if (!out$sufficient) {
+        out$errors <- list()
+        if (any(ii)) out$errors[[year_col]] <- names(ii)[ii]
+        if (any(jj)) out$errors[[month_col]] <- names(jj)[jj]
+      }
+    }
   } else if (model == 3 && length(covars>0)) {
-    out$errors <- get_cov_count_errlist(x[,count.id],x[,time.id],covars=x[covars],timename=time.id)
+    out$errors <- get_cov_count_errlist(x[,count_col],x[,year_col],covars=x[covars],timename=year_col)
     out$sufficient <- length(out$errors) == 0
   } else if ( model == 2 ) {
-    pieces <- pieces_from_changepoints(x[,time.id],changepoints)
+    pieces <- pieces_from_changepoints(x[,year_col],changepoints)
     ok <- pieces > 0 # allow zero counts for changepoint 0
     if ( length(covars) == 0){
-      time_totals <- tapply(X=x[ok,count.id],INDEX=pieces[ok], FUN = sum, na.rm=TRUE)
+      time_totals <- tapply(X=x[ok,count_col],INDEX=pieces[ok], FUN = sum, na.rm=TRUE)
       ii <- time_totals <= eps
       out$sufficient <- !any(ii)
       out$errors <- list(changepoint = as.numeric(names(time_totals))[ii])
     } else {
-      out$errors <- get_cov_count_errlist(x[ok,count.id], pieces[ok], x[ok,covars,drop=FALSE], timename="changepoint")
+      out$errors <- get_cov_count_errlist(x[ok,count_col], pieces[ok], x[ok,covars,drop=FALSE], timename="changepoint")
       out$sufficient <- length(out$errors) == 0
     }
   }

@@ -84,9 +84,10 @@ trim_estimate <- function(count, site, year, month, weights, covars
       assert_plt_model(count = count, time = year
               , changepoints = changepoints, covars = covars)
 
-    } else if (model == 3){
-      assert_sufficient_counts(count = count, index = year)
-      assert_covariate_counts(count = count, time = year, covars=covars)
+    } else if (model == 3) {
+      assert_sufficient_counts(count=count, index=list(year=year))
+      if (!is.null(month)) assert_sufficient_counts(count=count, index=list(month=month))
+      assert_covariate_counts(count=count, time=year, covars=covars, timename="year")
     }
 
     # compute actual model

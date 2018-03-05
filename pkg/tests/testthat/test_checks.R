@@ -17,34 +17,34 @@ test_that("basic assertions",{
 
 test_that("check_observations",{
   # model 3, no covariates
-  d <- data.frame(time = 1:3, count=0:2)
+  d <- data.frame(year = 1:3, count=0:2)
   out <- check_observations(d,model=3)
   expect_false(out$sufficient)
-  expect_equal(out$errors,list(time=1))
+  expect_equal(out$errors,list(year="1"))
 
   # model 3 with covariates
-  d <- data.frame(count = rep(0:1,2), time = rep(1:2,each=2), cov = rep(1:2,2))
-  out <- check_observations(d, model=3,covars="cov")
+  d <- data.frame(count=rep(0:1,2), year=rep(1:2,each=2), cov = rep(1:2,2))
+  out <- check_observations(d, model=3, covars="cov")
   expect_false(out$sufficient)
-  target = list(cov=data.frame(time=factor(1:2),cov=factor(c(1,1),levels=1:2)))
-  expect_equal(out$errors, target )
+  target = list(cov=data.frame(year=factor(1:2),cov=factor(c(1,1),levels=1:2)))
+  expect_equal(out$errors, target)
 
   # model 2, no covariates
-  d <- data.frame(time = 1:10, count = c(rep(1,7),rep(0,3)))
-  out <- check_observations(d,model=2,changepoints = c(4,7))
+  d <- data.frame(year=1:10, count=c(rep(1,7), rep(0,3)))
+  out <- check_observations(d, model=2, changepoints = c(4,7))
   expect_false(out$sufficient)
   expect_equal(out$errors$changepoint, 7)
 
   # model 2, with covariates
   d <- data.frame(
-    time=1:4
+    year=1:4
     , X = c("A","A","A","B")
     , count = c(1,1,1,0)
   )
   # browser()
-  out <- check_observations(d,model=2, covars = "X",changepoints=1)
+  out <- check_observations(d, model=2, covars="X", changepoints=1)
   expect_false(out$sufficient)
-  expect_equal(out$errors$X, data.frame(changepoint=factor(1),X=factor("B",levels=c("A","B")) ))
+  expect_equal(out$errors$X, data.frame(changepoint=factor(1), X=factor("B",levels=c("A","B")) ))
 })
 
 
