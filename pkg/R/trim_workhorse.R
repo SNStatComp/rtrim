@@ -165,16 +165,26 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   stopifnot(class(site) %in% c("integer","character","factor"))
   stopifnot(length(site)==length(count))
 
-  # `Month' specifiers should be similar to years
+  # `Month' specifiers should be integer-like. They don't have to be consecutive.
   if (is.null(month)) {
     use.months <- FALSE
   } else {
-    use.months <- TRUE
-    # Include the same tests as for years
-    stopifnot(class(month) %in% c("integer","numeric"))
-    check <- unique(diff(sort(unique(month))))
-    ok <- check==1 && length(check)==1
-    if (!ok) stop("'month' data is not consecutive")
+    if (class(month)=="integer") {
+      # integers are allways OK
+      use.months <- TRUE
+    } else if (class(month)=="numeric") {
+      # numerics are OK if they are integers in disguise
+      dev <- month - round(month)
+      if (max(abs(dev)) < 1e-9) {
+        use.months <- TRUE
+        } else {
+          stop("months should be integers")
+        }
+    } else {
+      # Anything else is not accepted
+      stop("months should be integers")
+    }
+    # final test
     stopifnot(length(month)==length(count))
   }
 
