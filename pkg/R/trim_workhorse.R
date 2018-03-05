@@ -148,45 +148,126 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   stopifnot(class(count) %in% c("integer","numeric"))
   n = length(count)
 
-  # \verb!year! should be an ordered factor, or a vector of consecutive years or numbers
-  # Note the use of "any" because of multiple classes for ordered factors
-  # stopifnot(any(class(year) %in% c("integer","numeric")))
-  # if (any(class(year) %in% c("integer","numeric"))) {
-  #   check <- unique(diff(sort(unique(year))))
-  #   stopifnot(check==1 && length(check)==1)
-  # }
-  stopifnot(class(year) %in% c("integer","numeric"))
-  check <- unique(diff(sort(unique(year))))
-  ok <- check==1 && length(check)==1
-  if (!ok) stop("'year' data is not consecutive")
-  stopifnot(length(year)==length(count))
 
-  # \verb!site! should be a vector of numbers, strings or factors
-  stopifnot(class(site) %in% c("integer","character","factor"))
-  stopifnot(length(site)==length(count))
+  # ----------------------------------------------------------- Check sites ----
 
-  # `Month' specifiers should be integer-like. They don't have to be consecutive.
+  # Check length
+  if (length(site) != length(count)) {
+    msg <- sprintf("Number of site ID's (%d) is different than the number of counts (%d)",
+                   length(site), length(count))
+    stop(msg, call.=FALSE)
+  }
+
+  # Convert numerics that are integers in disguise
+  num2int <- function(x, tol=1e-7) {
+    # convert numeric to integer, if appropriate
+    if (inherits(x,"numeric")) {
+      int_x <- as.integer(x)
+      if (max(abs(x - int_x)) < tol) x <- int_x
+    }
+    x
+  }
+  if (inherits(site,"numeric")) site <- num2int(site)
+
+  if (inherits(site,"integer")) {
+    # Integer site ID's are always accepted
+    site <- factor(site)                # Convert to a factor
+    site_id <- as.integer(levels(site)) # Original values
+  } else if (inherits(site,"character")) {
+    # Character site ID's are always accepted
+    site <- factor(site)
+    site_id <- levels(site)
+  } else if (inherits(site,"factor")) {
+    # Factor site ID's are always accepted
+    site <- factor(site) # Refactor to get rid of unused levels
+    site_id <- levels(site)
+  } else {
+    msg <- sprintf("Invalid site class: %s", paste0(class(site), collapse=","))
+    stop(msg, call.=FALSE)
+  }
+
+  I <- nsite <- nlevels(site)
+  site_nr <- as.integer(site)         # 1, 2, ..., I
+
+
+  # ----------------------------------------------------------- Check years ----
+
+  # Check length
+  if (length(year) != length(count)) {
+    msg <- sprintf("Number of years (%d) is different than the number of counts (%d)",
+                   length(year), length(count))
+    stop(msg, call.=FALSE)
+  }
+
+  # Years must be integers or numerics with a constant step size.
+  # Convert numerics that are integers in disguise
+  if (inherits(year, "numeric")) year <- num2int(year)
+
+  if (inherits(year,"integer")) {
+    # Integers are allowed iff they have a constant step size
+    delta <- unique(diff(sort(unique(year))))
+    if (length(delta)!=1L) stop("Years don't have a constant interval")
+    year <- ordered(year)
+    year_id <- as.integer(levels(year))
+  } else  if (inherits(year, "numeric")) {
+    # Idem for numerics
+    delta <- unique(diff(sort(unique(year))))
+    if (length(delta)!=1L) stop("Years don't have a constant interval")
+    year <- ordered(year)
+    year_id <- as.numeric(levels(year))
+  } else {
+    msg <- sprintf("Invalid year class: %s", paste0(class(year), collapse=","))
+    stop(msg, call.=FALSE)
+  }
+
+  J <- nyear <- nlevels(year)
+  year_nr <- as.integer(year)
+
+  # ---------------------------------------------------------- Check months ----
+
   if (is.null(month)) {
     use.months <- FALSE
+    M <- nmonth <- 1L
   } else {
-    if (class(month)=="integer") {
-      # integers are allways OK
-      use.months <- TRUE
-    } else if (class(month)=="numeric") {
-      # numerics are OK if they are integers in disguise
-      dev <- month - round(month)
-      if (max(abs(dev)) < 1e-9) {
-        use.months <- TRUE
-        } else {
-          stop("months should be integers")
-        }
-    } else {
-      # Anything else is not accepted
-      stop("months should be integers")
+
+    # Check length
+    if (length(month) != length(count)) {
+      msg <- sprintf("Number of month specifiers (%d) is different than the number of counts (%d)",
+                     length(month), length(count))
+      stop(msg, call.=FALSE)
     }
-    # final test
-    stopifnot(length(month)==length(count))
+
+    # Convert numerics that are integers in disguise
+    if (inherits(month, "numeric")) month <- num2int(month)
+
+    if (inherits(month,"integer")) {
+      # Integers are always OK
+      use.months <- TRUE
+      month <- ordered(month)
+      month_id  <- as.integer(levels(month)) # the original month identifiers
+    } else if (inherits(month, "character")) {
+      # Characters are always accepted, will be sorted on order of appearance
+      use.months <- TRUE
+      month <- ordered(month, levels=unique(month))
+      month_id <- levels(month)
+    } else if (inherits(month,"ordered")) {
+      use.months <- TRUE
+      month <- ordered(month) # Get rid of unused levels
+      month_id <- ordered(levels(month), levels(month))
+    } else if (inherits(month,"factor")) {
+      use.months <- TRUE
+      month <- factor(month) # Get rid of unused levels
+      month_id <- ordered(levels(month), levels(month))
+    } else {
+      msg <- sprintf("Invalid year class: %s", paste0(class(year), collapse=","))
+      stop(msg, call.=FALSE)
+    }
+
+    month_nr <- as.integer(month)
+    M <- nmonth <- nlevels(month)
   }
+
+  # ---------------------------------------------------------- Check covars ----
 
   # \verb!covars! should be a list where each element (if any) is a vector
   stopifnot(class(covars)=="data.frame")
@@ -253,34 +334,14 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # User-specified covariance
   use.covin <- length(covin)>0
 
-  # Convert time and site to factors, if they're not yet
-  year_type <- class(year) # record for later use
-  year_fctr <- ordered(year)
-  year_id <- as.integer(year_fctr)
-  J <- nyear <- max(year_id)
-
-  if (use.months) {
-    month_fctr <- ordered(month)
-    month_id   <- as.integer(month_fctr)
-    M <- nmonth <- length(levels(month_fctr))
-  } else M <- nmonth <- 1L
-
-  #org.site.id <- site.id # Remember the original values for output purposes.
-  if (class(site)=="factor") {
-    site_fctr <- site
-  } else if (class(site) %in% c("integer","numeric","character")) {
-    site_fctr <- factor(site)
-  } else stop(sprintf("Can't happen: invalid site class: %s", class(site)))
-  site_id <- as.integer(site_fctr)
-  I <- nsite <- max(site_id)
 
   # check for double data
   stopifnot(length(count) <= I*J*M)
   if (use.months) {
-    check <- tapply(count, list(site, year_fctr, month_fctr), length)
+    check <- tapply(count, list(site_nr, year_nr, month_nr), length)
     if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year/month combination.", call.=FALSE)
   } else {
-    check <- tapply(count, list(site, year_fctr), length)
+    check <- tapply(count, list(site_nr, year_nr), length)
     if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year combination.", call.=FALSE)
   }
 
@@ -288,8 +349,8 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # # todo: speedup by using as.integer(month_fctr) etc.
 
   for (i in 1:I) {
-    cur_site <- levels(site)[i]
-    site_idx <- site_id==i
+    cur_site <- site_id[i]
+    site_idx <- site_nr==i
     # for (m in 1:M) {
       # cur_month = levels(month_fctr)[m]
       # month_idx = month == cur_month
@@ -309,8 +370,8 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # translate to NA values.
   if (!use.months) {
     f <- matrix(NA, nsite, nyear) # ??? check if we should not use NA instead of 0!!!
-    rows <- site_id # works because site_id = 1...I
-    cols <- year_id # idem
+    rows <- site_nr # works because site_nr = 1...I
+    cols <- year_nr # idem
     idx <- (cols-1)*nsite+rows   # Create column-major linear index from row/column subscripts.
     f[idx] <- count    # ... such that we can paste all data into the right positions
   } else {
@@ -318,9 +379,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     f <- array(NA, dim=c(nsite,nyear,nmonth))
     for (m in 1:M) {
       fm <- matrix(NA, nsite, nyear)
-      midx <- month_id == m # month factor -> 1,2,3,etc
-      rows <- site_id[midx]
-      cols <- year_id[midx]
+      midx <- month_nr == m # month factor -> 1,2,3,etc
+      rows <- site_nr[midx]
+      cols <- year_nr[midx]
       idx <- (cols-1)*nsite+rows
       fm[idx] <- count[midx]
       f[ , ,m] <- fm
@@ -338,7 +399,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   }
   totals <- rev(totals)
   if (totals[1]==0) {
-    n = which(totals>0)[1] - 1L
+    n <- which(totals>0)[1] - 1L
     warning(sprintf("Data ends with %d years without positive observations.", n), call.=FALSE, immediate.=TRUE)
   }
 
@@ -347,7 +408,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     if (use.months) stop("months+covars not yet correctly implemented")
     cvmat <- list()
     for (i in 1:ncovar) {
-      cv = icovars[[i]]
+      cv <- icovars[[i]]
       m <- matrix(NA, nsite, nyear)
       m[idx] <- cv
       # not sure why the following line was included; NA's are allowed (mirroring NA's in f)
@@ -364,9 +425,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     if (use.weights) {
       for (m in 1:M) {
         wtm <- matrix(1.0, nsite, nyear)
-        midx = month_id==m
-        rows <- site_id[midx]
-        cols <- year_id[midx]
+        midx <- month_nr==m
+        rows <- site_nr[midx]
+        cols <- year_nr[midx]
         idx <- (cols-1)*nsite+rows
         wtm[idx] <- weights[midx]
         wt[ , ,m] <- wtm
@@ -382,7 +443,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   observed <- is.finite(f)  # Flags observed (TRUE) / missing (FALSE) data
   positive <- is.finite(f) & f > 0.0 # Flags useful ($f_{i,j}>0$) observations
   site_ii <- as.vector(slice.index(f,1)) # # Internal site identifiers are the row numbers of the original matrix.
-  #TODO: check site_ii==site_id
+  #TODO: check site_ii==site_nr
   nobs <- rowSums(observed) # Number of actual observations per site (alwso works with months)
   npos <- rowSums(positive) # Number of useful ($f_{i,j}>0$) observations per site.
 
@@ -425,10 +486,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # For model 2, test that changepoints (if any) are in the range [1,J>.
   use.changepoints <- model==2 && length(changepoints)>0
   if (use.changepoints) {
-    years <- as.integer(levels(year_fctr))
-    if (all(changepoints %in% years)) {
+    if (all(changepoints %in% year_id)) {
       # Convert changepoints in years  to 1..J
-      changepoints <- match(changepoints, years)
+      changepoints <- match(changepoints, year_id)
     }
     stopifnot(all(changepoints >= 1L))
     stopifnot(all(changepoints < nyear))
@@ -895,8 +955,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
           mu_check <- mu[i, ,m] < 1e-12
           if (any(mu_check)) {
             j <- which(mu_check)[1]
-            y <- as.numeric(levels(year_fctr))[j]
-            msg <- sprintf("Zero expected value at year %d month %d\n", y, m)
+            msg <- sprintf("Zero expected value at year %d month %d\n", year_id[j], month_id[m])
             stop(msg, call.=FALSE)
           }
         }
@@ -904,8 +963,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
         mu_check <- mu[i, ] < 1e-12
         if (any(mu_check)) {
           j <- which(mu_check)[1]
-          y <- as.numeric(levels(year_fctr))[j]
-          msg <- sprintf("Zero expected value at year %d\n", y)
+          msg <- sprintf("Zero expected value at year %d\n", year_id[j])
           stop(msg, call.=FALSE)
         }
       }
@@ -1093,12 +1151,10 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # Measured, modelled and imputed count data are stored in a TRIM output object,
   # together with parameter values and other usefull information.
 
-  # Convert time point back to their original (numerical) values
-  time.id <- as.numeric(levels(year_fctr))
-  site.id <- factor(levels(site_fctr))
+  #todo: fix time_id below (change to year_id)
 
   z <- list(title=title, f=f, nsite=nsite, nyear=nyear, ntime=nyear, nmonth=nmonth,
-            time.id=time.id, site.id = site.id,
+            time.id=year_id, site_id=site_id,
             nbeta0=nbeta0, covars=covars, ncovar=ncovar, cvmat=cvmat,
             model=model, changepoints=changepoints, converged=converged,
             mu=mu, imputed=imputed, alpha=alpha)
@@ -1106,8 +1162,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     z$beta <- beta
     z$var_beta <- var_beta
   }
+
   if (use.months) {
-    z$month_id <- as.integer(levels(month_fctr))
+    z$month_id <- month_id
   }
 
   z$method <- ifelse(use.covin, "Pseudo ML", final_method)
@@ -1149,7 +1206,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
     # browser()
 
-    # bera-coefficients are stored in a particular order.
+    # beta-coefficients are stored in a particular order.
     # We always have the baseline changepoint beta's, optionally followd by the baseline
     # monthly beta's. This is the baseline `set'.
     # Optionally, we have multiple sets, one each for every covariate category (expcept the first)
@@ -1165,8 +1222,8 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       upto_cp <- if (ncp==1) J else c(changepoints[2:ncp], J)
       yidx <- (1 : ncp) + offset
       ycoefs = data.frame(
-        from   = time.id[from_cp],
-        upto   = time.id[upto_cp],
+        from   = year_id[from_cp],
+        upto   = year_id[upto_cp],
         add    = beta[yidx],
         se_add = se_beta[yidx],
         mul    = exp(beta[yidx]),
@@ -1558,7 +1615,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   z$var_tt_imp <- var_tt_imp
 
   z$time.totals <- data.frame(
-    time     = time.id,
+    time     = year_id,
     fitted   = round(tt_mod),
     se_fit   = se_tt_mod,
     imputed  = round(tt_imp),

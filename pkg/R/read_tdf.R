@@ -98,9 +98,9 @@ snifreport <- function(file, colclasses){
 #'
 #' @param x A \code{data.frame} with annual counts per site.
 #' @param eps \code{[numeric]} Numbers smaller then \code{eps} are treated a zero.
-#' @param site.id \code{[character|numeric]}  index of the column containing the site id's
-#' @param time.id \code{[character|numeric]}  index of the column containing the time codes
-#' @param count.id \code{[character|numeric]}  index of the column containing the counts
+#' @param site_col  \code{[character|numeric]}  index of the column containing the site ID's
+#' @param year_col  \code{[character|numeric]}  index of the column containing the year
+#' @param count_col \code{[character|numeric]}  index of the column containing the counts
 #'
 #' @return A \code{list} of class \code{count.summary} containing individual names.
 #' @export
@@ -110,19 +110,19 @@ snifreport <- function(file, colclasses){
 #'
 #' s <- count_summary(skylark)
 #' s$zero_counts # obtain number of zero counts
-count_summary <- function(x, count.id="count", site.id="site", time.id="time", eps=1e-8){
+count_summary <- function(x, count_col="count", site_col="site", year_col="year", eps=1e-8){
 
-  site_count <- tapply(X = x[,count.id], INDEX = x[site.id], FUN=sum, na.rm=TRUE)
+  site_count <- tapply(X = x[,count_col], INDEX = x[site_col], FUN=sum, na.rm=TRUE)
   ii <- abs(site_count) < eps
   sites_wout_counts <- character(0)
   if (any(ii)){
     sites_wout_counts <- names(site_count[ii])
-    x <- x[!x[,site.id] %in% sites_wout_counts,,drop=FALSE]
+    x <- x[!x[,site_col] %in% sites_wout_counts,,drop=FALSE]
   }
 
-  cnt <- x[,count.id]
+  cnt <- x[,count_col]
   L <- list(
-     sites = length(unique(x[,site.id]))
+     sites = length(unique(x[,site_col]))
     , sites_without_counts = sites_wout_counts
     , zero_counts = sum(cnt<eps,na.rm=TRUE)
     , positive_counts = sum(cnt>0, na.rm=TRUE)

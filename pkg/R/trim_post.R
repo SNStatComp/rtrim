@@ -738,7 +738,7 @@ results <- function(z) {
   if (z$nmonth==1) {
     # No months
     out <- data.frame(
-      site = rep(z$site.id, each=z$ntime),
+      site = rep(z$site_id, each=z$ntime),
       time = rep(z$time.id, times=z$nsite),
       observed = as.vector(t(z$f)),
       fitted   = as.vector(t(z$mu)),
@@ -747,7 +747,7 @@ results <- function(z) {
   } else {
     # With monthts
     out <- data.frame(
-      site = rep(z$site.id, each=(z$nyear * z$nmonth)),
+      site = rep(z$site_id, each=(z$nyear * z$nmonth)),
       year = rep(z$time.id, each=z$nmonth, times=z$nsite),
       month = rep(z$month_id, times=(z$nsite * z$nyear)),
       observed = as.vector(aperm(z$f, c(3,2,1))),
