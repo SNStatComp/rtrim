@@ -11,14 +11,15 @@ compatible <- FALSE
 #' TRIM estimation function
 #'
 #' @param count a numerical vector of count data.
-#' @param site an integer/numerical/factor vector of site identifiers for each count data point
-#' @param year a numerical vector time points for each count data point.
+#' @param site an integer/numerical/character/factor vector of site identifiers for each count data point
+#' @param year an integer/numerical vector time points for each count data point.
+#' @param month an optional integer/character/factor vector of months for each count data point.
 #' @param weights an optional numerical vector of weights.
 #' @param covars an optional data frame withcovariates
 #' @param model a model type selector (1, 2 or 3)
 #' @param changepoints a numerical vector change points (only for Model 2)
-#' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param overdisp a flag indicating of overdispersion has to be taken into account.
+#' @param serialcor a flag indication of autocorrelation has to be taken into account.
 #' @param autodelete a flag indicating auto-deletion of changepoints with too little observations.
 #' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
 #' @param covin a list of variance-covariance matrices; one per pseudo-site.
@@ -109,7 +110,8 @@ trim_estimate <- function(count, site, year, month, weights, covars
 #'
 #' @param count a numerical vector of count data.
 #' @param site a numerical vector time points for each count data point.
-#' @param time.id an numerical vector time points for each count data point.
+#' @param year an numerical vector time points for each count data point.
+#' @param month vector of month data.
 #' @param covars an optional data frame with covariates
 #' @param model a model type selector
 #' @param serialcor a flag indication of autocorrelation has to be taken into account.
