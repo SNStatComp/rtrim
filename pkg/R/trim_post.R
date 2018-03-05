@@ -722,7 +722,7 @@ vcov.trim <- function(object, which = c("imputed","fitted"), ... ) {
 #' @param z TRIM output structure (i.e., output of a call to \code{trim})
 #'
 #' @return A \code{data.frame}, one row per site-time combination, with columns for
-#' site, time, observed counts, modelled counts and imputed counts.
+#' site, year, month (optionally), observed counts, modelled counts and imputed counts.
 #' Missing observations are marked as \code{NA}.
 #'
 #' @export
@@ -735,13 +735,26 @@ vcov.trim <- function(object, which = c("imputed","fitted"), ... ) {
 results <- function(z) {
   stopifnot(inherits(z,"trim"))
 
-  out <- data.frame(
-    site = rep(z$site.id, each=z$ntime),
-    time = rep(z$time.id, times=z$nsite),
-    observed = as.vector(t(z$f)),
-    fitted   = as.vector(t(z$mu)),
-    imputed  = as.vector(t(z$imputed))
-  )
+  if (z$nmonth==1) {
+    # No months
+    out <- data.frame(
+      site = rep(z$site.id, each=z$ntime),
+      time = rep(z$time.id, times=z$nsite),
+      observed = as.vector(t(z$f)),
+      fitted   = as.vector(t(z$mu)),
+      imputed  = as.vector(t(z$imputed))
+    )
+  } else {
+    # With monthts
+    out <- data.frame(
+      site = rep(z$site.id, each=(z$nyear * z$nmonth)),
+      year = rep(z$time.id, each=z$nmonth, times=z$nsite),
+      month = rep(z$month_id, times=(z$nsite * z$nyear)),
+      observed = as.vector(aperm(z$f, c(3,2,1))),
+      fitted   = as.vector(aperm(z$mu, c(3,2,1))),
+      imputed  = as.vector(aperm(z$imputed, c(3,2,1)))
+    )
+  }
   class(out) <- c("trim.results","data.frame")
   out
 }

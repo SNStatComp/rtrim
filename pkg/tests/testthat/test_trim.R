@@ -344,5 +344,6 @@ test_that("results",{
   m <- trim(count ~ site + time, data=skylark, model=2)
   out <- as.data.frame(results(m))
   out$site<- as.integer(as.character(out$site))
-  expect_equal(out, read.csv("outfiles/skylark-model2-f.csv"))
+  target <- read.csv("outfiles/skylark-model2-f.csv")
+  expect_equal(out, target)
 })

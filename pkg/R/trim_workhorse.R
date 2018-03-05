@@ -1096,6 +1096,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     z$beta <- beta
     z$var_beta <- var_beta
   }
+  if (use.months) {
+    z$month_id <- as.integer(levels(month_fctr))
+  }
 
   z$method <- ifelse(use.covin, "Pseudo ML", final_method)
   z$convergence <- convergence_msg
