@@ -11,7 +11,7 @@
 #' @family modelspec
 #'
 #' @export
-check_observations <- function(x,...){
+check_observations <- function(x, ...){
   UseMethod("check_observations")
 }
 
@@ -50,10 +50,18 @@ check_observations <- function(x,...){
 #' @export
 #' @rdname check_observations
 check_observations.data.frame <- function(x, model, count_col="count", year_col="year", month_col=NULL,
-                                          covars = list(), changepoints=numeric(0), eps=1e-8, debug=FALSE){
+                                          covars = character(0), changepoints=numeric(0), eps=1e-8, ...) {
 
-  if (debug) browser()
-  if (!isTRUE(model %in% 1:3)) error("model must be 1, 2, or 3")
+  if (!isTRUE(model %in% 1:3)) stop("model must be 1, 2, or 3")
+
+  if (!(count_col %in% names(x))) stop(sprintf("Column %s not found in data.frame", count_col))
+  if (!(year_col %in% names(x))) stop(sprintf("Column %s not found in data.frame", year_col))
+  if (!is.null(month_col)) {
+    if (!(month_col %in% names(x))) stop(sprintf("Column %s not found in data.frame", month_col))
+  }
+  for (cv in covars) {
+    if (!(cv %in% names(x))) stop(sprintf("Column %s not found in data.frame", cv))
+  }
 
   out <- list()
   if (model==3 && length(covars) == 0) {
@@ -101,17 +109,17 @@ check_observations.data.frame <- function(x, model, count_col="count", year_col=
 
 #' @export
 #' @rdname check_observations
-check_observations.trimcommand <- function(x,...){
+check_observations.trimcommand <- function(x, ...){
   dat <- read_tdf(x$file)
   check_observations.data.frame(x=dat,model=x$model, covars=x$labels[x$covariates]
-                                , changepoints = x$changepoints)
+                                , changepoints = x$changepoints, ...)
 }
 
 #' @export
 #' @rdname check_observations
-check_observations.character <- function(x,...){
+check_observations.character <- function(x, ...){
   tc <- read_tcf(x)
-  check_observations.trimcommand(tc,...)
+  check_observations.trimcommand(tc, ...)
 }
 
 
