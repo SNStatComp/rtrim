@@ -166,7 +166,7 @@
 #' @family analyses
 #' @family modelspec
 #' @seealso
-#'   \href{../doc/Skylark_example.html}{TRIM by example} for a gentle introduction,
+#'   \href{../doc/Skylark_example.html}{rtrim by example} for a gentle introduction,
 #'   \href{../doc/rtrim_for_TRIM_users.html}{rtrim for TRIM users} for users of the classic Delphi-based TRIM implementation,
 #'   and \href{../doc/rtrim_2_extensions.html}{rtrim 2 extensions} for the major changes from rtrim v.1 to rtrim v.2
 #'

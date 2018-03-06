@@ -12,7 +12,7 @@
 #'
 #' Users of the original TRIM software can get started by following the
 #' \href{../doc/rtrim_for_TRIM_users.html}{rtrim for trim users} or
-#' following the \href{../doc/Skylark_example.html}{TRIM by example} manuals.
+#' following the \href{../doc/Skylark_example.html}{rtrim by example} manuals.
 #'
 #' Users of rtrim version 1.*.* may be interested in the many extensions, mainly described in the vignette
 #' \href{../doc/rtrim_2_extensions.html}{rtrim 2 extensions}

@@ -1,7 +1,7 @@
 ---
-title: "TRIM by example"
+title: "`rtrim` by example"
 author: "Jeroen Pannekoek, Arco van Strien and Patrick Bogaart"
-date: "23 November 2017"
+date: "`r Sys.Date()`"
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-As an example of the use of TRIM, counts of the Skylark (*Alauda arvensis*) will be analysed
+As an example of the use of `rtrim`, counts of the Skylark (*Alauda arvensis*) will be analysed
 (the data are obtained from the Breeding Bird Monitoring Scheme in the Netherlands of Sovon and Statistics Netherlands).
 A first view of the overall structure of the data can be obtained from base R functions.
 
@@ -32,7 +32,7 @@ data(skylark2) # use extended version of the Skylark dataset
 summary(skylark2)
 ```
 
-A more specific overview of the data can be obained by running the TRIM command `count_summary`.
+A more specific overview of the data can be obained by running the `rtrim` command `count_summary`.
 This function expects the presence of columns names `count`, `year` and `site`.
 If one or more of the actual data columns have different names, these can be specified.
 ```{r}
@@ -49,7 +49,7 @@ and *Deposition*, which indicates the amount of acidic aerial deposition
 
 ## Initial model estimation
 
-To analyse these data with TRIM, we start with a model with time effects (model 3), ignoring the Habitat covariate.
+To analyse these data with `rtrim`, we start with a model with time effects (model 3), ignoring the Habitat covariate.
 Model 3 is chosen because it makes no assumption about how population changes over time.
 Year effects are strictly independent of each other.
 A quick overview of the model results can be obtained by running `summary()` and `plot(overall())`.

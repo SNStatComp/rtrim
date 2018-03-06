@@ -1,8 +1,8 @@
 ---
-title:  "R-TRIM confidence intervals"
+title:  "`rtrim` confidence intervals"
 author: "Patrick Bogaart"
 institute: "Statistics Netherlands"
-date:   "21 december 2017"
+date:   "`r Sys.Date()`"
 output: 
   rmarkdown::html_vignette
 vignette: >
