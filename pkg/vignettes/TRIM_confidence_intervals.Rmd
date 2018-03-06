@@ -1,12 +1,10 @@
 ---
-title:  "rtrim confidence intervals"
+title:  "R-TRIM confidence intervals"
 author: "Patrick Bogaart"
+institute: "Statistics Netherlands"
 date:   "21 december 2017"
 output: 
-  pdf_document:
-    toc: true
-  rmarkdown::pdf_vignette:
-    toc: true
+  rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{rtrim confidence intervals}
   %\VignetteEncoding{UTF-8}
@@ -27,7 +25,7 @@ Traditionally, TRIM estimates model parameters, along with their uncertainty exp
 
 To assist comparison with other trend analysis methods, it might be helpfull of the TRIM output uncertainties can be presented as confidence intervals. One example is UIndex, but there might be more.
 
-In this document, we well present a method to converted TRIM standard errors to, say, 95% coinfidence intervals, by approximating the underlying (concrete) Poison or negative binomial distributions as a (continuous) gamma distribution.
+In this document, we well present a method to converted TRIM standard errors to, say, 95% coinfidence intervals, by approximating the underlying (discrete) Poison or negative binomial distributions as a (continuous) gamma distribution.
 
 ```{r}
 rm(list=ls()) # Always start with a clean slate
@@ -117,7 +115,7 @@ lines(xcdf,ycdf, col=red, lwd=2)
 
 # TRIM without overdispersion: Poisson distribution
 
-In TRIM, one of the basic assumptions is that observations, which are counts, are assumped to be Possion distributed, with probability mass function (PMF)
+In TRIM, one of the basic assumptions is that observations, which are counts, are assumed to be Possion distributed, with probability mass function (PMF)
 $$ f(k; \lambda) = \frac{\lambda^k e^{-k}}{k!} $$
 where $k\in\mathbb{N}$ is the count level, and $\lambda$ is rate parameter.
 
@@ -162,14 +160,14 @@ lines(x, y, type='s', col=red)
 points(x,y, pch=16, col=red)
 ```
 
-In principle, one could use this discrete approach: use the qpois() function to compute the (discrete) quantiles, and use these in conjunction with the (discrete) expected value and variance (which are equal by definition) to compute the multipliers.
+In principle, one could use this discrete approach: use the `qpois()` function to compute the (discrete) quantiles, and use these in conjunction with the (discrete) expected value and variance (which are equal by definition) to compute the multipliers.
 
-Hoever, a couple of TRIM properties invalidate this approach for many use cases. For a true Poisson distributed variable $x$ the variance $\operatorname{var}(x)$ always an integer, because it is identical to the expected value, which is integer: $\operatorname{var}(x) \equiv \operatorname{E}(x) \in \mathbb{N}$. TRIM, however, relaxes these requirements. First, count data does not necessarily have to be integer, for example, if the `counts' are the results of a prior aggregation process. Second, equivalence of variance and expected value is relaxed, allowing for $\operatorname{var}(x) \propto \operatorname{E}(x)$, i.e. overdispersion.
+Hoever, a couple of TRIM properties invalidate this approach for many use cases. For a true Poisson distributed variable $x$ the variance $\operatorname{var}(x)$ is always an integer, because it is identical to the expected value, which is integer: $\operatorname{var}(x) \equiv \operatorname{E}(x) \in \mathbb{N}$. TRIM, however, relaxes these requirements. First, count data does not necessarily have to be integer. For example, if the `counts' are the results of a prior aggregation process. Second, equivalence of variance and expected value is relaxed, allowing for $\operatorname{var}(x) \propto \operatorname{E}(x)$, i.e. overdispersion.
 Both arguments result in variances being continuous, therefore invalidating the discrete approach outlined above.
 
 ## Poisson-Gamma equivalence
 
-The approach used in TRIM is to enforce continuity by approximating the discrete Poison distribution by the continuous Gamma distribution, which probablity density function (PDF) and CDF are given by
+The approach used in TRIM is to enforce continuity by approximating the discrete Poisson distribution by the continuous Gamma distribution, which probablity density function (PDF) and CDF are given by
 $$ f(x; k, \theta) = \frac{1}{\Gamma(k)\theta^k} x^{k-1} e^{-x/\theta} $$
 and
 $$ F(x; k, \theta) = \frac{1}{\Gamma(k)} \gamma\left(k,\frac{x}{\theta}\right) $$
@@ -180,7 +178,7 @@ $$ \operatorname{E}[x]=k\theta  \quad\text{and}\quad  \operatorname{var}[x] = k 
 
 In order to fit the Gamma distribution on the Possion distribution, we equate the first two moments:
 $$ k\theta=\lambda;\quad k\theta^2=\lambda \Longrightarrow k=\lambda;\quad \theta=1 $$
-which suggest that a a Poisson distribution with rate $\lambda$ can be approximated by a Gamma distribution with $k=\lambda$ and $\theta=1$ for at least thge first two moments.
+which suggest that a Poisson distribution with rate $\lambda$ can be approximated by a Gamma distribution with $k=\lambda$ and $\theta=1$.
 
 Here is a test of this result:
 ```{r}
@@ -219,9 +217,11 @@ legend(0,1, legend=c("Poisson","Gamma"), col=c(red,blue), lty="solid", lwd=2)
 ```
 Which is perfectly acceptable.
 
+## Multipliers
+
 The next step is to compute the multipliers, i.e. the ratio between quantiles corresponding to the 95%, say, confidence interval bounds and the standard errors. Unlike the normal distribution, where this ratio is a constant (1.96), for the gamma distribution the ratio will be dependend on the distribution parameter, i.e. expected value $\lambda$.
 
-Denoting $Q_{0.025}$ and $Q_{0.975}$ for the lower and upper quantile of the 95% C.I., the corresponding multipliers $M_{0.025}$ and $M_{0.975} are computed as
+Denoting $Q_{0.025}$ and $Q_{0.975}$ for the lower and upper quantile of the 95% C.I., the corresponding multipliers $M_{0.025}$ and $M_{0.975}$ are computed as
 $$ M_{0.025} = \frac{|Q_{0.025}-\operatorname{E}(x)|}{\sqrt{\operatorname{var}(x)}} = \frac{|Q_{0.025} - \lambda|}{\sqrt{\lambda}}$$
 and
 $$ M_{0.975} = \frac{\left|Q_{0.975}-\operatorname{E}(x)\right|}{\sqrt{\operatorname{var}(x)}} = \frac{|Q_{0.975} - \lambda|}{\sqrt{\lambda}}$$
@@ -247,7 +247,7 @@ text(lambda[idx],umul[idx],"M_hi", pos=3, col=red)
 text(lambda[idx],lmul[idx],"M_lo", pos=1, col=red)
 ```
 
-Here is an example how these multipliers can be used to compute confidence intervals for TRIM time totals, using the Skylark dataset, model 3 (independent year effects) and no overdispersion (i.e. Poisson-type variance assumptions).
+Here is an example of how these multipliers can be used to compute confidence intervals for TRIM time totals, using the Skylark dataset, model 3 (independent year effects) and no overdispersion (i.e. Poisson-type variance assumptions).
 ```{r}
 library(rtrim)
 # Run basic TRIM model without overdispersion
@@ -270,7 +270,7 @@ lines(tt$time, tt$lo, lty="dashed")
 lines(tt$time, tt$hi, lty="dashed")
 ```
 
-In fact, the computation of confidence intervals is now built into RTRIM, using the `level' argument for `totals()'. The additional information is picked up by plot() automatically.
+In fact, the computation of confidence intervals is now built into R-TRIM, using the `level` argument for `totals()`. The resulting columns with lower and upper confidence bounds are drawn by `plot()` automatically.
 ```{r}
 tt <- totals(m, level=0.95)
 plot(tt)
@@ -282,7 +282,7 @@ plot(tt)
 
 One of the relaxations of TRIM with respect to the Poission regression assumptions is that variance does not need to equal variance, but instead is allowed to be proportionally larger, i.e. $\operatorname{var}[x] = \sigma^2 \operatorname{E}[x]$, where $\sigma^2$ is an overdispersion parameter, which is a scalar parameter estimated by TRIM.
 
-This alternative constraint on variance is easily expressed using a negative multinomial distribution $\operatorname{NB}(r,p)$ where $r$ is a \emph{size} parameter and $p$ is a \emph{success probability}. In ecological applications al alternative parameterization is often used, using $r$ and mean $\mu$. In this case, the first two moments are given by
+This alternative constraint on variance is easily expressed using a negative binomial distribution $\operatorname{NB}(r,p)$ where $r$ is a \emph{size} parameter and $p$ is a \emph{success probability}. In ecological applications an alternative parameterization is often used, using $r$ and mean $\mu$. In this case, the first two moments are given by
 $$ \operatorname{E}[x] = \mu $$
 and
 $$ \operatorname{var}[x] = \mu + \frac{\mu^2}{r} $$
@@ -345,7 +345,9 @@ legend("topleft", legend=leg_msg, col=colors[1:n], pch=16)
 ```
 showing again the acceptable degree of approximation.
 
-Mulitpliers relating standatd errors with confidence intervals bounds can be computed using the same approach as demonstrated above for the Poisson distribution. Here is an example for $\sigma^ = 1 \ldots 10$
+## Multipliers
+
+Multipliers relating standard errors with confidence intervals bounds can be computed using the same approach as demonstrated above for the Poisson distribution. Here is an example for $\sigma^2 = 1 \ldots 10$
 
 ```{r}
 lambda <- exp(seq(log(2.0), log(1000.0), len=100)) # uniform spacing in log-space
@@ -400,7 +402,7 @@ abline(v=c(lo,hi), lty="dotted", col=red)
 legend("topright", c("mean","std.err","C.I."), lty=c("solid","dashed","dotted"), col=red)
 ```
 
-Things change when $\sigma^s > \lambda$, in this case the standard errors are larger than the mean, such that the multipliers must be $<1$ to ensure the confidence interval be positive. Here is an example for $\lambda=10$: and $\sigma^2=12$
+Things change when $\sigma^s > \lambda$, in this case the standard errors are larger than the mean, such that the multipliers must be $<1$ to ensure the confidence interval be positive. Here is an example for $\lambda=10$ and $\sigma^2=12$
 ```{r}
 lambda <- 10
 sig2   <- 12
@@ -466,7 +468,9 @@ tt1 <- totals(m1, level=0.95)
 plot(tt1, main=sprintf("Skylark; overdispersion=%.2f", overdispersion(m1)))
 ```
 
-In this case, the effect of overdispersion is very limited. For an example where overdispersion is large, see the vignettes `Taming overdispersion' and `TRIM vs UIndex'.
+In this case, the effect of overdispersion is very limited. For an example where overdispersion is large, see the vignettes [taming_overdispersion.html](Taming overdispersion) and [rtrim_2_extensions.html](rtrim 2.0 extensions)
+
+# Confidence intervals for indices
 
 Finally, an example of how confidence intervals are computed and plotted for indices as well:
 ```{r}

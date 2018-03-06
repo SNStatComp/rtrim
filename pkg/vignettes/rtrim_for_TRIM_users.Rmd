@@ -161,8 +161,9 @@ The result is an overview similar to the one that used to be printed at the star
 
 The TRIM model can only be computed when sufficient data is present. With the function
 `check_observations` one can check if a certain model can be computed.
+Note the use of `year_col` to specify a non-default column name.
 ```{r}
-check_observations(skylark, model=2, changepoints=c(1,4))
+check_observations(skylark, model=2, year_col="time", changepoints=c(1,4))
 ```
 The result is a `list` with boolean element `sufficient`. If `sufficient==FALSE`, the element `errors`
 contains a `data.frame` with the sites/times/covariates with insufficient counts.

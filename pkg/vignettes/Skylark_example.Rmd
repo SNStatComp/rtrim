@@ -33,10 +33,13 @@ summary(skylark2)
 ```
 
 A more specific overview of the data can be obained by running the TRIM command `count_summary`.
-This function expects the presence of columns names `count`, `time` and `site`.
+This function expects the presence of columns names `count`, `year` and `site`.
 If one or more of the actual data columns have different names, these can be specified.
 ```{r}
-count_summary(skylark2, time.id="year")
+idx <- which(names(skylark2)=="year")      # rename year->season
+names(skylark2)[idx] <- "season"
+count_summary(skylark2, year_col="season") # show that it works
+names(skylark2)[idx] <- "year"             # revert to original name
 ```
 In this case, we find that the Skylark dataset contains counts for 55 sites in 8 years (1984--1991).
 Of these 440 Site by Year combinations 202 were observed and the other 238 were missing.
@@ -174,7 +177,7 @@ One may try to extend the model further by also incorporating the second covaria
 This covariate is a measure for the amount of acidic aerial deposition.
 This time, the time-effects model (model 3) cannot be estimated due to lack of data in particular years:
 ```{r}
-check_observations(skylark2, 3, covars=c("habitat","deposition"), time.id="year")
+check_observations(skylark2, model=3, covars=c("habitat","deposition"))
 ```
 
 The linear trend model with covariates can still be estimated.
