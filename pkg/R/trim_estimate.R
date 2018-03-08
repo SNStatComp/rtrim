@@ -34,8 +34,9 @@ trim_estimate <- function(count, site, year, month, weights, covars
   nkickout <- length(empty_sites)
 
   if (nkickout>0) {
-    rprintf("Removed %d %s without observations: (%s)\n", nkickout,
-            ifelse(nkickout==1, "site","sites"), paste0(empty_sites, collapse=", "))
+    msg <- sprintf("Removed %d %s without positive observations: (%s)", nkickout,
+                   ifelse(nkickout==1, "site","sites"), paste0(empty_sites, collapse=", "))
+    warning(msg)
     idx <- site %in% full_sites
     count <- count[idx]
     site <- site[idx]
