@@ -1,10 +1,20 @@
+context("Errors")
+
+test_that("data issues", {
+  # test duplicate counts
+  df <- data.frame(site=1, year=c(1,2,2), count=1)
+  expect_error(trim(count ~ site+year, data=df, model=3),
+               "More than one observation given for at least one site/year combination.")
+})
+
+
 context("formula interface errors")
 
 test_that("invalid formulas", {
 
   df <- data.frame(count=1, site=2, year=3, month=4, habitat=5, acid=5)
 
-  # expect_error(trim(count + onzin, df),       "object .* not found")
+  expect_error(trim(count + onzin, df),       "object .* not found")
   # expect_error(trim(count ~ site + year),     "no data given", fixed=TRUE)
   # expect_error(trim(count ~ site + year, pi), "data should be a data frame", fixed=TRUE)
   # expect_error(trim(count ~ site, df),        "model should have form 'count ~ site + year ...", fixed=TRUE)

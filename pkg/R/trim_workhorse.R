@@ -1,111 +1,3 @@
-# #################################################### Parameter estimation ####
-
-# This Section describes the core TRIM function, which estimates the TRIM parameters.
-
-alpha_method <- 1
-graph_debug <- FALSE
-compatible <- FALSE
-
-# ##################################################### Estimation function ####
-
-#' TRIM estimation function
-#'
-#' @param count a numerical vector of count data.
-#' @param site an integer/numerical/character/factor vector of site identifiers for each count data point
-#' @param year an integer/numerical vector time points for each count data point.
-#' @param month an optional integer/character/factor vector of months for each count data point.
-#' @param weights an optional numerical vector of weights.
-#' @param covars an optional data frame withcovariates
-#' @param model a model type selector (1, 2 or 3)
-#' @param changepoints a numerical vector change points (only for Model 2)
-#' @param overdisp a flag indicating of overdispersion has to be taken into account.
-#' @param serialcor a flag indication of autocorrelation has to be taken into account.
-#' @param autodelete a flag indicating auto-deletion of changepoints with too little observations.
-#' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
-#' @param covin a list of variance-covariance matrices; one per pseudo-site.
-#'
-#' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
-#'   Usually this information is retrieved by a set of postprocessing functions
-#'
-#' @keywords internal
-trim_estimate <- function(count, site, year, month, weights, covars
-                         , model, changepoints, overdisp, serialcor
-                         , autodelete, stepwise, covin, ...)
-{
-  call <- sys.call(1)
-
-  # kick out missing/zero sites
-  tot_count <- tapply(count, site, function(x) sum(x>0, na.rm=TRUE)) # Count total observations per site
-  full_sites  <- names(tot_count)[tot_count>0]
-  empty_sites <- names(tot_count)[tot_count==0]
-  nkickout <- length(empty_sites)
-
-  if (nkickout>0) {
-    rprintf("Removed %d %s without observations: (%s)\n", nkickout,
-            ifelse(nkickout==1, "site","sites"), paste0(empty_sites, collapse=", "))
-    idx <- site %in% full_sites
-    count <- count[idx]
-    site <- site[idx]
-    if (is.factor(site)) site <- droplevels(site)
-    year  <- year[idx]
-    if(!is.null(month)) month <- month[idx]
-    if (!is.null(weights)) weights <- weights[idx]
-    # Don't forget to adjust the covariates as well!
-    if (nrow(covars)>0) covars <- covars[idx, ,drop=FALSE] # prevent data.frame -> vector degradation!
-  }
-
-  # Handle "auto" changepoints
-  if (model==2 && is.character(changepoints)) {
-    if (changepoints %in% c("all","auto")) {
-      if (changepoints == "auto") stepwise=TRUE
-      J <- length(unique(year))
-      changepoints <- 1 : (J-1)
-    }
-  }
-
-  if (isTRUE(stepwise)) {
-    if (model != 2) stop("Stepwise refinement requires model 2", call.=FALSE)
-    if (length(changepoints)<2) stop("Stepwise refinement requires >1 changepoints.", call.=FALSE)
-  }
-
-  if (isTRUE(serialcor) && !is.null(month)) {
-    stop("serialcor=TRUE not allowed when using monthly data", call.=FALSE)
-  }
-
-  t1 <- Sys.time()
-  if (isTRUE(stepwise)) {
-    m <- trim_refine(count, site, year, month, weights, covars,
-                     model, changepoints, overdisp, serialcor, autodelete, stepwise, covin, ...)
-  } else {
-    # data input checks: throw error if not enough counts available.
-    if (model == 2 && length(changepoints)>0 && autodelete){
-      changepoints <- autodelete(count=count, time=year
-        , changepoints = changepoints, covars=covars)
-    } else if (model == 2){
-      assert_plt_model(count = count, time = year
-              , changepoints = changepoints, covars = covars)
-
-    } else if (model == 3) {
-      assert_sufficient_counts(count=count, index=list(year=year))
-      if (!is.null(month)) assert_sufficient_counts(count=count, index=list(month=month))
-      assert_covariate_counts(count=count, time=year, covars=covars, timename="year")
-    }
-
-    # compute actual model
-    m <- trim_workhorse(count, site, year, month, weights, covars,
-                        model, changepoints, overdisp, serialcor, autodelete, stepwise, covin, ...)
-  }
-
-  t2 <- Sys.time()
-  m$dt <- difftime(t2,t1)
-  rprintf("Running trim took %8.4f %s\n",m$dt,attr(m$dt,"units"))
-  m$call <- call
-  m
-}
-
-
-# ###################################################### Workhorse function ####
-
 #' TRIM workhorse function
 #'
 #' @param count a numerical vector of count data.
@@ -136,6 +28,10 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
                            debug=FALSE)
 {
   if (debug) browser()
+
+  alpha_method <- 1     # Choose between 2 methods to compute alpha (1 is recommended)
+  graph_debug <- FALSE  # enable graphical display of the model convergence
+  compatible <- FALSE   # Strict TRIM compatibility (i.e. move to GEE after 3 ML iterations)
 
   saved_verbosity <- getOption("trim_verbose")
   if (verbose) options(trim_verbose=TRUE)
@@ -313,6 +209,24 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     }
   }
 
+  # ----------------------------------------------------- Check double data ----
+
+  if (use.months) {
+    check <- tapply(count, list(site_nr, year_nr, month_nr), length)
+    if (max(check, na.rm=TRUE)>1)
+      stop("More than one observation given for at least one site/year/month combination.", call.=FALSE)
+  } else {
+    check <- tapply(count, list(site_nr, year_nr), length)
+    if (max(check, na.rm=TRUE)>1)
+      stop("More than one observation given for at least one site/year combination.", call.=FALSE)
+  }
+  if (length(count) > I*J*M) {
+    msg <- sprintf("Unexpected error: more count data (%d) than I*J*M (%d)", length(count), I*J*M)
+    stop(msg, call.=FALSE)
+  }
+
+  # ----------------------------------------------------------- Other setup ----
+
   # \verb!model! should be in the range 1 to 3
   stopifnot(model %in% 1:3)
 
@@ -337,15 +251,6 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   use.covin <- length(covin)>0
 
 
-  # check for double data
-  stopifnot(length(count) <= I*J*M)
-  if (use.months) {
-    check <- tapply(count, list(site_nr, year_nr, month_nr), length)
-    if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year/month combination.", call.=FALSE)
-  } else {
-    check <- tapply(count, list(site_nr, year_nr), length)
-    if (max(check, na.rm=TRUE)>1) stop("More than one observation given for at least one site/year combination.", call.=FALSE)
-  }
 
   # Check for sufficient data
   # # todo: speedup by using as.integer(month_fctr) etc.
