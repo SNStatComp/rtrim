@@ -17,6 +17,7 @@ before_install:
 r_packages:
   - covr
   - rmarkdown
+  - R.rsp
 
 
 after_success:
