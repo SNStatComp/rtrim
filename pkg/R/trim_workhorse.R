@@ -15,8 +15,6 @@
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
 #' @param max_beta maximum value for beta parameters
-#' @param verbose flag to enable addtional output during a single run.
-#'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
@@ -24,7 +22,7 @@
 trim_workhorse <- function(count, site, year, month, weights, covars,
                            model, changepoints, overdisp, serialcor, autodelete, stepwise,
                            covin = list(),
-                           constrain_overdisp=1.0, conv_crit=1e-5, max_iter=200, verbose=FALSE,
+                           constrain_overdisp=1.0, conv_crit=1e-5, max_iter=200,
                            debug=FALSE)
 {
   if (debug) browser()
@@ -33,8 +31,6 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   graph_debug <- FALSE  # enable graphical display of the model convergence
   compatible <- FALSE   # Strict TRIM compatibility (i.e. move to GEE after 3 ML iterations)
 
-  saved_verbosity <- getOption("trim_verbose")
-  if (verbose) options(trim_verbose=TRUE)
 
   # These were user options, but are now fixed
   max_sub_step <- 7L
@@ -1685,7 +1681,6 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   # The TRIM result is returned to the user\ldots
   rprintf("(Exiting workhorse function)\n")
-  if (verbose) options(trim_verbose=saved_verbosity)
   z
 }
 # \ldots which ends the main TRIM function.

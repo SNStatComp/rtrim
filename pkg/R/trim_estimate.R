@@ -13,6 +13,7 @@
 #' @param autodelete a flag indicating auto-deletion of changepoints with too little observations.
 #' @param stepwise a flag indicating stepwise refinement of changepoints is to be used.
 #' @param covin a list of variance-covariance matrices; one per pseudo-site.
+#' @param verbose flag to enable addtional output during a single run.
 #'
 #' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
@@ -20,9 +21,11 @@
 #' @keywords internal
 trim_estimate <- function(count, site, year, month, weights, covars
                           , model, changepoints, overdisp, serialcor
-                          , autodelete, stepwise, covin, ...)
+                          , autodelete, stepwise, covin, verbose=FALSE, ...)
 {
   call <- sys.call(1)
+  saved_verbosity <- getOption("trim_verbose")
+  if (verbose) options(trim_verbose=TRUE)
 
   # kick out missing/zero sites
   tot_count <- tapply(count, site, function(x) sum(x>0, na.rm=TRUE)) # Count total observations per site
@@ -89,6 +92,7 @@ trim_estimate <- function(count, site, year, month, weights, covars
   t2 <- Sys.time()
   m$dt <- difftime(t2,t1)
   rprintf("Running trim took %8.4f %s\n",m$dt,attr(m$dt,"units"))
+  if (verbose) options(trim_verbose=saved_verbosity)
   m$call <- call
   m
 }
