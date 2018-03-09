@@ -528,7 +528,26 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       leg.colors[i] <- series[[i]]$stroke
       leg.lty[i]    <- series[[i]]$lty
     }
-    legend("topleft", legend=leg.names, col=leg.colors, lty=leg.lty, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
+
+    # compute optimal legend position
+    xx <- numeric(0)
+    yy <- numeric(0)
+    for (i in 1:nseries) {
+      ser <- series[[i]]
+      xx <- c(xx, ser$x)
+      yy <- c(yy, ser$y)
+    }
+    mx <- mean(x)
+    my <- mean(y)
+    if (mx < mean(xrange)) {
+      if (my < mean(yrange)) leg.pos <- "topright"
+      else                   leg.pos <- "bottomright"
+    } else {
+      if (my < mean(yrange)) leg.pos <- "topleft"
+      else                   leg.pos <- "bottomleft"
+    }
+
+    legend(leg.pos, legend=leg.names, col=leg.colors, lty=leg.lty, lwd=2, bty='n', inset=0.02, y.intersp=1.5);
   }
 }
 
