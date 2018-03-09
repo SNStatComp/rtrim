@@ -256,6 +256,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
 #' @param xlab a title for the x-axis. The default value is "auto" will be changed to "Time Point" if the time ID's start at 1, and to "Year" otherwise.
 #' @param ylab a title for the y-axis. The default value is "Index".
 #' @param pct  Switch to show the index values as percent instead as fraction (i.e., for the base year it will be 100 instead of 1)
+#' @param band Defines if the uncertainty band will be plotted using standard errors ("se") or confidence intervals ("ci").
 #'
 #' @export
 #'
@@ -281,7 +282,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
 #' # Suppressing the plotting of covariate indices:
 #' plot(idx, covar="none")
 #'
-plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab="Index", pct=FALSE) {
+plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab="Index", pct=FALSE, band="se") {
 
   # This function operates in 3 modes:
   # 1 : single index
@@ -382,6 +383,12 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
     nseries <- 1
     yclo <- z$lo * yscale # 'c' means confidence interval, might be NULL which is OK
     ychi <- z$hi * yscale
+    if (band=="ci") {
+      if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+      yslo <- yclo
+      yshi <- ychi
+      yclo <- ychi <- NULL
+    }
     name <- attr(z, "tag") # might be NULL
     series[[1]] <- list(x=x, y=y,
                         yslo=yslo, yshi=yshi, yclo=yclo, ychi=ychi,
@@ -406,6 +413,12 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       yshi = y + err
       yclo <- zi$lo * yscale # 'c' means confidence interval, might be NULL which is OK
       ychi <- zi$hi * yscale
+      if (band=="ci") {
+        if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+        yslo <- yclo
+        yshi <- ychi
+        yclo <- ychi <- NULL
+      }
       nseries <- nseries + 1
       series[[i]] <- list(x=x, y=y,
                           yslo=yslo,yshi=yshi, yclo=yclo, ychi=ychi,
@@ -429,6 +442,12 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
     yshi = y + err
     yclo <- overall$lo * yscale # 'c' means confidence interval, might be NULL which is OK
     ychi <- overall$hi * yscale
+    if (band=="ci") {
+      if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+      yslo <- yclo
+      yshi <- ychi
+      yclo <- ychi <- NULL
+    }
     nseries <- 1
     name <- attr(overall, "tag")
     if (is.null(name)) name <- "Overall"
@@ -448,6 +467,12 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       yshi = y + err
       yclo <- other$lo[rows] * yscale # 'c' means confidence interval, might be NULL which is OK
       ychi <- other$hi[rows] * yscale
+      if (band=="ci") {
+        if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+        yslo <- yclo
+        yshi <- ychi
+        yclo <- ychi <- NULL
+      }
       name <- sprintf("%s: %s", covar, cat)
       series[[nseries]] <- list(x=x, y=y,
                                 yslo=yslo, yshi=yshi, yclo=yclo, ychi=ychi,

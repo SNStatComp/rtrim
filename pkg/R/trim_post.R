@@ -311,6 +311,7 @@ export.trim.totals <- function(x, species, stratum) {
 #' @param xlab    x-axis label. The default value of "auto" will be changed into "Year" or "Time Point", whichever is more appropriate.
 #' @param ylab    y-axis label.
 #' @param leg.pos legend position, similar as in \code{\link[graphics]{legend}}.
+#' @param band Defines if the uncertainty band will be plotted using standard errors ("se") or confidence intervals ("ci").
 #'
 #' @export
 #'
@@ -330,7 +331,7 @@ export.trim.totals <- function(x, species, stratum) {
 #' t2 <- totals(z2, obs=TRUE)
 #' plot(t1, t2, names=c("with covariates", "without covariates"), main="Skylark", leg.pos="bottom")
 #'
-plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals", leg.pos="topleft") {
+plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals", leg.pos="topleft", band="se") {
 
   special <- "time totals" # disinguish between "time totals" and "index" modes
 
@@ -389,6 +390,13 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
     y_se_hi = y + err
     y_ci_lo = zz[[1]]$lo # might be NULL, which is OK
     y_ci_hi = zz[[1]]$hi # idem
+    if (band=="ci") {
+      if (is.null(y_ci_lo) || is.null(y_ci_hi)) error("No confidence interval present")
+      y_se_lo <- y_ci_lo
+      y_se_hi <- y_ci_hi
+      y_ci_lo <- y_ci_hi <- NULL
+    }
+
     nseries <- 1
     name <- attr(zz[[1]], "tag") # might be NULL
     series[[1]] <- list(x=x, y=y,
@@ -413,6 +421,12 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
       y_se_hi = y + err
       y_ci_lo = zz[[1]]$lo # might be NULL, which is OK
       y_ci_hi = zz[[1]]$hi # idem
+      if (band=="ci") {
+        if (is.null(y_ci_lo) || is.null(y_ci_hi)) error("No confidence interval present")
+        y_se_lo <- y_ci_lo
+        y_se_hi <- y_ci_hi
+        y_ci_lo <- y_ci_hi <- NULL
+      }
       nseries <- nseries + 1
       series[[i]] <- list(x=x, y=y,
                           y_se_lo=y_se_lo, y_se_hi=y_se_hi,
