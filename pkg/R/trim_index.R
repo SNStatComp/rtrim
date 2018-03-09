@@ -401,7 +401,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       zi <- zz[[i]]
       x <- zi$time
       y <- zi[[idx_col[i]]] * yscale
-      err <- z[[err_col[i]]] * yscale
+      err <- zi[[err_col[i]]] * yscale
       yslo = y - err
       yshi = y + err
       yclo <- zi$lo * yscale # 'c' means confidence interval, might be NULL which is OK
