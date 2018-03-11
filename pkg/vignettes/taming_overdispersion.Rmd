@@ -13,18 +13,25 @@ vignette: >
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
   fig.width  = 7,
   fig.height = 5
 )
+rm(list=ls())
 ```
 
 # Introduction
 
-For many species, count data is very skewly distributed. Let's look at an example for Oystercatcher data that comes with RTRIM.
+For many species, count data is very skewly distributed.
+This is especially the case for species which tend to flock or cluster together at one or more resting places, that may or may not change from year to year. Especially when these places do change, it will become difficult for `rtrim` (or any GLM) to model this correctly, because the episodic high counts are not captured well in a site factor, nor in a time-point factor. The result is that model deviations for these place/time combinations are large, which for serveral resons may affect the computed overdispersion. To some extent, this effect will be true (because of the larger-than-expected variance), but there is also the risk of methodologival artefacts, which we would like to avoid.
+
+This vigenette aims as understanding the nature of huge overdispersion for these cases, and presents a number of mitigating approaches implemented in `rtrim`.
+
+Let's look at an example for Oystercatcher data that comes with RTRIM.
 First we plot the sorted raw counts.
 
 ```{r}
-rm(list=ls())
 library(rtrim)
 data(oystercatcher)
 
@@ -37,7 +44,7 @@ plot(count, type='p', pch=16, col="red", cex=0.4)
 Of course, sorting does help to see the big picture.
 ```{r}
 count <- sort(count)
-plot(count, type='p', pch=16, col="red", cex=0.4)
+plot(count/1000, type='p', pch=16, col="red", cex=0.4, las=TRUE, ylab="count (x1000)")
 ```
 
 
@@ -47,8 +54,8 @@ We can plot exactly this:
 cum_count <- cumsum(sort(count, decreasing = TRUE)) # cumulative counts, largest first
 cum_pct <- 100 * cum_count / sum(count)             # express as percentage of total
 n <- length(count)
-obs_pct <- 100 * (1 : n) / n
-plot(obs_pct, cum_pct, type='n', col="black")
+obs_pct <- 100 * (1:n)/n
+plot(obs_pct, cum_pct, type='n', xlab="Observations (%)", ylab="Cum. counts (%)", las=1)
 points(obs_pct, cum_pct, pch=16, cex=0.3, col="red")
 abline(a=100, b=-1, lty="dashed")
 grid()
@@ -59,28 +66,44 @@ This is likely to have a strong impact on estimated overdispersion.
 
 # Overdispersion for clustered observations: the problem
 
-Let's see how large overdispersion actually is:
+Let's see how large overdispersion actually is. Because using the full dataset may be a bit slow for use within a vignette, we create a second dataset using only the last 10 year, and the sites that have the best coverage (percentage of years and months that have positive counts).
+```{r}
+oystercatcher2 <- subset(oystercatcher, year>=2005)
+
+calc_coverage <- function(x) 100*mean(is.finite(x) & x>0)
+coverage <- aggregate(count ~ site, data=oystercatcher2, calc_coverage, na.action=na.pass)
+coverage <- coverage[order(coverage$count, decreasing=TRUE), ]
+plot(coverage$count, ylab="coverage (%)", pch=16, col=gray(0,0.5), las=1)
+abline(a=50, b=0, col="red")
+```
+Based on above figure, we decide to use a threshold of 50% coverage, which is about 20 sites.
+```{r}
+ok <- subset(coverage, count > 45)
+oystercatcher3 <- subset(oystercatcher2, site %in% ok$site)
+```
 
 ```{r}
-z <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE)
+z <- trim(count ~ site + (year+month), data=oystercatcher3, model=3, overdisp=TRUE)
 summary(z)
+
 ```
 
 So overdispersion is indeed huge!
 
-You may recall from the Methods paper that the formula for overdispersion is given by
+You may recall from [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) that the formula for overdispersion is given by
 $$ \sigma^2 = \frac{1}{n-p} \sum_{ijm} r^2_{ijm}$$
 with $n$ the number of observations, $p$ the number of model parameters and $r$ Pearson residuals, given by
-$$ r = \frac{f_{ijm} -\mu_{ijm}}{\sqrt{\mu_{ijm}}} $$.
+$$ r = \frac{f_{ijm} -\mu_{ijm}}{\sqrt{\mu_{ijm}}}. $$
 
 Species like Oystercatcher are known to cluster in winter: many individuals may appear at one monitoring site at one time, and at another site at another time. This clustering behaviour is unlikely to be captured in full by the TRIM model. Therefore, residuals (i.e. $f-\mu$) may be large, and more than proportionally affect overdispersion $\sigma^2$ because the nonlinearity involved (i.e. the squaring process). So, while overdispersion may be high, it is also very likely to be overestimated. 
 
 We can see the effect of large deviations on the computed overdispersion by skipping the 0,1,2,etc largest values from the computation.
 ```{r}
 # Retrieve raw observed and modelled counts
-ok <- is.finite(z$f)
-f <- z$f[ok]
-mu <- z$mu[ok]
+out <- results(z)
+ok  <- is.finite(out$observed)
+f   <- out$observed[ok]
+mu  <- out$fitted[ok]
 
 # Compute Pearson residuals, and sort
 r <- (f - mu) / sqrt(mu)
@@ -93,19 +116,19 @@ p <- z$nsite + z$nyear-1 + z$nmonth-1
 
 # Set up
 skips <- 0 : (n %/% 2) # skip none to approx 50% of all residuals
-sig2 <- numeric(length(skips)) # Allocate a vector with the computed overdisersion
+sig2 <- numeric(length(skips)) # Allocate a vector with the computed overdispersion
 for (i in seq_along(skips)) {
   r2 <- r[skips[i] : n]^2
   df <- n - p - skips[i] # correct for skipped
   sig2[i] <- sum(r2) / df
 }
-plot(skips, sig2, type='l', col="red")
+plot(skips, sig2, type='l', col="red", las=1)
 abline(h=0.0, lty="dashed", col="red")
 ```
 
 Indeed, overdispersion appears to be very sensitive for the largest residuals, suggesting that the actual value is not very robust against the contingent observations.
 
-The question now is, how can be compute a more robust and realistic estimate of overdispersion, which may be (much) larger than 1, but not affected by artefatcs resulting from the estimation procedure.
+The question now is, how to compute a more robust and realistic estimate of overdispersion, which may be (much) larger than 1, but not affected by artefacts resulting from the estimation procedure?
 
 # Approach #1: average first, square later.
 
@@ -118,7 +141,7 @@ for (i in seq_along(skips)) {
   df <- n - p - skips[i] # correct for skipped
   sig2_alt1[i] <- (sum(abs(rr))/df)^2
 }
-plot(skips, sig2, type='l', col="red")
+plot(skips, sig2, type='l', col="red", las=1)
 lines(skips, sig2_alt1, col="blue")
 ```
 
@@ -166,7 +189,7 @@ z <- trim(..., overdisp=TRUE, constrain_overdisp=3, ...)
 One of the assumptions behind TRIM is that the residuals are approximately $\chi^2$-distributed. Thus, it makes sense to fit such a distribution to find the, say, 99% percentile, using an estimate of $\sigma^2$ as a scaling parameter, to obtain a threshold value to identify outliers. Since the value of $\sigma^2$ will depend on the outliers removed, an iterative approach is required.
 ```{r}
 level <- 0.99
-niter <- 50
+niter <- 10
 sig2_alt3 <- numeric(niter)
 ok <- !logical(length(r2)) # all TRUE
 for (i in 1:niter) {
@@ -180,7 +203,7 @@ for (i in 1:niter) {
 ntotal <- length(r2)
 noutlier <- ntotal - sum(ok)
 cat(sprintf("Removed %d outliers (%.1f%%)\n", noutlier, 100*noutlier/ntotal))
-plot(sig2_alt3, type='l', col="red", ylim=range(0,range(sig2_alt3)))
+plot(sig2_alt3, type='l', col="red", ylim=range(0,range(sig2_alt3)), las=1)
 points(sig2_alt3, pch=16, col="red")
 text(25,400, sprintf("Convergence at %.1f", sig2_alt3[niter]))
 ```
@@ -197,10 +220,15 @@ Note that constrain_overdisp has 3 possible values:
 
 # Application
 
-Here is an example where the third approach is used to constrain overdispersion in the Oystercatcher example.
+Here is an example where we compare unconstrained / constrained overdispersion, using the 3th approach.
 ```{r}
-z <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE, constrain_overdisp=0.99)
-idx <- index(z, level=0.95, base=2004)
-plot(idx)
+z1 <- trim(count ~ site + (year+month), data=oystercatcher3, model=3,
+           overdisp=TRUE, constrain_overdisp=0.99)
+z2 <- trim(count ~ site + (year+month), data=oystercatcher3, model=3,
+           overdisp=TRUE, constrain_overdisp=1)
+idx1 <- index(z1)
+idx2 <- index(z2)
+plot(idx1, idx2, names=c("constrained","unconstrained"))
 ```
-Where it should be noted that the solid band indicate standard errors and the dashed line indicates the 95% confindence interval.
+
+Where it is clear that the standard errors for the constrained overdispersion run are considerable smaller.

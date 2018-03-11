@@ -1,21 +1,24 @@
 ---
-title: "`rtrim` for `TRIM` users"
-author: "Patrick Bogaart, Mark van der Loo and Jeroen Pannekoek"
+title: "`rtrim` for `TRIM3` users"
+author: Patrick Bogaart, Mark van der Loo and Jeroen Pannekoek
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{rtrim for TRIM users}
+  %\VignetteIndexEntry{rtrim for TRIM3 users}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
   fig.width  = 7,
   fig.height = 5
 )
+rm(list=ls())
 ```
 
 ## Introduction
@@ -52,11 +55,7 @@ We are going to use the `skylark` dataset, which is included with the package.
 ```{r}
 library(rtrim)
 data(skylark)
-# inspect the dataset
-head(skylark,3)
-
-skylark$Habitat    <- factor(skylark$Habitat)    # hack to force is to be interpreted as covariate (instead of month)
-skylark$Deposition <- factor(skylark$Deposition) # hack
+head(skylark,3) # inspect the dataset
 ```
 Here, `skylark` is a regular R `data.frame`.
 
@@ -76,31 +75,27 @@ Note that although the name `year_col` suggests that counts must be on an annual
 
 The result is an object of class `trim`. Just like with objects of class `lm`, its various components can be extracted using specialized functions. Here are some examples.
 ```{r}
-# summarize the model
-summary(m1)
+summary(m1) # summarize the model
 ```
 
-Return time-totals
 ```{r}
-totals(m1)
-```
-Retrieve goodness-of-fit
-```{r}
-gof(m1)
-```
-Extract the coefficients
-```{r}
-coefficients(m1)
+totals(m1) # Return time-totals
 ```
 
-Plot with overall slope
 ```{r}
-plot(overall(m1))
+gof(m1) # Retrieve goodness-of-fit
+```
+
+```{r}
+coefficients(m1) # Extract the coefficients
+```
+
+
+```{r}
+plot(overall(m1)) # Plot with overall slope
 ```
 
 These are just a few of of the functions that can be used to analyse the model. See any of their help files for a complete list of links to all analyses functions.
-
-
 
 ## Model specification {#modelspec}
 
@@ -148,6 +143,60 @@ m4$changepoints
 ```
 
 Again, the explicit setting of initial changepoints can be replaced by the more convenient `changepoints="auto"`, which combines `changepoints="all"` with `stepwise=TRUE`.
+
+## TRIM Command Files
+
+The original TRIM software can be controlled with text files containing a series of commands that specify both the location and format of the data, an the model (or models) to compute. Such TRIM command files (usually stored with the extension `.tcf`) should be considered legacy but for backwards compatability they can be used from R.
+
+To try this, execute the code below to create a `tcf` file and a TRIM data file in the current
+working directory of R.
+```{r}
+library(rtrim)
+tmp <- "FILE skylark.dat
+TITLE  skylark-1d
+NTIMES 8
+NCOVARS 2
+LABELS
+Habitat
+Cov2
+END
+MISSING 999
+WEIGHT Absent
+COMMENT Example 1; using linear trend model
+WEIGHTING off
+OVERDISP on
+SERIALCOR on
+MODEL 2
+"
+write(tmp,file="skylark.tcf")
+data(skylark)
+skylark[is.na(skylark)] <- 999
+write.table(skylark,file="skylark.dat",col.names=FALSE,row.names=FALSE)
+```
+
+Executing a TRIM command file is as easy as reading the file using `read_tcf` and passing the result to `trim`.
+
+```{r}
+tc <- read_tcf("skylark.tcf")
+m <- trim(tc)
+```
+The resulting `trim` object can be evaluated as described above. For example
+```{r}
+wald(m)
+``` 
+
+
+The object `tc`, resulting from `read_tcf` is an object of class `trimcommand`. It stores all commands defined in the TRIM command file. Note that logical parameters such as `WEIGHT` are transformed to `logical` in R.
+```{r}
+tc
+```
+
+
+**NOTE.** Be aware that R has its own present working directory. If relative paths (that is, file names not starting with the full path to their location) are used in the TRIM command file, R will interpret them as relative to the current working directory.
+
+## TRIM data files
+
+TRIM data files are basically space-separated, tabular textfiles where the order and type of columns is fixed by a few parameters. Given such a specification, a file can be read with `read_tdf`. 
 
 ## Utility functions
 

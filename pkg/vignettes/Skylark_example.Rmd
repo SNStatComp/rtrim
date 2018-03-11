@@ -13,6 +13,8 @@ vignette: >
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
   fig.width  = 7,
   fig.height = 5
 )
@@ -89,7 +91,8 @@ Furthermore, the model is far from being parsimonious. Even if the Skylark popul
 
 For both reasons it may be preferable to replace model 3 by model 2 (piecewise linear), especially because in one extreme case these models are equivalent. This is the case when all years are treated as change points, and each year the trend changes into a different one. Let's first check this.
 ```{r}
-z3 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="all", serialcor=TRUE, overdisp=TRUE)
+z3 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="all",
+           serialcor=TRUE, overdisp=TRUE)
 summary(z3)
 ```
 
@@ -104,7 +107,8 @@ The tests for the significance of changes in slopes show that the only significa
 This suggests that it should be possible to describe these data with a model with less than the full set of seven changepoints.
 To investigate this possibility, the stepwise procedure for selection of changepoints can be used by including `stepwise=TRUE` in the call to `trim()`:
 ```{r}
-z4 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="all", stepwise=TRUE, serialcor=TRUE, overdisp=TRUE)
+z4 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="all",
+           stepwise=TRUE, serialcor=TRUE, overdisp=TRUE)
 summary(z4)
 wald(z4)
 ```
@@ -120,7 +124,8 @@ gof(z4)
 LR4 <- gof(z4)$LR$LR # idem for run 3
 df4 <- gof(z4)$LR$df
 
-# Test the differece by using the fact that the difference of two LR measures is asymptotically Chi^2 distributed
+# Test the differece by using the fact that the difference of two LR measures is
+# asymptotically Chi^2 distributed
 LR <- abs(LR4 - LR3)
 df <- abs(df4 - df3)
 p  <- 1 - pchisq(LR, df=df) # Use Chi-squared distribution
@@ -182,7 +187,8 @@ check_observations(skylark2, model=3, covars=c("habitat","deposition"))
 
 The linear trend model with covariates can still be estimated.
 ```{r}
-z5 <- trim(count ~ site + year + habitat+deposition, data=skylark2, model=2, serialcor=TRUE, overdisp=TRUE)
+z5 <- trim(count ~ site + year + habitat+deposition, data=skylark2, model=2,
+           serialcor=TRUE, overdisp=TRUE)
 summary(z5)
 wald(z5)
 ```
@@ -192,7 +198,8 @@ wald(z5)
 So far, the overall indices are the indices that correspond with the time totals summed over all sites.
 The next run shows the results if the sites in Dunes are weighted 10 times.
 ```{r}
-z6 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="auto", serialcor=TRUE, overdisp=TRUE, weights="weight")
+z6 <- trim(count ~ site + year + habitat, data=skylark2, model=2, changepoints="auto",
+           serialcor=TRUE, overdisp=TRUE, weights="weight")
 idx = index(z6, "fitted", covars=TRUE)
 plot(idx)
 ```

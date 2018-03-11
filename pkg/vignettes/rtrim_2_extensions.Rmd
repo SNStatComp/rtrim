@@ -1,6 +1,6 @@
 ---
 title:  "`rtrim` 2.0 extensions"
-author: "Patrick Bogaart"
+author: Patrick Bogaart
 date:   "`r Sys.Date()`"
 output: 
   rmarkdown::html_vignette:
@@ -13,9 +13,12 @@ vignette: >
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
   fig.width  = 7,
   fig.height = 5
 )
+rm(list=ls())
 ```
 
 # Introduction
@@ -56,8 +59,9 @@ Here is a full example for Oystercatcher data, which now comes with `rtrim` 2.0
 rm(list=ls()) # always start with a clean slate
 library(rtrim)
 data(oystercatcher)
-z <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE)
-plot(index(z))
+oc <- trim(count ~ site + (year+month), data=oystercatcher, model=3, overdisp=TRUE,
+           constrain_overdisp=0.999)
+plot(index(oc))
 ```
 
 ## Comparison with UIndex
@@ -90,8 +94,8 @@ Here we show the comparision with `rtrim`, using the results computed above.
 ```{r}
 # Compute and plot an index for Oystercatcher counts, using 2004 as base year and
 # adding 90% confidence intervals as well.
-idx <- index(z, level=0.9, base=2004)
-plot(idx)
+idx <- index(oc, level=0.9, base=2004)
+plot(idx, band="ci")
 
 # Plot UIndex on top
 lines(uidx$year, uidx$index)
@@ -103,7 +107,7 @@ legend("bottom", c("UIndex","TRIM"), col=c("black","red"), lty="solid")
 Note the computation and display of confidence intervals, which is new for `rtrim` 2.0, along with the standard errors of both classic TRIM and `rtrim` 1.0.
 
 This plot demonstrates that the indices as computed by UIndex and `rtrim` are virtually identical, and that the 90% confidence intervals of TRIM are well comparable to the 90% consistency intervals of TRIM, although both are estimated using completely different approaches. In the case of TRIM, confidence intervals are based on standard errors which are derived analytically as part of the GEE estimation process and ultimately are based on the variance within the orginal data.
-See the vignettes [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) and [TRIM_confidence_intervals.html](rtrim confidence intervals) for more information. Consistency intervals in UIndex are estimated by means of a bootstrap method. See Underhill [1989] and Underhill and Prŷs-Jones [1995] for more information.
+See the vignettes [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) and [rtrim_confidence_intervals.html](rtrim confidence intervals) for more information. Consistency intervals in UIndex are estimated by means of a bootstrap method. See Underhill [1989] and Underhill and Prŷs-Jones [1995] for more information.
 
 # Stratified `rtrim`
 
@@ -118,6 +122,9 @@ The following example shows the associated workflow. Strictly for demonstration 
 data(skylark2)
 heath <- subset(skylark2, habitat=="heath") # 208 records
 dunes <- subset(skylark2, habitat=="dunes") # 232 records
+
+heath$site <- factor(heath$site) # get rid of empty levels
+dunes$site <- factor(dunes$site)
 
 # run models
 m1 <- trim(count ~ site + year, data=heath, model=3)
@@ -176,9 +183,10 @@ m1 <- trim(count ~ site + (year + month), data=oystercatcher, model=3, overdisp=
 overdispersion(m1)
 ```
 
-The inclusion of the option `constrain_overdisp=0.99` triggers the detection of outliers that have a probability of 1%.
+The inclusion of the option `constrain_overdisp=0.999` triggers the detection of outliers that have a probability of 0.1%.
 ```{r}
-m2 <- trim(count ~ site + (year + month), data=oystercatcher, model=3, overdisp=TRUE, constrain_overdisp=0.99)
+m2 <- trim(count ~ site + (year + month), data=oystercatcher, model=3, overdisp=TRUE,
+           constrain_overdisp=0.99)
 overdispersion(m2)
 ```
 
@@ -292,7 +300,13 @@ So, the lower and upper bounds of the confidence interval is stored in columns `
 plot(tt)
 ```
 
-See vignette [TRIM_confidence_intervals.html](rtrim confidence intervals) for more information on the underlying methodology.
+If required, the uncertainty band, which is by default plotted using standard errors, can be plotted using the confidence intervals when the option `band="ci"` is used.
+```{r}
+plot(tt, band="ci")
+```
+
+
+See vignette [rtrim_confidence_intervals.html](rtrim confidence intervals) for more information on the underlying methodology.
 
 
 ## Plotting heatmaps.
