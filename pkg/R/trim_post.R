@@ -391,7 +391,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
     y_ci_lo = zz[[1]]$lo # might be NULL, which is OK
     y_ci_hi = zz[[1]]$hi # idem
     if (band=="ci") {
-      if (is.null(y_ci_lo) || is.null(y_ci_hi)) error("No confidence interval present")
+      if (is.null(y_ci_lo) || is.null(y_ci_hi)) stop("No confidence interval present")
       y_se_lo <- y_ci_lo
       y_se_hi <- y_ci_hi
       y_ci_lo <- y_ci_hi <- NULL
@@ -422,7 +422,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
       y_ci_lo = zz[[1]]$lo # might be NULL, which is OK
       y_ci_hi = zz[[1]]$hi # idem
       if (band=="ci") {
-        if (is.null(y_ci_lo) || is.null(y_ci_hi)) error("No confidence interval present")
+        if (is.null(y_ci_lo) || is.null(y_ci_hi)) stop("No confidence interval present")
         y_se_lo <- y_ci_lo
         y_se_hi <- y_ci_hi
         y_ci_lo <- y_ci_hi <- NULL

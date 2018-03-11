@@ -384,7 +384,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
     yclo <- z$lo * yscale # 'c' means confidence interval, might be NULL which is OK
     ychi <- z$hi * yscale
     if (band=="ci") {
-      if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+      if (is.null(yclo) || is.null(ychi)) stop("No confidence interval present")
       yslo <- yclo
       yshi <- ychi
       yclo <- ychi <- NULL
@@ -414,7 +414,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       yclo <- zi$lo * yscale # 'c' means confidence interval, might be NULL which is OK
       ychi <- zi$hi * yscale
       if (band=="ci") {
-        if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+        if (is.null(yclo) || is.null(ychi)) stop("No confidence interval present")
         yslo <- yclo
         yshi <- ychi
         yclo <- ychi <- NULL
@@ -443,7 +443,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
     yclo <- overall$lo * yscale # 'c' means confidence interval, might be NULL which is OK
     ychi <- overall$hi * yscale
     if (band=="ci") {
-      if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+      if (is.null(yclo) || is.null(ychi)) stop("No confidence interval present")
       yslo <- yclo
       yshi <- ychi
       yclo <- ychi <- NULL
@@ -468,7 +468,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
       yclo <- other$lo[rows] * yscale # 'c' means confidence interval, might be NULL which is OK
       ychi <- other$hi[rows] * yscale
       if (band=="ci") {
-        if (is.null(yclo) || is.null(ychi)) error("No confidence interval present")
+        if (is.null(yclo) || is.null(ychi)) stop("No confidence interval present")
         yslo <- yclo
         yshi <- ychi
         yclo <- ychi <- NULL
