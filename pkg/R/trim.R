@@ -192,7 +192,6 @@
 #' # check significance of changes in slope
 #' wald(m)
 #' plot(overall(m))
-#'
 trim <- function(object, ...) {
   UseMethod("trim", object)
 }
@@ -202,8 +201,6 @@ trim <- function(object, ...) {
 #                                                                trim.data.frame
 ################################################################################
 
-
-## ' @param df \code{[data.frame]} data frame containing the observations
 #' @param count_col    \code{[character]} name of the column holding species counts
 #' @param site_col     \code{[character]} name of the column holding the site id
 #' @param year_col     \code{[character]} name of the column holding the time of counting
@@ -318,8 +315,6 @@ trim.data.frame <- function(object, count_col="count", site_col="site", year_col
 #                                                                   trim.formula
 ################################################################################
 
-
-##  ' @param f \code{[formula]} R formula identifying the model variables
 #' @param data \code{[data.frame]} Data frame containing at least counts, sites, and times
 #' @param weights \code{[character]} name of the column in \code{data} which respresents weights (optional)
 #'
@@ -439,9 +434,6 @@ trim.formula <- function(object, data=NULL, weights=NULL, ...)
 #                                                               trim.trimcommand
 ################################################################################
 
-
-## ' @param tcf \code{\link{trimcommand}} TRIM commands as read by \link{read_tcf}.
-#'
 #' @rdname trim
 #' @method trim trimcommand
 #' @export
