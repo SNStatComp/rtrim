@@ -1,6 +1,6 @@
 Package: rtrim
-Version: 2.0.4
-Date: 2018-03-15
+Version: 2.0.5
+Date: 2018-08-16
 Title: Trends and Indices for Monitoring Data
 Authors@R: c(
     person("Patrick","Bogaart", email="rtrim@cbs.nl", role=c("aut","cre")),
@@ -24,5 +24,5 @@ Suggests:
     knitr,
     rmarkdown,
     R.rsp
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 VignetteBuilder: knitr, R.rsp
