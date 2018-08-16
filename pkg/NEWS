@@ -1,3 +1,6 @@
+version 2.0.5
+- Fixed bug causing non-zero standard errors for the base year index if this isn't the first year (thanks to Tomas Telensky)
+
 version 2.0
 - Many major updates (monthly data; stratified trim; advanced visualizations); See the vignette "trim 2 extensions".
 
@@ -14,7 +17,7 @@ version 1.2.0
 - Fixes a bug occuring when empty sites are combined with covariates (thanks to Marnix de Zeeuw)
 - Speed improvements
 - Minor bug fixes
- 
+
 version 1.1.5
 - Now generates an error when the computed overdispersion is 0, and a warning when overdispersion < 1 (thanks to Oscar Ramírez for proving a data set where this happened)
 
@@ -29,7 +32,7 @@ version 1.1.2
 
 version 1.1.1
 - Fixed problem during stepwise regression when the algorithm wants to remove the first changepoint (thanks to Asaf Tsoar)
-- Fixed computation of standard errors when model==1 (thanks to Asaf Tsoar) 
+- Fixed computation of standard errors when model==1 (thanks to Asaf Tsoar)
 
 version 1.1.0
 - Added backward compatibility option in overall() to match erroneous overall trend interpretation in original TRIM (thans for Lars Petterson to pointing out the differences in trend interpretation)

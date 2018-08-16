@@ -153,7 +153,8 @@
 #' index(z, base=3)
 #' # Use average of first 5 years as reference for indexing
 #' index(z, base=1:5)
-index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, level=NULL, alt=FALSE) {
+index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, level=NULL) {
+  alt <- FALSE # previous: option to just scale by base year TT
   stopifnot(inherits(x,"trim"))
 
   # Match base to actual time points

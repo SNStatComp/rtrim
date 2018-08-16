@@ -25,4 +25,5 @@ Suggests:
     rmarkdown,
     R.rsp
 RoxygenNote: 6.1.0
+Encoding: UTF-8
 VignetteBuilder: knitr, R.rsp

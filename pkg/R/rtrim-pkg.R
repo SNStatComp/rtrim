@@ -47,5 +47,5 @@
 }
 
 .onAttach <- function(libname, pkgname){
-  packageStartupMessage("Welcome to rtrim 2.0. Type ?`rtrim-package` to get started.")
+  packageStartupMessage("Welcome to rtrim 2.0.5 Type ?`rtrim-package` to get started.")
 }

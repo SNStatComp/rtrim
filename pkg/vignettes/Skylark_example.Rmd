@@ -2,13 +2,11 @@
 title: "`rtrim` by example"
 author: "Jeroen Pannekoek, Arco van Strien and Patrick Bogaart"
 date: "`r Sys.Date()`"
-output: 
-  rmarkdown::html_vignette:
-    toc: true
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{trim-by-example}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  \usepackage[utf8]{inputenc}
 ---
 
 ```{r, echo = FALSE}
