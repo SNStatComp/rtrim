@@ -623,9 +623,16 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     stepsize <- 1.0
     for (subiter in 1:max_sub_step) {
       beta  <<- beta0 + stepsize*dbeta
-      if (any(!is.finite(beta))) stop("non-finite beta problem")
-      if (any(beta >  max_beta)) stop("Model non-estimable due to excessive high beta values", call.=FALSE)
-      if (any(beta < -max_beta)) stop("Model non-estimable due to excessive small beta values", call.=FALSE)
+      problem <- ""
+      if (any(!is.finite(beta))) problem <- "non-finite beta value"
+      if (any(beta >  max_beta)) problem <- "excessive high beta value"
+      if (any(beta < -max_beta)) problem <- "excessive low beta value"
+      if (problem != "") {
+        print(beta)
+        idx <- which(beta > max_beta)[1]
+        msg <- sprintf("Model non-estimable due to %s at year #%d (%d)", problem, year[idx], year_id[idx])
+        stop(msg, call.=FALSE)
+      }
 
       update_mu(fill=FALSE)
       update_alpha(method)
@@ -824,7 +831,15 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
-    if (use.beta && any(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
+    # # PWB todo: the following gerenates a bug in the Grutto user case (Jelle)
+    # print(i_b)
+    # cat("\n")
+    # print(eigen(i_b)$values)
+    # print(colSums(i_b))
+    # print(abs(colSums(i_b)))
+    # if (use.beta && all(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
+
+    #
     # invertable <- class(try(solve(i_b), silent=T))=="matrix"
     # if (!invertable) {
     #   browser()
