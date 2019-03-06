@@ -62,9 +62,6 @@
     tau <- tt / mean(tt[base])
   }
 
-  print(tt)
-  print(var_tt)
-
   J <- length(tt)
   var_tau <- numeric(J)
   d <- matrix(0, nbase+1, 1)
@@ -85,7 +82,6 @@
       var_tau[j] <- t(d) %*% V %*% d
     }
   }
-  print(var_tau)
 
   out <- list(tau=tau, var_tau=var_tau)
 

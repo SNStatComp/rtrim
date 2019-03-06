@@ -266,7 +266,7 @@ totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL)
 
   # Optionally add a confidence interval
   if (!is.null(level)) {
-    if (ncol(totals)!=3) stop("Confidence intervals can only be computed for either imputed or fitted time totals, but not for both")
+    if (ncol(totals)>4) stop("Confidence intervals can only be computed for either imputed or fitted time totals, but not for both")
     mul <- ci_multipliers(lambda=totals[[2]], sig2=x$sig2, level=level)
     totals$lo <- totals[[2]] - totals[[3]] * mul$lo
     totals$hi <- totals[[2]] + totals[[3]] * mul$hi

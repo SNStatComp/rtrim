@@ -1,3 +1,7 @@
+version 2.0.6
+- Removed spurious output from index() function
+- Fixed bug in totals() which prevented both obs=TRUE and level!=NULL
+
 version 2.0.5
 - Fixed bug causing non-zero standard errors for the base year index if this isn't the first year (thanks to Tomas Telensky)
 

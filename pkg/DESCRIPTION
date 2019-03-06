@@ -1,5 +1,5 @@
 Package: rtrim
-Version: 2.0.5
+Version: 2.0.6
 Date: 2018-08-16
 Title: Trends and Indices for Monitoring Data
 Authors@R: c(
@@ -24,6 +24,6 @@ Suggests:
     knitr,
     rmarkdown,
     R.rsp
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Encoding: UTF-8
 VignetteBuilder: knitr, R.rsp
