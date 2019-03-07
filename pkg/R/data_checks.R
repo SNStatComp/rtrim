@@ -149,20 +149,31 @@ assert_sufficient_counts <- function(count, index) {
 
 # Get an indicator for the pieces in 'piecewise linear model'
 # that are encoded in changepoints.
-pieces_from_changepoints <- function(time, changepoints) {
-  # extra checks - remove in production code
-  if (length(changepoints)>0) {
-    stopifnot(max(changepoints) < length(unique(time)))
-    stopifnot(min(changepoints) > 0)
+pieces_from_changepoints <- function(year, changepoints) {
+  # convert actual time from (possibly non-contiguous) years to time points 1..J
+  jj <- as.integer(ordered(year))
+  J <- max(jj)
+
+  # Changepoints must be converted to 1..J-1 if not already so
+  if (length(changepoints)==0) {
+    # case 0: no changepoints
+    cpts <- integer(0)
+  } else if (min(changepoints)>=1 && max(changepoints)<J) {
+    # case 1: already in 1..J-1
+    cpts <- changepoints
+  } else if (all(changepoints %in% year)) {
+    # case 2: actual years (used); convert to 1..J-1
+    cpts <- match(changepoints, year)
+  } else {
+    stop("Invalid changepoints specified")
   }
 
-  # convert time from (possibly non-contiguous) years to time points 1..ntime
-  tpt <- as.integer(ordered(time))
-
-  # Assign each time point tot the corresponding change point
-  pieces <- integer(length(tpt)) # Allocate memory
-  for (cpt in changepoints) {
-    idx <- tpt > cpt
+  # Assign each time point to the corresponding change point
+  pieces <- integer(length(year)) # Allocate memory;
+  # N.B.: we actually use the default value of 0L for cases
+  # of no changepoints, or before the first changepoint
+  for (cpt in cpts) {
+    idx <- which(jj > cpt)
     pieces[idx] <- cpt
   }
 
@@ -252,7 +263,7 @@ get_deletion <- function(count, time, changepoints, covars) {
   # if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
   out <- -1
   if (length(changepoints)==1) return(out) # Never propose to delete a lonely changepoint
-  pieces <- pieces_from_changepoints(time=time, changepoints=changepoints)
+  pieces <- pieces_from_changepoints(time, changepoints)
 
   if ( length(covars)> 0){
     err <- get_cov_count_errlist(count, pieces, covars,timename="piece")

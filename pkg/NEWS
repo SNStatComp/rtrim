@@ -1,3 +1,7 @@
+version 2.07
+- Improved error messages for invalid beta values
+- Improved the use of actual year numbers as change points
+
 version 2.0.6
 - Removed spurious output from index() function
 - Fixed bug in totals() which prevented both obs=TRUE and level!=NULL

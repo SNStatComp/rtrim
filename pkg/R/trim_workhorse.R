@@ -386,13 +386,18 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   if (model!=2 && length(changepoints) > 0)
     stop(sprintf("Changepoints cannot be specified for model %d", model), call.=FALSE)
 
-  # For model 2, test that changepoints (if any) are in the range [1,J>.
+  # For model 2, test that changepoints (if any) are in the range 1..J-1
   use.changepoints <- model==2 && length(changepoints)>0
   if (use.changepoints) {
-    if (all(changepoints %in% year_id)) {
-      # Convert changepoints in years  to 1..J
+    if (min(changepoints)>=1 && max(changepoints)<nyear) {
+      # case 1: already in 1..J-1
+    } else if (all(changepoints %in% year_id)) {
+      # case 2: actual years (used); convert to 1..J-1
       changepoints <- match(changepoints, year_id)
+    } else {
+      stop("Invalid changepoints specified")
     }
+    # Last checks
     stopifnot(all(changepoints >= 1L))
     stopifnot(all(changepoints < nyear))
     stopifnot(all(diff(changepoints) > 0)) # changepoints must be in incraesing order
@@ -628,7 +633,6 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       if (any(beta >  max_beta)) problem <- "excessive high beta value"
       if (any(beta < -max_beta)) problem <- "excessive low beta value"
       if (problem != "") {
-        print(beta)
         idx <- which(beta > max_beta)[1]
         msg <- sprintf("Model non-estimable due to %s at year #%d (%d)", problem, year[idx], year_id[idx])
         stop(msg, call.=FALSE)
