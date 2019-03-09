@@ -615,6 +615,31 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   max_dbeta <- 0.0
 
+  check_beta <- function() {
+    problem <- ""
+    if (any(!is.finite(beta))) {
+      problem <- "non-finite beta value"
+      idx <- which(!is.finite(beta))[1]
+    }
+    if (any(beta >  max_beta)) {
+      problem <- "excessive high beta value"
+      idx <- which(beta > max_beta)[1]
+    }
+    if (any(beta < -max_beta)) {
+      problem <- "excessive low beta value"
+      idx <- which(beta < -max_beta)[1]
+    }
+    if (problem != "") {
+      if (model==2) {
+        msg <- sprintf("Model can't be estimated due to %s at changepoint #%d (%d)", problem, idx, year_id[idx])
+      } else if (model==3) {
+        msg <- sprintf("Model can't be estimated due to %s at year #%d (%d)", problem, idx+1, year_id[idx+1])
+      } else stop("Unexpected model:", model)
+      stop(msg, call.=FALSE)
+    }
+
+  }
+
   update_beta <- function(method=c("ML","GEE"))
   {
     # Compute the proposed change in $\beta$.
@@ -628,15 +653,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     stepsize <- 1.0
     for (subiter in 1:max_sub_step) {
       beta  <<- beta0 + stepsize*dbeta
-      problem <- ""
-      if (any(!is.finite(beta))) problem <- "non-finite beta value"
-      if (any(beta >  max_beta)) problem <- "excessive high beta value"
-      if (any(beta < -max_beta)) problem <- "excessive low beta value"
-      if (problem != "") {
-        idx <- which(beta > max_beta)[1]
-        msg <- sprintf("Model non-estimable due to %s at year #%d (%d)", problem, year[idx], year_id[idx])
-        stop(msg, call.=FALSE)
-      }
+      check_beta()
 
       update_mu(fill=FALSE)
       update_alpha(method)
