@@ -1,6 +1,7 @@
-version 2.07
+version 2.0.7
 - Improved error messages for invalid beta values
 - Improved the use of actual year numbers as change points
+- Improved documentation for overall() function
 
 version 2.0.6
 - Removed spurious output from index() function

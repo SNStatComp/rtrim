@@ -20,6 +20,28 @@
 #' The values for \code{changepoints} do not depend on \code{changepoints} that were used when
 #' specifying the \code{trim} model (See also the example below).
 #'
+#' Slopes are computed along with associated confidence intervals lo-hi for either 1\% and 5\% cases,
+#' and interpreted using the following table:
+#'
+#' \tabular{ll}{
+#'   Trend meaning     \tab Condition \cr
+#'   Strong increase   \tab lo > 0.05\cr
+#'   Moderate increase \tab lo > 0\cr
+#'   Moderate decrease \tab hi < 0\cr
+#'   Strong decrease   \tab hi < -0.05\cr
+#'   Stable            \tab -0.05 < lo < 0 < hi < 0.05\cr
+#'   Uncertain         \tab any other case\cr
+#' }
+#'
+#' Trend meaning     | Condition
+#' ----------------- | ---------
+#' Strong increase   | lo > 0.05
+#' Moderate increase | lo > 0
+#' Moderate decrease | hi < 0
+#' Strong decrease   | hi < -0.05
+#' Stable            | -0.05 < lo < 0 < hi < 0.05
+#' Uncertain         | any other case
+#'
 #' Note that the original TRIM erroneously assumed that the estimated overall trend
 #' magnitude is t-distributed, while in fact it is normally distributed, which is being used within rtrim.
 #' The option \code{bc=TRUE} can be set to force backward compability, for e.g. comparison purposes.
