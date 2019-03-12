@@ -20,27 +20,20 @@
 #' The values for \code{changepoints} do not depend on \code{changepoints} that were used when
 #' specifying the \code{trim} model (See also the example below).
 #'
-#' Slopes are computed along with associated confidence intervals lo-hi for either 1\% and 5\% cases,
+#' Slopes are computed along with associated confidence intervals (CI) for 1\% and 5\% significance levels,
 #' and interpreted using the following table:
 #'
 #' \tabular{ll}{
-#'   Trend meaning     \tab Condition \cr
-#'   Strong increase   \tab lo > 0.05\cr
-#'   Moderate increase \tab lo > 0\cr
-#'   Moderate decrease \tab hi < 0\cr
-#'   Strong decrease   \tab hi < -0.05\cr
-#'   Stable            \tab -0.05 < lo < 0 < hi < 0.05\cr
+#'   \strong{Trend meaning} \tab \strong{Condition} \cr
+#'   Strong increase   (more than 5\% per year) \tab lower CI limit > 0.05\cr
+#'   Moderate increase (less than 5\% per year) \tab lower CI limit > 0\cr
+#'   Moderate decrease (less than 5\% per year) \tab upper CI limit < 0\cr
+#'   Strong decrease   (more than 5\% per year) \tab upper CI limit < -0.05\cr
+#'   Stable            \tab -0.05 < lower < 0 < upper < 0.05\cr
 #'   Uncertain         \tab any other case\cr
 #' }
-#'
-#' Trend meaning     | Condition
-#' ----------------- | ---------
-#' Strong increase   | lo > 0.05
-#' Moderate increase | lo > 0
-#' Moderate decrease | hi < 0
-#' Strong decrease   | hi < -0.05
-#' Stable            | -0.05 < lo < 0 < hi < 0.05
-#' Uncertain         | any other case
+#' where trend strength takes precedence over significance,
+#' i.e., a \emph{strong increase (p<0.05)} takes precedence over a \emph{moderate increase (p<0.01)}.
 #'
 #' Note that the original TRIM erroneously assumed that the estimated overall trend
 #' magnitude is t-distributed, while in fact it is normally distributed, which is being used within rtrim.
