@@ -295,7 +295,7 @@ trim.data.frame <- function(object, count_col="count", site_col="site", year_col
 
   stopifnot(is.numeric(model), model %in% 1:4)
 
-  str(changepoints) # debug!
+  #str(changepoints) # debug!
   #if (length(changepoints)>0 && is.na(changepoints)) changepoints <- integer(0) # fix
   if (is.null(changepoints)) changepoints <- integer(0)
   if (length(changepoints)==1 && is.na(changepoints)) changepoints <- integer(0)
