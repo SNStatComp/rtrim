@@ -25,7 +25,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
                            constrain_overdisp=1.0, conv_crit=1e-5, max_iter=200,
                            debug=FALSE)
 {
-  if (debug) browser()
+  # if (debug) browser()
 
   alpha_method <- 1     # Choose between 2 methods to compute alpha (1 is recommended)
   graph_debug <- FALSE  # enable graphical display of the model convergence
@@ -290,6 +290,40 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       f[ , ,m] <- fm
     }
   }
+
+  # # New check for sufficient data.
+  # # This test will find the observations that are supposed to provide info for
+  # # both site-parameters and time-parameters.
+  # if (!use.months) {
+  #   I <- dim(f)[1]
+  #   J <- dim(f)[2]
+  #   fpos <- f > 0
+  #   fpos[is.na(fpos)] <- FALSE
+  #   fpos <- fpos * 1L            # Hack to convert logical matrix to a numerical one
+  #   # Create counts for all combinations
+  #   n1 <- apply(fpos, 1, sum)
+  #   n2 <- apply(fpos, 1, sum)
+  #   for (i in 1:I) for (j in 1:J) {
+  #     nn <- n1[i] + n2[j] - fpos[i,j] # row total + col total; correct for combi
+  #     if (nn<2) stop(sprintf("Problem at i=%d, j=%d (%d)", i, j, year_id[j]))
+  #   }
+  # } else {
+  #   I <- dim(f)[1]
+  #   J <- dim(f)[2]
+  #   M <- dim(f)[3]
+  #   fpos <- f > 0
+  #   fpos[is.na(fpos)] <- FALSE
+  #   fpos <- fpos * 1L            # Hack to convert logical matrix to a numerical one
+  #   # Create counts for all planes
+  #   n12 <- apply(fpos, c(1,2), sum)
+  #   n13 <- apply(fpos, c(1,3), sum)
+  #   n23 <- apply(fpos, c(2,3), sum)
+  #   for (i in 200:202) for (j in 1:J) for (m in 1:M) {
+  #     if ((n12[i,j]==1 && n13[i,m]==1) && n23[j,m]==1) {
+  #       cat(sprintf("problem at i=%d j=%d m=%d\n", i,j,m))
+  #     }
+  #   }
+  # }
 
   # TRIM is not intended for extrapolation. Therefore, issue a warning if the first or last
   # time points do not contain positive observations.
