@@ -174,6 +174,15 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       if (any(is.na(covars[[i]]))) {
         stop(sprintf('NA values not allowed for covariate "%s".', names(covars)[i]), call.=FALSE)
       }
+      # test for covariant types: integer/string/factor are allowd; all will be converted to factor
+      if (class(covars[[i]])=="integer") {
+        covars[[i]] <- as.factor(covars[[i]])
+      } else if (class(covars[[i]])=="character") {
+        covars[[i]] <- as.factor(covars[[i]])
+      }
+      if (!"factor" %in% class(covars[[i]])) {
+        stop(sprintf('Invalid data type for covariate "%s".', names(covars)[i]), call.=FALSE)
+      }
       icovars[[i]] <- as.integer((covars[[i]]))
     }
 
@@ -895,7 +904,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     # if (use.beta && all(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
 
     #
-    # invertable <- class(try(solve(i_b), silent=T))=="matrix"
+    # invertable <- class(try(solve(i_b), silent=T))=="matrix" # not R4.0 compatible; use "matrix" %in% class() instead!
     # if (!invertable) {
     #   browser()
     # }
@@ -1295,13 +1304,13 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       )
       # Covariate categories ($>1$)
       if (use.covars) {
-        prefix = data.frame(covar="baseline", cat=0)
+        prefix = data.frame(covar=factor("baseline"), cat=0)
         coefs <- cbind(prefix, coefs)
         for (i in 1:ncovar) {
           for (j in 2:nclass[i]) {
             idx <- idx + nbeta0
             df <- data.frame(
-              covar  = names(covars)[i],
+              covar  = factor(names(covars)[i]),
               cat    = j,
               time   = 1:J,
               add    = c(0, gamma[idx]),

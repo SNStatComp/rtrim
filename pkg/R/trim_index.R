@@ -203,7 +203,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
 
   # Add indices for covariate categories, if applicable
   if (covars) {
-    out <- cbind(data.frame(covariate="Overall", category="(none)"), out)
+    out <- cbind(data.frame(covariate="Overall", category="(none)", stringsAsFactors=TRUE), out)
 
     tt <- x$covar_tt
     index <- list()
@@ -217,7 +217,7 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
         ttij <- tti[[j]]
         catname <- as.character(ttij$class) # old code; todo: fix properly by setting a cat name earlier
         catname <- levels(x$covars[[name]])[j]
-        df = data.frame(covariate=ttij$covariate, category=catname, time=x$time.id)
+        df = data.frame(covariate=ttij$covariate, category=catname, time=x$time.id, stringsAsFactors=TRUE)
         # Compute model index+variance
         if (which %in% c("fitted","both")) {
           idx <- .index(ttij$mod, ttij$var_mod, base, level, x$sig2, alt)
