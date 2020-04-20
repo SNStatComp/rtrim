@@ -22,9 +22,9 @@ writeLines("1 1992 186 1.0000 1
         ,time=1992
         ,count=186
         ,weight=1
-        ,covar01=1 
+        ,covar01=1
       ))
-  expect_equal(dat[10,3],NA_integer_)  
+  expect_equal(dat[10,3],NA_integer_)
   tryCatch(unlink(f),error=function(e)cat(sprintf("Could not unlink temporary file %s",f)))
 })
 
