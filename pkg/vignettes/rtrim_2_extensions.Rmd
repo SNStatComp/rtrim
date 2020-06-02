@@ -31,7 +31,7 @@ This vignette describes the extenstions to the `rtrim` package as per version 2.
 * Running TRIM in a stratified manner
 * Heatmap visualisations of both observed and imputed data
 
-See also the vignettes [rtrim_confidence_intervals.html](rtrim confidence intervals) and [taming_overdispersion.html](taming overdispersion) for additional new features.
+See also the vignettes [rtrim confidence intervals](rtrim_confidence_intervals.html) and [taming overdispersion](taming_overdispersion.html) for additional new features.
 
 # Monthly data
 
@@ -43,7 +43,7 @@ the extension towards months looks like
 $$ \ln \mu_{ijm} = \alpha_i + \beta_j + \delta_m $$
 where $\delta_m$ are month parameters for month $m$.
 
-Please take a look in [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) for a full explanation, and application to other model formulations.
+Please take a look in [Models and statistical methods in rtrim](TRIM_methods_v2.pdf) for a full explanation, and application to other model formulations.
 
 The general syntax to specify R-Trim models that use monthly data is as follows:
 ```r
@@ -107,11 +107,11 @@ legend("bottom", c("UIndex","TRIM"), col=c("black","red"), lty="solid")
 Note the computation and display of confidence intervals, which is new for `rtrim` 2.0, along with the standard errors of both classic TRIM and `rtrim` 1.0.
 
 This plot demonstrates that the indices as computed by UIndex and `rtrim` are virtually identical, and that the 90% confidence intervals of TRIM are well comparable to the 90% consistency intervals of TRIM, although both are estimated using completely different approaches. In the case of TRIM, confidence intervals are based on standard errors which are derived analytically as part of the GEE estimation process and ultimately are based on the variance within the orginal data.
-See the vignettes [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) and [rtrim_confidence_intervals.html](rtrim confidence intervals) for more information. Consistency intervals in UIndex are estimated by means of a bootstrap method. See Underhill [1989] and Underhill and Prŷs-Jones [1995] for more information.
+See the vignettes [Models and statistical methods in rtrim](TRIM_methods_v2.pdf) and [rtrim confidence intervals](rtrim_confidence_intervals.html) for more information. Consistency intervals in UIndex are estimated by means of a bootstrap method. See Underhill [1989] and Underhill and Prŷs-Jones [1995] for more information.
 
 # Stratified `rtrim`
 
-Sometimes it can be usefull to combine `rtrim` results for different regions ('strata') into a single, larger scale ('superstratum') `rtrim` analysis. One particular example is the case where individual EU countries use TRIM or `rtrim` to compute indices for their own countries, and submit the results to the European Bird Census Counsil [http://www.ebcc.info](EBCC) for aggregatation on the EU scale, see van Strien et al. [2001] for an example using the previous stand-alone version of TRIM.
+Sometimes it can be usefull to combine `rtrim` results for different regions ('strata') into a single, larger scale ('superstratum') `rtrim` analysis. One particular example is the case where individual EU countries use TRIM or `rtrim` to compute indices for their own countries, and submit the results to the European Bird Census Counsil [EBCC](http://www.ebcc.info) for aggregatation on the EU scale, see van Strien et al. [2001] for an example using the previous stand-alone version of TRIM.
 In this case, the output of the lower scale `rtrim` runs, i.e., the time totals, are used as 'observations' in the higher scale run.
 Although this procedure works out well for the estimates and indices, it doesn't work for the associated standard errors, because the time totals are not Poisson distributed, where the original counts are. To circumvent this problem, `rtrim` has options to export the variances of the lower scale runs and to import these into the higher scale runs, to use instead.
 
@@ -174,7 +174,7 @@ Which suggests that for *this* example the differences are small, if any.
 # Taming overdispersion
 
 In some cases, especially with clustering bird species, overdispersion can be huge, reaching unrealistic values of more than 500.
-rtrim now contains an option to constrain the computed value of overdispersion by detecting outliers, and removing them from the computation of overdispersion (but retaining them for all other calculations). The full rationale and methdology is described in [taming_overdispersion.html](Taming overdispersion), but the actual use is rather simple.
+rtrim now contains an option to constrain the computed value of overdispersion by detecting outliers, and removing them from the computation of overdispersion (but retaining them for all other calculations). The full rationale and methdology is described in [Taming overdispersion](taming_overdispersion.html), but the actual use is rather simple.
 
 Take for example the Oystercatcher data, which results in a huge overdispersion of about 850
 ```{r}
@@ -306,12 +306,12 @@ plot(tt, band="ci")
 ```
 
 
-See vignette [rtrim_confidence_intervals.html](rtrim confidence intervals) for more information on the underlying methodology.
+See vignette [rtrim confidence intervals](rtrim_confidence_intervals.html) for more information on the underlying methodology.
 
 
 ## Plotting heatmaps.
 
-The detailed spatiotemporal structure of both the observed anf the imputed data can be inspected by means of the function `heatmap()` that operates on the output of `trim()`. The default behaviour of this function is to display a heat map of the observed counts only:
+The detailed spatiotemporal structure of both the observed and the imputed data can be inspected by means of the function `heatmap()` that operates on the output of `trim()`. The default behaviour of this function is to display a heat map of the observed counts only:
 
 ```{r}
 m <- trim(count ~ site + year, data=skylark2, model=3)
@@ -352,9 +352,9 @@ Also note that in this example, many site/time combinations have registered a co
 
 # References
 
-van Strien, A. J., J. Pannekoek and D.W. Gibbons (2001) Indexing European bird population trends using results of national monitoring schemes: a trial of a new method, Bird Study, 48 (2), 200-213, DOI: 10.1080/00063650109461219
+van Strien, A. J., J. Pannekoek and D.W. Gibbons (2001) Indexing European bird population trends using results of national monitoring schemes: a trial of a new method, Bird Study, 48 (2), 200-213, DOI: [10.1080/00063650109461219](http://doi.org/10.1080/00063650109461219)
 
-Underhill, LG, Prŷs-Jones, RP (1994) Index numbers for waterbird populations. I. Review and methodology. J Appl Ecol, 31, 463-480. doi: 10.2307/2404443
+Underhill, LG, Prŷs-Jones, RP (1994) Index numbers for waterbird populations. I. Review and methodology. J Appl Ecol, 31, 463-480. doi: [10.2307/2404443](https://www.jstor.org/stable/2404443)
 
 Underhill, L.G. (1989) Indices for Waterbird Populations. BTO Research Report 52, British Trust for Ornithology, Tring.
 

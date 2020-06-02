@@ -90,7 +90,7 @@ summary(z)
 
 So overdispersion is indeed huge!
 
-You may recall from [TRIM_methods_v2.pdf](Models and statistical methods in rtrim) that the formula for overdispersion is given by
+You may recall from [Models and statistical methods in rtrim](TRIM_methods_v2.pdf) that the formula for overdispersion is given by
 $$ \sigma^2 = \frac{1}{n-p} \sum_{ijm} r^2_{ijm}$$
 with $n$ the number of observations, $p$ the number of model parameters and $r$ Pearson residuals, given by
 $$ r = \frac{f_{ijm} -\mu_{ijm}}{\sqrt{\mu_{ijm}}}. $$

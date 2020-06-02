@@ -30,7 +30,7 @@ onwards. This vignette provides a quick getting started manual that demonstrates
 the R-based workflow for computing TRIM models.
 
 - An extensive introduction showing many of the options can be found in the [trim by example](Skylark_example.html) vignette.
-- To use legacy TRIM command files and TRIM data files, see the [vignette on tcf files](Working_with_tcf.html).
+- To use legacy TRIM command files and TRIM data files, see the [section on tcf files](#tcf).
 
 TRIM was developed to estimate animal populations, based on repeated counts at various sites while counts may be missing for certain sites at certain times. Estimation is based on a model-based imputation method.
 
@@ -144,7 +144,7 @@ m4$changepoints
 
 Again, the explicit setting of initial changepoints can be replaced by the more convenient `changepoints="auto"`, which combines `changepoints="all"` with `stepwise=TRUE`.
 
-## TRIM Command Files
+## TRIM Command Files {#tcf}
 
 The original TRIM software can be controlled with text files containing a series of commands that specify both the location and format of the data, an the model (or models) to compute. Such TRIM command files (usually stored with the extension `.tcf`) should be considered legacy but for backwards compatability they can be used from R.
 
