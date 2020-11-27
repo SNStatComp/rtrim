@@ -50,6 +50,7 @@ trim_estimate <- function(count, site, year, month, weights, covars
 
   # Handle "auto" changepoints
   if (model==2 && is.character(changepoints)) {
+    changepoints <- tolower(changepoints) # Allow changepoints="All"
     if (changepoints %in% c("all","auto")) {
       if (changepoints == "auto") stepwise=TRUE
       J <- length(unique(year))
