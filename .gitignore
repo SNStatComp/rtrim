@@ -1,19 +1,18 @@
 # History files
 .Rhistory
 .Rapp.history
-
 # Example code in package build process
 *-Ex.R
-
 # RStudio files
 .Rproj.user/
 pkg/.Rbuildignore
 rtrim.Rproj
-
-# produced vignettes
+# produced vignette files
 pkg/vignettes/*.html
-pkg/vignettes/*.pdf
+pkg/vignettes/*.R
+# pkg/vignettes/*.pdf
 .Rproj.user
-
 pkg/man/*.Rd
 output/*
+*.gz
+.DS_Store

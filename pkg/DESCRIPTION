@@ -1,6 +1,6 @@
 Package: rtrim
-Version: 2.1.1
-Date: 2020-04-19
+Version: 2.2.0
+Date: 2021-11-04
 Title: Trends and Indices for Monitoring Data
 Authors@R: c(
     person("Patrick","Bogaart", email="rtrim@cbs.nl", role=c("aut","cre")),
@@ -12,8 +12,8 @@ Description: The TRIM model is widely used for estimating growth and decline of
     at Statistics Netherlands by Jeroen Pannekoek. See
     <https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends%2d%2dtrim%2d%2d>
     for more information about TRIM.
-URL: https://github.com/markvanderloo/rtrim
-BugReports: https://github.com/markvanderloo/rtrim/issues
+URL: https://github.com/SNStatComp/rtrim
+BugReports: https://github.com/SNStatComp/rtrim/issues
 LazyLoad: yes
 LazyData: no
 License: EUPL

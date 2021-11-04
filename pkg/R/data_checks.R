@@ -1,3 +1,15 @@
+
+.empty_sites <- function(count, site) {
+  # convert site to factor; remember the original value
+  # (allowed: integer; numeric; character; factor)
+  if (class(site)=="integer") {
+    site <- factor(site)
+  }
+
+}
+
+
+
 # Some basic assertions to test whether models can be run.
 
 #' Check whether there are sufficient observations to run a model

@@ -6,7 +6,7 @@
 # - added generation of install script 
 
 R=R
-CHECKARG=""
+CHECKARG="--as-cran"
 while [ $# -gt 0 ] ; do
   case "$1" in 
     -dev)
