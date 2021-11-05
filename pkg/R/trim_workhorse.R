@@ -576,7 +576,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   # Variable $\mu$ holds the estimated counts.
   if (use.months) mu <- array(0, dim=c(I,J,M))
-  else            mu <- matrix(0, nsite, nyear)
+  else            mu <- array(0, dim=c(I,J))   # same as matrix(0, nsite, nyear)
 
   # Setup error handling
   err.out <- NULL
@@ -763,9 +763,21 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   #   \end{pmatrix}
   # \end{equation}
   # where $\rho$ is the lag-1 autocorrelation.
-  Rg <- diag(1, nyear) # default (no autocorrelation) value
+  if (use.months) Rg <- diag(1, nyear*nmonth)
+  else            Rg <- diag(1, nyear) # default (no autocorrelation) value
+
   update_R <- function() {
-    Rg <<- rho ^ abs(row(diag(nyear)) - col(diag(nyear)))
+    if (use.months) {
+      Rg0 <- rho ^ abs(row(diag(nyear)) - col(diag(nyear)))
+      # place M copies, diagonally in Rg
+      idx <- 1:nyear
+      for (k in 1:nmonth) {
+        Rg[idx,idx] <- Rg0
+        idx <- idx + length(idx)
+      }
+    } else {
+      Rg <<- rho ^ abs(row(diag(nyear)) - col(diag(nyear)))
+    }
   }
 
   # Lag-1 autocorrelation parameter $\rho$ is estimated as
@@ -781,8 +793,15 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     # First estimate $\rho$
     rho   <-  0.0
     count <-  0
-    for (i in 1:nsite) {
-      for (j in 1:(nyear-1)) {
+    if (use.months) {
+      for (i in 1:nsite) for (j in 1:(nyear-1)) for (m in 1:nmonth) {
+        if (observed[i,j,m] && observed[i,j+1,m]) {
+          rho <- rho + r[i,j,m] * r[i,j+1,m]
+          count <- count+1
+        }
+      }
+    } else {
+      for (i in 1:nsite) for (j in 1:(nyear-1)) {
         if (observed[i,j] && observed[i,j+1]) { # short-circuit AND intended
           rho <- rho + r[i,j] * r[i,j+1]
           count <- count+1
@@ -857,7 +876,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # \begin{equation}
   #   r_{ij} = (f_{ij} - \mu_{ij}) / \sqrt{\mu_{ij}}
   # \end{equation}
-  r <- matrix(0, nsite, nyear)
+  if (use.months) r <- array(0, dim=c(nsite,nyear,nmonth))
+  else            r <- matrix(0, nsite, nyear)
+
   update_r <- function() {
     r[observed] <<- (f[observed]-mu[observed]) / sqrt(mu[observed])
   }
