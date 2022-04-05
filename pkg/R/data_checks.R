@@ -296,14 +296,17 @@ get_deletion <- function(count, time, changepoints, covars) {
 
 autodelete <- function(count, time, changepoints, covars=NULL) {
   out <- get_deletion(count, time, changepoints, covars)
+  niter <- 1
   while (out > 0) {
-    cp = as.integer(out)
-    yr = time[cp]
+    cp  <-  as.integer(out)
+    yr <-  changepoints[cp] # was: time[cp]
     if (cp==yr) rprintf("Auto-deleting change point %d\n", cp)
     else        rprintf("Auto-deleting change point %d (%d)\n", cp, yr)
     # delete changepoint
-    changepoints <- changepoints[changepoints != out]
+    changepoints <- changepoints[-out] # was: changepoints[changepoints != out]
     out <- get_deletion(count, time, changepoints, covars)
+    niter <- niter+1
+    if (niter>100) stop("Infinite loop in autodelete()")
   }
   changepoints
 }

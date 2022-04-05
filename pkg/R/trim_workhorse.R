@@ -357,6 +357,29 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       cv <- icovars[[i]]
       m <- matrix(NA, nsite, nyear)
       m[idx] <- cv
+      #---- expt code for check & fill covars - 2022-04-04: works OK!
+      for (s in 1:nsite) {
+        # 1. get unique covars for this site
+        cvs <- m[s, ]
+        fcvs <- cvs[is.finite(cvs)] # f=finite
+        ucvs <- unique(fcvs)        # u=unique
+        # Check
+        if (length(ucvs)>1) {
+          msg <- sprintf("Multiple covariate values for site %s", as.character(site_id[s]))
+          stop(msg)
+        }
+        if (length(ucvs)<1) {
+          msg <- sprintf("No covariate values for site %s", as.character(site_id[s]))
+          stop(msg)
+        }
+        # 3. Fix
+        if (any(is.na(cvs))) {
+          na_idx <- is.na(cvs) # Position of NA's
+          cvs[na_idx] <- ucvs  # Fill
+          m[s, ] <- cvs        # Write back in matrix
+        }
+      }
+      #---- end
       # not sure why the following line was included; NA's are allowed (mirroring NA's in f)
       # if (any(is.na(m))) stop(sprintf('(implicit) NA values in covariate "%s".', names(covars)[i]), call.=FALSE)
       cvmat[[i]] <- m
