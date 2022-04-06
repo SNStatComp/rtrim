@@ -252,30 +252,76 @@ coef.trim <- function(object,
 #'
 #' totals(z, "both") # mimics classic TRIM
 #'
-totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL) {
+totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL, long=FALSE) {
   stopifnot(class(x)=="trim")
-
-  # Select output columns from the pre-computed time totals
   which <- match.arg(which)
-  totals <- switch(which
-    , fitted  = x$time.totals[c(1,2,3)]
-    , imputed = x$time.totals[c(1,4,5)]
-    , both    = x$time.totals[1:5]
-  )
-  if (obs) totals$observed <- x$time.totals$observed
 
-  # Optionally add a confidence interval
-  if (!is.null(level)) {
-    if (ncol(totals)>4) stop("Confidence intervals can only be computed for either imputed or fitted time totals, but not for both")
-    mul <- ci_multipliers(lambda=totals[[2]], sig2=x$sig2, level=level)
-    totals$lo <- totals[[2]] - totals[[3]] * mul$lo
-    totals$hi <- totals[[2]] + totals[[3]] * mul$hi
+  if (long==FALSE) { # Old version, for backwards compatibility
+    # Select output columns from the pre-computed time totals
+    tt <- switch(which
+                 , fitted  = x$time.totals[c(1,2,3)]
+                 , imputed = x$time.totals[c(1,4,5)]
+                 , both    = x$time.totals[1:5]
+    )
+
+    # Optionally add observations
+    if (obs) tt$observed <- x$time.totals$observed
+
+    # Optionally add a confidence interval
+    if (!is.null(level)) {
+      if (ncol(tt)>4) stop("Confidence intervals can only be computed for either imputed or fitted time totals, but not for both")
+      mul <- ci_multipliers(lambda=tt[[2]], sig2=x$sig2, level=level)
+      tt$lo <- tt[[2]] - tt[[3]] * mul$lo
+      tt$hi <- tt[[2]] + tt[[3]] * mul$hi
+    }
+  } else { # New (rtrim 3) version, using a 'long' format
+    if (which=="fitted") {
+      tt <- data.frame(series="fitted",
+                       year  =x$time.totals$time,
+                       value =x$time.totals$fitted,
+                       SE    =x$time.totals$se_fit)
+    } else if (which=="imputed") {
+      tt <- data.frame(series="imputed",
+                       year  =x$time.totals$time,
+                       value =x$time.totals$imputed,
+                       SE    =x$time.totals$se_imp)
+    } else if (which=="both") {
+      tt1 <-data.frame(series="fitted",
+                       year  =x$time.totals$time,
+                       value =x$time.totals$fitted,
+                       SE    =x$time.totals$se_fit)
+      tt2 <- data.frame(series="imputed",
+                        year  =x$time.totals$time,
+                        value =x$time.totals$imputed,
+                        SE    =x$time.totals$se_imp)
+      tt <- rbind(tt1, tt2)
+    } else {
+      stop("totals(): Invalid value for option 'which':", which)
+    }
+
+    # Optionally add observations
+    if (obs) {
+      tt_obs <- data.frame(series="observed",
+                           year  = x$time.totals$time,
+                           value = x$time.totals$observed,
+                           SE    = NA)
+      tt <- rbind(tt,tt_obs)
+    }
+
+    # Optionally add a confidence interval
+    if (!is.null(level)) {
+      mul <- ci_multipliers(lambda=tt$value, sig2=x$sig2, level=level)
+      tt$lo <- tt$value - tt$SE * mul$lo
+      tt$hi <- tt$value + tt$SE * mul$hi
+    }
   }
 
-  # wrap the time.index field in a list and make it an S3 class
-  # (so that it becomes recognizable as a TRIM time-indices)
-  class(totals) <- c("trim.totals","data.frame")
-  totals
+  # Make recognizable as "time totals"
+  old_class <- class(tt)
+  new_class <- c("trim.totals", old_class)
+  class(tt) <- new_class
+
+  return(tt)
 }
 
 #------------------------------------------------------------------ Export ----
@@ -311,7 +357,7 @@ export.trim.totals <- function(x, species, stratum) {
 #' @param xlab    x-axis label. The default value of "auto" will be changed into "Year" or "Time Point", whichever is more appropriate.
 #' @param ylab    y-axis label.
 #' @param leg.pos legend position, similar as in \code{\link[graphics]{legend}}.
-#' @param band Defines if the uncertainty band will be plotted using standard errors ("se") or confidence intervals ("ci").
+#' @param band    Defines if the uncertainty band will be plotted using standard errors ("se") or confidence intervals ("ci").
 #'
 #' @export
 #'
@@ -333,7 +379,7 @@ export.trim.totals <- function(x, species, stratum) {
 #'
 plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals", leg.pos="topleft", band="se") {
 
-  special <- "time totals" # disinguish between "time totals" and "index" modes
+  special <- "time totals" # distinguish between "time totals" and "index" modes
 
   # 1. Parse ellipsis (...) arguments: collect trim.totals objects and their names
 
