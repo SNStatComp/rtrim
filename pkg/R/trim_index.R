@@ -54,13 +54,15 @@
 
 .index <- function(tt, var_tt, base, level=NULL, sig2=NULL, alt=FALSE) {
 
+  if (alt) cat("** using ALT ***\n")
   nbase <- length(base)
 
   if (nbase==1) {
-    tau <- tt / tt[base]
+    scale <- 1 / tt[base]
   } else {
-    tau <- tt / mean(tt[base])
+    scale <- 1 / mean(tt[base])
   }
+  tau <- tt * scale
 
   J <- length(tt)
   var_tau <- numeric(J)
@@ -68,7 +70,11 @@
   for (j in 1:J) {
 
     if (nbase==1 && alt==TRUE) {
-      var_tau[j] <- var_tt[j,j] / tt[base]^2
+      # compute scaled standard error
+      #var_tau[j] <- var_tt[j,j] / tt[base]^2
+      SE <- sqrt(var_tt[j,j])
+      SE_scaled <- SE * scale
+      var_tau[j] <- SE_scaled ^2
       next
     }
 
@@ -149,8 +155,7 @@
 #' index(z, base=3)
 #' # Use average of first 5 years as reference for indexing
 #' index(z, base=1:5)
-index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, level=NULL) {
-  alt <- FALSE # previous: option to just scale by base year TT
+index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, level=NULL, method=c("formal","scaled")) {
   stopifnot(inherits(x,"trim"))
 
   # Match base to actual time points
@@ -167,7 +172,9 @@ index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, l
 
   # Start with overall indices (i.e. ignoring covariate categories, if applicable)
   # Computation and output is user-configurable
-  which <- match.arg(which)
+  which  <- match.arg(which)
+  method <- match.arg(method)
+  alt <- method=="scaled"
   if (which=="fitted") {
     # Call workhorse function to do the actual computation
     mod <- .index(x$tt_mod, x$var_tt_mod, base, level, x$sig2, alt)
