@@ -220,10 +220,10 @@ coef.trim <- function(object,
 #' Extract time-totals from TRIM output
 #'
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
-#' @param which select what totals to compute (see \code{Details} section).
+#' @param which Select what totals to compute (see \code{Details} section).
 #' @param obs Flag to include total observations (or not).
-#' @param level the confidence level required.
-#'   If NULL, no confidence inetrvals are calculated.
+#' @param level The confidence level required. If NULL, no confidence intervals are calculated.
+#' @param long Flag to return a tidy long table
 #'
 #' @return A \code{data.frame} with subclass \code{trim.totals}
 #'  (for pretty-printing). The columns are \code{time}, \code{fitted}
@@ -276,21 +276,25 @@ totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL,
     }
   } else { # New (rtrim 3) version, using a 'long' format
     if (which=="fitted") {
-      tt <- data.frame(series="fitted",
+      tt <- data.frame(variable="time_totals",
+                       series="fitted",
                        year  =x$time.totals$time,
                        value =x$time.totals$fitted,
                        SE    =x$time.totals$se_fit)
     } else if (which=="imputed") {
-      tt <- data.frame(series="imputed",
+      tt <- data.frame(variable="time_totals",
+                       series="imputed",
                        year  =x$time.totals$time,
                        value =x$time.totals$imputed,
                        SE    =x$time.totals$se_imp)
     } else if (which=="both") {
-      tt1 <-data.frame(series="fitted",
+      tt1 <-data.frame(variable="time_totals",
+                       series="fitted",
                        year  =x$time.totals$time,
                        value =x$time.totals$fitted,
                        SE    =x$time.totals$se_fit)
-      tt2 <- data.frame(series="imputed",
+      tt2 <- data.frame(variable="time_totals",
+                        series="imputed",
                         year  =x$time.totals$time,
                         value =x$time.totals$imputed,
                         SE    =x$time.totals$se_imp)
