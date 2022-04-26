@@ -1,10 +1,10 @@
 #' Estimate TRIM model parameters.
 #'
-#' Given some count observations, estimate a TRIM model and use these to impute the data set if nescessary.
+#' Given some count observations, estimate a TRIM model and use these to impute the data set if necessary.
 #'
 #' @section Models:
 #'
-#' The purpose of \code{trim} is to estimate population totals over time,
+#' The purpose of \code{trim()} is to estimate population totals over time,
 #' based on a set of counts \eqn{f_{ij}} at sites \eqn{i=1,2,\ldots,I}
 #' and times \eqn{j=1,2,\ldots,J}. If no count data is available at
 #' site and time \eqn{(i,j)}, a value \eqn{\mu_{ij}} will be imputed.
