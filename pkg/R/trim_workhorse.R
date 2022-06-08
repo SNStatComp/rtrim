@@ -15,7 +15,7 @@
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
 #' @param max_beta maximum value for beta parameters
-#' @return a list of class \code{trim}, that contains all output, statistiscs, etc.
+#' @return a list of class \code{trim}, that contains all output, statistics, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
 #' @keywords internal
