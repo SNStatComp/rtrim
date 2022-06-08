@@ -263,9 +263,41 @@ print.trim.overall <- function(x,...) {
 #'
 #' @param x An object of class \code{trim.overall}
 #'
+#' @return A data.frame containing the information on all trendline segments and their uncertainty.
+#' The data.frame has the following columns:
+#' \describe{
+#'   \item{\code{segment}}{segment ID, starting at 1}
+#'   \item{\code{year}}{year for which \emph{value}, \emph{lo} and \emph{hi} are given}
+#'   \item{\code{value}}{the y coordinate of the trendline segment}
+#'   \item{\code{lo}}{lower value of the uncertainty band}
+#'   \item{\code{hi}}{upper value of the uncertainty interval}
+#' }
+#'
+#' @examples
+#' data(skylark2)
+#' z <- trim(count ~ site+year, data=skylark2, model=3)
+#' tt <- totals(z, long=TRUE)       # collect time-totals
+#' tl <- trendlines(overall(z))     # collect overall trend line
+#'
+#' # define plot limits
+#' xr <- range(tt$year)
+#' yr <- range(tl$lo, tl$hi, tt$value)
+#' plot(xr, yr, type='n', xlab="Year", ylab="Total counts")
+#'
+#' # Plot uncertainty band
+#' ubx <- c(tl$year, rev(tl$year))
+#' uby <- c(tl$lo, rev(tl$hi))
+#' polygon(ubx, uby, col=gray(0.9), border=NA)
+#'
+#' # Plot trend line
+#' lines(tl$year, tl$value, col="black", lwd=2)
+#'
+#' # Plot time-totals
+#' lines(tt$year, tt$value, col="red", lwd=2)
+#' points(tt$year, tt$value, col="red", pch=16, cex=1.5)
+#'
 #' @export
-#' @keywords analyses
-
+#' @family analyses
 trendlines <- function(x) {
   X <- x
   tpt <- X$timept
