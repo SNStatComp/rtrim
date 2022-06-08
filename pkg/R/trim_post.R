@@ -220,15 +220,18 @@ coef.trim <- function(object,
 #' Extract time-totals from TRIM output
 #'
 #' @param x TRIM output structure (i.e., output of a call to \code{trim})
-#' @param which Select what totals to compute (see \code{Details} section).
-#' @param obs Flag to include total observations (or not).
-#' @param level The confidence level required. If NULL, no confidence intervals are calculated.
-#' @param long Flag to return a tidy long table
+#' @param which (character) Select what totals to compute (see \code{Details} section).
+#' @param obs (logical) Flag to include total observations (or not).
+#' @param level (numeric) The confidence level required. If NULL, no confidence intervals are calculated.
+#' @param long (logical) Flag to return a tidy long table
 #'
 #' @return A \code{data.frame} with subclass \code{trim.totals}
 #'  (for pretty-printing). The columns are \code{time}, \code{fitted}
 #'  and \code{se_fit} (for standard error), and/or \code{imputed}
-#'  and \code{se_imp}, depending on the selection.
+#'  and \code{se_imp}, depending on the selection.\cr
+#'  In case \code{long=TRUE} a long table is returned, and a different naming convention is used,
+#'  e.g., imputed/fitted info is in column \code{series},
+#'  and standard error are always in column \code{SE}
 #'
 #' @section Details:
 #'
