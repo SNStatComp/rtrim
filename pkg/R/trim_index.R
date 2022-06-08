@@ -105,26 +105,31 @@
 #' Extract time-indices from TRIM output.
 #'
 #' Indices are obtained by dividing the modelled or imputed time totals by a reference value.
-#' Most commonly, the time totals for the first time point are used as reference.
-#' As a result, the index value for this first time point will be 1.0, with a standard error of 0.0 by definition.
-#' Alternatively, a range of time points can be used as reference. In this case, the mean time totals for this range will be used as
-#' reference, and the standard errors will be larger than 0.0.
+#' Most commonly, the time totals for the starting year are used as reference.
+#' As a result, the index value for this year will be 1.0, with a standard error of 0.0 by definition.\cr
+#' Alternatively, a range of years can be used as reference. In this case, the mean time totals for this range will be used as
+#' reference, and the standard errors will be larger than 0.0.\cr
+#' Starting with \code{rtrim} 2.2, an additional method can be selected,
+#' which uses a simpler scaling approach to standard errors of the indices
 #'
 #' @param x an object of class \code{\link{trim}}
-#' @param which \code{[character]} Selector to distinguish between time indices based on the imputed data (default),
+#' @param which (character) Selector to distinguish between time indices based on the imputed data (default),
 #' the fitted model, or both.
-#' @param covars \code{[logical]} Switch to compute indices for covariate categories as well.
-#' @param base \code{[integer|numeric]} One or more base time point, used as as reference for the index.
-#' If just a single number is given, the time total of the corresponding time point will be uses as  reference.
-#' If a range of numbers is given, the average of the corresponding time totals will be used as reference.
-#' The base time points can be given in the interval 1...J, or,
-#' if the time points are proper years, say year1...yearn, the base year can be given.
-#' So, if the data range 2000...2016, \code{base=2} and \code{base=2001} are equivalent.
-#' @param level \code{[numeric]} the confidence interval required.
+#' @param covars (logical) Switch to compute indices for covariate categories as well.
+#' @param base (integer or numeric) One or more years, used as as reference for the index.
+#' If just a single year is given, the time total of the corresponding year will be uses as a reference.
+#' If a range of years is given, the average of the corresponding time totals will be used as reference.\cr
+#' Alternatively, the reference year(s) can be identified using their rank number,
+#' i.e. \code{base=1} always refers to the starting year, \code{base=2} to the second year, etc.
+#' @param level (numeric) the confidence interval required.
 #' Must be in the range 0 to 1. A value of 0.95 results in 95\% confidence intervals.
 #' The default value of NULL results in no confidence interval to be computed.
-#' @param long \code{[logical]} Switch to return 'long' output
-#' (default is 'wide', as in previous versions)
+#' @param method (character) Method selector.
+#' Options are \code{"formal"} (default) to use a formal computation of standard errors,
+#' resulting in \eqn{\text{SE}=0} for the reference year,
+#' and \code{"scaled"} to use a simpler approach, based on linear scaling of the time-totals SE.
+#' @param long (logical) Switch to return 'long' output
+#' (default is 'wide', as in rtrim versions < 2.2)
 #'
 #' @return A data frame containing indices and their uncertainty expressed as
 #'   standard error. Depending on the chosen output, columns \code{fitted}
@@ -132,9 +137,11 @@
 #'   If \code{covars} is \code{TRUE}, additional indices are computed for the
 #'   individual covariate categories. In this case additional columns
 #'   \code{covariate} and \code{category} are present. The overall indices are
-#'   marked as covariate `Overall' and category 0.
-#'
-#'
+#'   marked as covariate `Overall' and category 0.\cr
+#'   In case \code{long=TRUE} a long table is returned, and a different naming convention is used.
+#'   e.g., imputed/fitted info is in column \code{series},
+#'   and standard error are always in column \code{SE}.
+
 #' @export
 #'
 #' @family analyses
@@ -157,6 +164,8 @@
 #' index(z, base=3)
 #' # Use average of first 5 years as reference for indexing
 #' index(z, base=1:5)
+#' # Prevent SE=0 for the reference year
+#' index(z, method="scaled")
 index <- function(x, which=c("imputed","fitted","both"), covars=FALSE, base=1, level=NULL, method=c("formal","scaled"), long=FALSE) {
   stopifnot(inherits(x,"trim"))
 
