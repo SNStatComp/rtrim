@@ -2,7 +2,7 @@
 .empty_sites <- function(count, site) {
   # convert site to factor; remember the original value
   # (allowed: integer; numeric; character; factor)
-  if (class(site)=="integer") {
+  if (inherits(site, "integer")) {
     site <- factor(site)
   }
 
@@ -222,7 +222,6 @@ assert_plt_model <- function(count, time, changepoints, covars){
 # of matrices with columns 'timename', value (of the covariate)
 get_cov_count_errlist <- function(count, time, covars, timename="time"){
   ERR <- list()
-  # browser()
   for (i in seq_along(covars)) { # For all covariates
     covname <- names(covars)[i]
     cov <- covars[[i]]
@@ -231,7 +230,6 @@ get_cov_count_errlist <- function(count, time, covars, timename="time"){
     tab <- tapply(count, INDEX=index, FUN=sum, na.rm=TRUE)
     df <- as.data.frame(as.table(tab))
     # df[,1] = as.integer(df[,1]) # time or piece chareacter->integer
-    # browser()
     # allow no-pos-data on time pt 0
     if (timename=="changepoint") {
       idx <- df$changepoint != "0"
@@ -273,37 +271,84 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 get_deletion <- function(count, time, changepoints, covars) {
   # browser()
   # if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
-  out <- -1
+  out <- 0L
   if (length(changepoints)==1) return(out) # Never propose to delete a lonely changepoint
   pieces <- pieces_from_changepoints(time, changepoints)
+  #cat("pieces"); str(pieces)
 
   if ( length(covars)> 0){
     err <- get_cov_count_errlist(count, pieces, covars,timename="piece")
     if ( length(err)>0){
-      e <- err[[1]]
-      out <- as.numeric(as.character(e[1,1]))
+      # extract for the first covariant ([[1]]),
+      # the first column, representing th piece (second [[1]]).
+      # These are chanepoints as factor, so with as.integer() we get their position.
+      # however, a '0' changepoints was added earlier, so we have to extract it to find the correct index
+      out <- as.integer(err[[1]][[1]])-1
+      # e <- err[[1]]
+      # cat("e:"); str(e); str(e[1,1]); str(as.integer(e[1,1]))
+      # out <- as.numeric(as.character(e[1,1]))
     }
   } else {
     tab <- tapply(count, list(pieces=pieces), sum,na.rm=TRUE)
+    # print(tab)
+    # cat("tab:"); str(tab)
     j <- tab <= 0
     if (any(j)){
-      wj = which(j)[1]
-      out <- as.numeric(names(tab)[min(wj+1, length(tab))])
+      wj = which(j)[1] # just get the index im the list of changepoints
+      # cat("wj:"); str(wj)
+      # out <- as.numeric(names(tab)[min(wj+1, length(tab))])
+      out <- unname(wj)
     }
   }
   out
 }
 
 autodelete <- function(count, time, changepoints, covars=NULL) {
+
+  # cat("time: ");  str(time)
+  # cat("count:"); str(count)
+  # cat("cpts: ");  str(changepoints)
   out <- get_deletion(count, time, changepoints, covars)
   niter <- 1
+  tpts <- 1:length(time) # get_deletion always returns out as of time was expressed in time points
   while (out > 0) {
-    cp  <-  as.integer(out)
-    yr <-  changepoints[cp] # was: time[cp]
-    if (cp==yr) rprintf("Auto-deleting change point %d\n", cp)
-    else        rprintf("Auto-deleting change point %d (%d)\n", cp, yr)
+    # cat("\n")
+    # cat("to_del:"); str(out)
+    idx  <- as.integer(out)
+    if (idx > length(changepoints)) idx <- length(changepoints)
+    # str(idx)
+    # str(changepoints)
+    rprintf("Auto-deleting change point: %d\n", changepoints[idx])
+    # cpt
+    # cat("tpt:"); str(tpt)
+    #
+    # # get the actual year or time point, if that has been used)
+    # yr <- time[tpt]
+    #
+    # # which changepoint do we have to delete?
+    # if (yr==tpt) {
+    #   # using time-points
+    #   idx <- which(changepoints==tpt)
+    # } else {
+    #   # using years
+    #   idx <- which(changepoints)
+    # }
+    #
+    # #yr  <- changepoints[cp] # was: time[cp]
+    # #idx <- which(changepoints==cp)
+    # #yr <- changepoints[idx]
+    #
+    # yr <- time[cp]
+    # idx <- which(changepoints==yr)
+    #
+    # cat("idx:"); str(idx)
+    # cat("yr:"); str(yr)
+    # if (cp==yr) printf("Auto-deleting change point #%d\n", cp)
+    # else        printf("Auto-deleting change point #%d (%d)\n", cp, yr)
     # delete changepoint
-    changepoints <- changepoints[-out] # was: changepoints[changepoints != out]
+    changepoints <- changepoints[-idx] # was: changepoints[changepoints != out]
+    # print(idx)
+    # print(changepoints)
     out <- get_deletion(count, time, changepoints, covars)
     niter <- niter+1
     if (niter>100) stop("Infinite loop in autodelete()")
@@ -311,3 +356,62 @@ autodelete <- function(count, time, changepoints, covars=NULL) {
   changepoints
 }
 
+# rprintf <- function(fmt, ...) cat(sprintf(fmt,...))
+#
+# load("../tests/testthat/testdata/131183.RData")
+#
+# count <- df$count
+# year <- df$year
+# cpts <- sort(unique(df$year))
+# J <- max(as.integer(ordered(year)))
+# cpts <- cpts[1:J-1]
+#
+# out <- autodelete(count, year, cpts)
+# print(out)
+
+#trim(count ~ site + year, data=df, model=2, overdisp=TRUE, serialcor=TRUE, changepoints="all", autodelete=TRUE)
+
+
+# # test code
+# cat("\n\n--- testing with time 1... --- should be 4\n")
+# time  <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+# count <- c(1, 1, 1, 1, 0, 0, 0, 1, 1,  1)
+# cpts  <- c(         4,       7          ) # cpt 7 is removed to provide data to cpt 4
+# out <- autodelete(count, time, cpts)
+# print(out)
+#
+# cat("\n\n--- testing with time 10... --- should be 4\n")
+# time  <- 10:19
+# count <- c(1, 1, 1, 1, 0, 0, 0, 1, 1,  1)
+# cpts  <- c(         4,       7          ) # cpt 7 is removed to provide data to cpt 4
+# out <- autodelete(count, time, cpts)
+# print(out)
+#
+# cat("\n\n--- testing with time 10... --- should be 1,4\n")
+# time  <- 10:19
+# count <- c(1, 1, 1, 1, 0, 0, 0, 1, 1,  1)
+# cpts  <- c(1,       4,       7          ) # cpt 7 is removed to provide data to cpt 4
+# out <- autodelete(count, time, cpts)
+# print(out)
+#
+# cat("\n\n--- testing with cpts in years --- should be 13\n")
+# cpts  <- c(13, 16) # same, but in years
+# out <- autodelete(count, time, cpts)
+# print(out)
+#
+# cat("\n\n--- with covars / all fine --- should be 4,7\n")
+# time  <- rep(1:10, times=2)
+# covar <- rep(letters[1:2], each=10)
+# count <- rep(1, 20)
+# out <- autodelete(count, time, c(4,7), covars=list(cov=covar))
+# print(out)
+#
+# cat("\n\n--- with covars / delete 7 ---should be 4\n")
+# count[8:10] <- 0
+# out <- autodelete(count, time, c(4,7), covars=list(cov=covar))
+# print(out)
+#
+# cat("\n\n--- with covars / delete 7 --- should be 1,4 \n")
+# count[8:10] <- 0
+# out <- autodelete(count, time, c(1,4,7), covars=list(cov=covar))
+# print(out)
