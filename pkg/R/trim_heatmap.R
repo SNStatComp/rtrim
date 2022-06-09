@@ -31,7 +31,7 @@
     rgb.pal.2 <- col2rgb(pal2) / 255.0
     stopifnot(!is.null(idx2))
   }
-  if (class(na.col)=="character") na.col <- col2rgb(na.col)/255.0
+  if (inherits(na.col, "character")) na.col <- col2rgb(na.col)/255.0
   ncolor <- length(pal1)
   nr <- nrow(m)
   nc <- ncol(m)

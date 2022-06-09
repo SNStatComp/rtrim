@@ -336,7 +336,7 @@ totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL,
 export <- function(x, species, stratum) UseMethod("export")
 
 export.trim.totals <- function(x, species, stratum) {
-  stopifnot(class(x)=="trim.totals")
+  stopifnot(inherits(x, "trim.totals"))
 
   # Create extra columns to be put before the actual time totals
   df1 = data.frame(species=species, stratum=stratum)
@@ -410,7 +410,7 @@ plot.trim.totals <- function(x, ..., names=NULL, xlab="auto", ylab="Time totals"
         nz <- nz + 1L
         zz[[nz]] <- item
         keep[i] <- FALSE # additional index data sets are removed from the ellipsis argument
-      } else if (class(item)=="character") {
+      } else if (inherits(item, "character")) {
         # todo: check if this arguments immediately follows an index argument
         attr(zz[[nz]], "tag") <- item
         keep[i] <- FALSE

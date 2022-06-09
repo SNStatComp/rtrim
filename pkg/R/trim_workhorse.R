@@ -175,9 +175,9 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
         stop(sprintf('NA values not allowed for covariate "%s".', names(covars)[i]), call.=FALSE)
       }
       # test for covariant types: integer/string/factor are allowd; all will be converted to factor
-      if (class(covars[[i]])=="integer") {
+      if (inherits(covars[[i]], "integer")) {
         covars[[i]] <- as.factor(covars[[i]])
-      } else if (class(covars[[i]])=="character") {
+      } else if (inherits(covars[[i]], "character")) {
         covars[[i]] <- as.factor(covars[[i]])
       }
       if (!"factor" %in% class(covars[[i]])) {

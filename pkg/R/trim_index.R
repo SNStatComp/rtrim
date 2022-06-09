@@ -408,7 +408,7 @@ plot.trim.index <- function(x, ..., names=NULL, covar="auto", xlab="auto", ylab=
         nidx <- nidx + 1
         zz[[nidx]] <- item
         keep[i] <- FALSE # additional index data sets are removed from the ellipsis argument
-      } else if (class(item)=="character") {
+      } else if (inherits(item, "character")) {
         # todo: check if this arguments immediately follows an index argument
         attr(zz[[nidx]], "tag") <- item
         keep[i] <- FALSE
