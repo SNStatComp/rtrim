@@ -35,7 +35,7 @@
 #' @name rtrim-package
 #' @docType package
 #' @import methods
-#' @importFrom utils read.table head tail str capture.output
+#' @importFrom utils read.table head tail str capture.output packageVersion
 #' @importFrom grDevices  gray rgb hcl adjustcolor col2rgb
 #' @importFrom graphics lines plot points polygon segments title abline legend par rasterImage rect
 #' @importFrom stats pchisq qchisq pt qt qnorm time setNames quantile qgamma
