@@ -1,5 +1,5 @@
 ---
-title: "`rtrim` for `TRIM3` users"
+title: "rtrim for TRIM3 users"
 author: Patrick Bogaart, Mark van der Loo and Jeroen Pannekoek
 date: "`r Sys.Date()`"
 output: 

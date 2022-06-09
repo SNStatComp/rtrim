@@ -1,5 +1,5 @@
 ---
-title:  "`rtrim` 2.0 extensions"
+title:  "rtrim 2.0 extensions"
 author: Patrick Bogaart
 date:   "`r Sys.Date()`"
 output: 
