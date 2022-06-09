@@ -299,8 +299,9 @@ print.trim.overall <- function(x,...) {
 #' @export
 #' @family analyses
 trendlines <- function(x) {
-  X <- x
+  X   <- x
   tpt <- X$timept
+  J   <- X$J
 
   X$type <- "changept" # Hack for merging overall/changepts
   if (X$type=="normal") {
