@@ -16,6 +16,7 @@
 #' \itemize{
 #' \item\href{../doc/Skylark_example.html}{rtrim by example}
 #' \item\href{../doc/rtrim_2_extensions.html}{rtrim 2 extensions}
+#' \item\href{../doc/FAQ.html}{Frequently Asked Questions}
 #' }
 #'
 #' For users of the original Windows TRIM software:
