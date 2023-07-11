@@ -469,6 +469,8 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     stopifnot(all(diff(changepoints) > 0)) # changepoints must be in incraesing order
   }
 
+  # Setup B ----
+
   # We make use of the generic model structure
   # $$ \log\mu = A\alpha + B\beta $$
   # where design matrices $A$ and $B$ both have $IJ$ rows.
@@ -501,7 +503,8 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     B <- B[ ,-1, drop=FALSE]  # ...and remove the first column to account for $gamma_1\equiv 0$
   } else stop("Can't happen.")
 
-  # When using months...
+  # When using months, we have to add additional blocks of B ,
+  # approx JxJ -> (J*M)x(J+M)
   if (use.months) {
     # ...we have to paste together M copies of B
     B <- do.call("rbind", replicate(M, B, simplify=FALSE))
@@ -683,6 +686,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   check_beta <- function() {
     problem <- ""
+    advice  <- ""
     if (any(!is.finite(beta))) {
       problem <- "non-finite beta value"
       idx <- which(!is.finite(beta))[1]
@@ -697,9 +701,23 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     }
     if (problem != "") {
       if (model==2) {
-        msg <- sprintf("Model can't be estimated due to %s at changepoint #%d (%d)", problem, idx, year_id[idx])
+        # Where does the problem occur?
+        if (idx <= ncp) {  # problem is a changepoints; report also the corresponding year
+          cp <- changepoints[idx]
+          problem_pos <- sprintf("changepoint #%d (%s)", idx, year_id[cp])
+          advice <- "\nYou might consider adjusting the changepoints."
+        } else {           # problem is a month
+          midx <- idx - ncp
+          problem_pos <- sprintf("month #%d (%s)", midx+1, month_id[midx+1])
+          advice <- "\nYou might consider removing this month."
+        }
+        # Report
+        msg <- sprintf("Model can't be estimated due to %s at %s.%s", problem, problem_pos, advice)
       } else if (model==3) {
-        msg <- sprintf("Model can't be estimated due to %s at year #%d (%d)", problem, idx+1, year_id[idx+1])
+         # TODO: report faulty months as well.
+        problem_pos <- sprintf("year #%d (%s)", idx+1, year_id[idx+1])
+        advice <- "\n"
+        msg <- sprintf("Model can't be estimated due to %s at %s.%s", problem, problem_pos, advice)
       } else stop("Unexpected model:", model)
       stop(msg, call.=FALSE)
     }
@@ -795,7 +813,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       # place M copies, diagonally in Rg
       idx <- 1:nyear
       for (k in 1:nmonth) {
-        Rg[idx,idx] <- Rg0
+        Rg[idx,idx] <<- Rg0
         idx <- idx + length(idx)
       }
     } else {
@@ -1583,10 +1601,18 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       if (!is.null(mask)) wmu[!mask] <- 0.0 # Erase 'other' covariate categories also.
       for (i in 1:nsite) {
         if (use.months) {
+          midx <- 1:nyear # to select month block from Rg
           for (m in 1:nmonth) {
             wwmu_im <- wwmu[i, ,m]
-            Vi <- sig2 * diag(wwmu_im)
+            if (serialcor) {
+              srdu = sqrt(diag(wwmu_im))
+              Rgm <- Rg[midx,midx]
+              Vi = sig2 * srdu %*% Rgm %*% srdu
+            } else {
+              Vi <- sig2 * diag(wwmu_im)
+            }
             V <- V + Vi
+            midx <- midx + nyear # next month
           }
         } else {
           wwmu_i <- wwmu[i, ]
