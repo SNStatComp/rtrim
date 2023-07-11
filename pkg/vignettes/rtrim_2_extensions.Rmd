@@ -23,13 +23,17 @@ rm(list=ls())
 
 # Introduction
 
-This vignette describes the extenstions to the `rtrim` package as per version 2.0:
+This vignette describes the extensions to the `rtrim` package as per version 2.0:
 
 * Monthly data
 * Extended plotting of time-totals
 * Extended plotting of indices
 * Running TRIM in a stratified manner
 * Heatmap visualisations of both observed and imputed data
+
+and in addition extensions introduced in version 2.2:
+* long output
+* scaled index standard errors
 
 See also the vignettes [rtrim confidence intervals](rtrim_confidence_intervals.html) and [taming overdispersion](taming_overdispersion.html) for additional new features.
 
@@ -197,8 +201,6 @@ t2 <- totals(m2)
 plot(t1, t2, names=c("unconstrained","constrained"), leg.pos="bottom")
 ```
 
-
-
 # Output visualization
 
 ## Plotting time-totals
@@ -231,7 +233,7 @@ plot(t3)
 ```
 
 As can be seen, the amount of observed Skylarks is considerable smaller than the time totals suggest.
-Futhermore, it can be seen that while the observed counts decrease from 1989, the imputed counts continue to increase.
+Furthermore, it can be seen that while the observed counts decrease from 1989, the imputed counts continue to increase.
 It is thus suggested to look into more detail what is going on in different sites.
 
 
@@ -305,8 +307,76 @@ If required, the uncertainty band, which is by default plotted using standard er
 plot(tt, band="ci")
 ```
 
-
 See vignette [rtrim confidence intervals](rtrim_confidence_intervals.html) for more information on the underlying methodology.
+
+## Long output
+
+Stating with version 2.2, the `totals()` and `index()` functions can also generate so-called *long* output, which simplifies plotting using alternative approaches, e.g. `ggplot2` or similar, especially because imputed and fitted time-totals are in rows, not in columns.
+```{r}
+tt <- totals(m, long=TRUE)
+head(tt)
+
+lo <- tt$value - 1.96 * tt$SE # Assume normal distribution
+hi <- tt$value + 1.96 * tt$SE
+
+# create an empty plot with sufficient space
+xrange = range(tt$year)
+yrange = range(lo, hi)
+plot(xrange, yrange, type='n', xlab="Year", ylab="Time-totals")
+# plot the time series and error bars
+segments(tt$year, lo, tt$year, hi, col="red", lwd=2)
+lines(tt$year, tt$value, col="red", lwd=2)
+```
+
+A similar mechanism has been included for custom plotting of overall trends, using a new separate `trendlines` function.
+```{r}
+tl <- trendlines(overall(m))     # collect overall trend line
+print(tl)
+
+tt <- totals(m, long=TRUE)       # collect time-totals
+
+# define plot limits
+xr <- range(tt$year)
+yr <- range(tl$lo, tl$hi, tt$value)
+plot(xr, yr, type='n', xlab="Year", ylab="Total counts")
+
+# Plot uncertainty band
+ubx <- c(tl$year, rev(tl$year))
+uby <- c(tl$lo, rev(tl$hi))
+polygon(ubx, uby, col=gray(0.9), border=NA)
+
+# Plot trend line
+lines(tl$year, tl$value, col="black", lwd=2)
+
+# Plot time-totals
+lines(tt$year, tt$value, col="red", lwd=2)
+points(tt$year, tt$value, col="red", pch=16, cex=1.5)
+```
+## "Scaled" standard errors
+
+In `rtrim` version $<2.2$ standard errors for indices are always computed using a formal approach that results in $SE=0$ for the reference year.
+Mathematically, this makes completely sense because the indices are computed by dividing the time-totals time series by the time-total for the reference year. The index for that reference year is thus by definition 1, without any uncertainty, hence $SE=0$. The following plot illustrates this.
+```{r}
+tt  <- totals(m)
+idx <- index(m)
+par(mfrow=c(1,2))
+plot(tt, main="Time-totals", ylab=NA)
+plot(idx, main="Index", ylab=NA)
+```
+
+However, for many (communication) purposes this formal approach is rather confusing,
+because the interpretation is often made that uncertainties 'disappeared' this way,
+Furthermore, the indices are often only calculated to compare trends for multiple species.
+For this comparison purposes, one often wants to preserve the original uncertainty pattern as in the time-totals.
+Starting with `rtrim` version 2.2, this is possible by using the `method="scaled"` option:
+```{r}
+fidx <- index(m, method="formal") # same as just index(m)
+sidx <- index(m, method="scaled")
+par(mfrow=c(1,2))
+plot(fidx, main="Formal approach")
+plot(sidx, main="Scaled approach")
+```
+As can be seen, the uncertainty for the reference year now is $>0$, while the uncertainties for the other years have been shrunk, which can be explaiend from what loosely can be described as a preservation of total uncertainty.
 
 
 ## Plotting heatmaps.
