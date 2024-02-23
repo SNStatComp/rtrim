@@ -227,7 +227,7 @@ read_tcf <- function(file, encoding=getOption("encoding"),simplify=TRUE){
 #'
 #' @export
 #' @keywords internal
-#' @param x an object
+#' @param object a trimbatch object
 #' @param ... options (ignored)
 summary.trimbatch <- function(object,...){
   y <- object[[1]]
