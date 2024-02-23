@@ -378,7 +378,6 @@ trendlines <- function(x) {
 #' total population per time and their 95\% confidence intervals.
 #'
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
-#' @param imputed \code{[logical]} Toggle to show imputed counts
 #' @param ... Further options passed to \code{\link[graphics]{plot}}
 #'
 #' @family analyses
@@ -389,8 +388,7 @@ trendlines <- function(x) {
 #' plot(overall(m))
 #'
 #' @export
-plot.trim.overall <- function(x, imputed=TRUE, ...) {
-  #browser()
+plot.trim.overall <- function(x, ...) {
   X <- x
   title <- if (is.null(list(...)$main)){
     attr(X, "title")
@@ -398,7 +396,7 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
     list(...)$main
   }
 
-  tpt = X$timept
+  tpt  <-  X$timept
   J <- X$J
 
   # Collect all data for plotting: time-totals
@@ -409,15 +407,15 @@ plot.trim.overall <- function(x, imputed=TRUE, ...) {
   y1 = ydata + X$err
 
   trendline <- trendlines(X)
-  nsegment = nrow(X$slope)
+  nsegment <-  nrow(X$slope)
 
   # Compute the total range of all plot elements (but limit the impact of the confidence band)
-  xrange = range(trendline$year, na.rm=TRUE)
-  yrange1 = range(range(y0), range(y1), range(trendline$value), na.rm=TRUE)
-  yrange2 = range(trendline$lo, trendline$hi, na.rm=TRUE)
-  yrange = range(yrange1, yrange2, na.rm=TRUE)
-  ylim = 2 * yrange1[2]
-  if (yrange[2] > ylim) yrange[2] = ylim
+  xrange  <- range(trendline$year, na.rm=TRUE)
+  yrange1 <- range(range(y0), range(y1), range(trendline$value), na.rm=TRUE)
+  yrange2 <- range(trendline$lo, trendline$hi, na.rm=TRUE)
+  yrange  <- range(yrange1, yrange2, na.rm=TRUE)
+  ylim <- 2 * yrange1[2]
+  if (yrange[2] > ylim) yrange[2]  <-  ylim
 
   # Ensure y-axis starts at 0.0
   yrange <- range(0.0, yrange)
