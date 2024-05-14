@@ -390,11 +390,11 @@ trendlines <- function(x) {
 #' @export
 plot.trim.overall <- function(x, ...) {
   X <- x
-  title <- if (is.null(list(...)$main)){
-    attr(X, "title")
-  } else {
-    list(...)$main
-  }
+  # title <- if (is.null(list(...)$main)){
+  #   attr(X, "title")
+  # } else {
+  #   list(...)$main
+  # }
 
   tpt  <-  X$timept
   J <- X$J
@@ -423,7 +423,8 @@ plot.trim.overall <- function(x, ...) {
   # Now plot layer-by-layer (using ColorBrewer colors)
   cbred <- rgb(228,26,28, maxColorValue = 255)
   cbblue <- rgb(55,126,184, maxColorValue = 255)
-  plot(xrange, yrange, type='n', xlab="Year", ylab="Count", las=1, main=title,...)
+  #plot(xrange, yrange, type='n', xlab="Year", ylab="Count", las=1, main=title,...)
+  plot(xrange, yrange, type='n', xlab="Year", ylab="Count", las=1, ...)
   # all trendline segments
   for (i in 1:nsegment) {
     idx <- trendline$segment==i
