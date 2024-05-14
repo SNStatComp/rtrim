@@ -276,6 +276,10 @@ totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL,
       mul <- ci_multipliers(lambda=tt[[2]], sig2=x$sig2, level=level)
       tt$lo <- tt[[2]] - tt[[3]] * mul$lo
       tt$hi <- tt[[2]] + tt[[3]] * mul$hi
+      # BUGFIX:
+      ci <- new_confidence_interval(tt[[2]], tt[[3]], level-level)
+      tt$lo <- ci$lo
+      tt$hi <- ci$hi
     }
   } else { # New (rtrim 3) version, using a 'long' format
     if (which=="fitted") {
@@ -686,13 +690,27 @@ ci_multipliers <- function(lambda, sig2=NULL, level=0.95)
   if (is.null(sig2)) sig2 <- 1.0
   if (sig2<1) stop("Overdispersion must be >= 1")
   # Quantiles
-  qhi <- qgamma(p=1-(1-level)/2, shape=lambda/sig2, scale=sig2)
-  qlo <- qgamma(p=  (1-level)/2, shape=lambda/sig2, scale=sig2)
+  alpha <- 1-level
+  qhi <- qgamma(p=1-alpha/2, shape=lambda/sig2, scale=sig2)
+  qlo <- qgamma(p=  alpha/2, shape=lambda/sig2, scale=sig2)
   # Standard deviation
   sd <- sqrt(sig2 * lambda)
   # Multipliers
-  data.frame(lomul = (qhi-lambda) / sd,
-             himul = (lambda-qlo) / sd)
+  umul <- (qhi-lambda) / sd
+  lmul <- (lambda-qlo) / sd
+  out <- data.frame(lomul=lmul, himul=umul)
+  out
+}
+
+new_confidence_interval <- function(lambda, se, level=0.95)
+{
+  sig2 <- se^2 / lambda
+  # Quantiles
+  alpha <- 1-level
+  qhi <- qgamma(p=1-alpha/2, shape=lambda/sig2, scale=sig2)
+  qlo <- qgamma(p=  alpha/2, shape=lambda/sig2, scale=sig2)
+  out <- data.frame(lo=qlo, hi=qhi)
+  out
 }
 
 
@@ -723,16 +741,29 @@ confint.trim <- function(object, parm=c("imputed","fitted"), level=0.95, ...) {
   lambda <- tt[[2]] # imputed or fitted time totals
   se     <- tt[[3]] # std.err.
 
-  sig2 <- 1.0
+  # # this used to be: sig2 = 1, which gave err. CI
+  # sig2 <- object$sig2
+  # if (is.null(sig2)) sig2 <- 1.0
+  #
+  # # Lower bound:
+  # qlo <- qgamma(p=(1-level)/2, shape=lambda) # Compute multipliers
+  # lmul <- (lambda-qlo) / sqrt(lambda)
+  # lo <- lambda - se * lmul # Compute CI bounds
+  # # Upper bound
+  # qhi <- qgamma(p=1-(1-level)/2, shape=lambda)
+  # umul <- (qhi-lambda) / sqrt(lambda)
+  # hi <- lambda + se * umul
+  #
+  # # BUGFIX (due to Tomas Telensky who spotted it)
+  # mul <- ci_multipliers(lambda, sig2, level)
+  # lo <- lambda - se * mul$lo
+  # hi <- lambda + se * mul$hi
 
-  # Lower bound:
-  qlo <- qgamma(p=(1-level)/2,   shape=lambda) # Compute multipliers
-  lmul <- (lambda-qlo) / sqrt(lambda)
-  lo <- lambda - se * lmul # Compute CI bounds
-  # Upper bound
-  qhi <- qgamma(p=1-(1-level)/2, shape=lambda)
-  umul <- (qhi-lambda) / sqrt(lambda)
-  hi <- lambda + se * umul
+  # Better
+  ci <- new_confidence_interval(lambda, se, level)
+  lo <- ci$lo
+  hi <- ci$hi
+
   # Combine and label
   CI <- cbind(lo, hi)
   pctlo <- sprintf("%.1f %%", 100 * ((1-level)/2))
