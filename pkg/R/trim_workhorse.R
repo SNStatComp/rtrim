@@ -14,6 +14,7 @@
 #' @param constrain_overdisp control constraining overdispersion
 #' @param conv_crit convergence criterion.
 #' @param max_iter maximum number of iterations allowed.
+#' @param alpha_method choose between a more precise (1) or robust (2) method to estimate site parameters alpha.
 #' @return a list of class \code{trim}, that contains all output, statistics, etc.
 #'   Usually this information is retrieved by a set of postprocessing functions
 #'
@@ -22,11 +23,12 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
                            model, changepoints, overdisp, serialcor, autodelete, stepwise,
                            covin = list(),
                            constrain_overdisp=1.0, conv_crit=1e-5, max_iter=200,
+                           alpha_method=1,
                            debug=FALSE)
 {
   # if (debug) browser()
 
-  alpha_method <- 1     # Choose between 2 methods to compute alpha (1 is recommended)
+  #alpha_method <- 1     # Choose between 2 methods to compute alpha (1 is recommended)
   graph_debug <- FALSE  # enable graphical display of the model convergence
   compatible <- FALSE   # Strict TRIM compatibility (i.e. move to GEE after 3 ML iterations)
 
@@ -623,9 +625,14 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
   # with $V$ a covariance matrix (see Section~\ref{covariance}).
 
   update_alpha <- function(method=c("ML","GEE")) {
-    for (i in 1:nsite) {
-      obs <- obsi[[i]] # observed[i, ]
-      if (alpha_method==1) {
+    alpha1 <- numeric(nsite) # new alpha according to method 1
+    ok1 <- TRUE # fid method 1 succeed?
+    alpha2 <- numeric(nsite) # new alpha according to method 2
+
+    # first try method 1
+    if (alpha_method==1) {
+      for (i in 1:nsite) {
+        obs <- obsi[[i]] # observed[i, ]
         # get (observed) counts for this site
         f_i <- if (use.months) f[i,,] else f[i,] # Data for this site
         f_i <- as.vector(f_i)                    # Matrix->vector representation
@@ -642,27 +649,116 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
         } else if (method=="GEE") { # Use covariance
           z_t <- mu_i %*% V_inv[[i]] # define correlation weights
         } else stop("Can't happen")
+
         if (z_t %*% f_i > 0) { # Application of method 1 is possible
-          alpha[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta - log(wt_i)))
-          if (!is.finite(alpha[i])) stop("non-finite alpha problem 1a")
-        } else { # Fall back to method 2
-          sumf <- sum(f_i)
-          sumu <- sum(mu_i)
-          dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
-          alpha[i] <<- alpha[i] + dalpha;
-          if (!is.finite(alpha[i])) stop("non-finite alpha problem 1b")
+          tmp1 <- z_t %*% f_i
+          tmp2 <- z_t %*% exp(B_i %*% beta - log(wt_i))
+          if (tmp1>0 & tmp2>0) { # Indeed
+            alpha1[i] <- log(tmp1) - log(tmp2)
+          } else {
+            msg <- sprintf("Problem updating alpha for site #%d (%s); consider setting alpha_method=2", i, site_id[i])
+            warning(msg)
+            ok1 <- FALSE
+          }
+        } else {
+          msg <- sprintf("Problem updating alpha for site #%d (%s); consider setting alpha_method=2", i, site_id[i])
+          warning(msg)
+          ok1 <- FALSE
         }
-        #if (z_t %*% f_i < 0) z_t = matrix(1, 1, nobs[i]) # alternative hack
-      } else { #method 2: classic TRIM
+        if (!ok1) break # do not continue if method 1 is broken
+      }
+    }
+
+    if (alpha_method==2 | !ok1) { # run method 2
+      for (i in 1:nsite) {
+        obs <- obsi[[i]] # observed[i, ]
         f_i <- f[i, obs]
         mu_i <- mu[i, obs]
         sumf <- sum(f_i)
         sumu <- sum(mu_i)
         dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
-        alpha[i] <<- alpha[i] + dalpha;
-        if (!is.finite(alpha[i])) stop("non-finite alpha problem 2")
+        alpha2[i] <- alpha[i] + dalpha;
+        if (!is.finite(alpha2[i])) stop("non-finite alpha problem")
       }
     }
+
+    # use either alpha 1 or 2
+    if (alpha_method==1 & ok1) {
+      alpha <<- alpha1
+    } else {
+      alpha <<- alpha2
+    }
+
+    # # original code
+    #
+    # for (i in 1:nsite) {
+    #   obs <- obsi[[i]] # observed[i, ]
+    #   if (alpha_method==1) {
+    #     # get (observed) counts for this site
+    #     f_i <- if (use.months) f[i,,] else f[i,] # Data for this site
+    #     f_i <- as.vector(f_i)                    # Matrix->vector representation
+    #     f_i <- f_i[obs]                          # Observed only
+    #     # idem weights, using more compact but equivalent code
+    #     wt_i <- if (use.months) as.vector(wt[i,,])[obs] else wt[i,obs]
+    #     # idem expected
+    #     mu_i <- if (use.months) as.vector(mu[i,,])[obs] else mu[i,obs]
+    #     # Get design matrix B
+    #     B <- make.B(i)
+    #     B_i <- B[obs, , drop=FALSE]
+    #     if (method=="ML") { # no covariance; $V_i = \diag{mu}$
+    #       z_t <- matrix(1, 1, nobs[i])
+    #     } else if (method=="GEE") { # Use covariance
+    #       z_t <- mu_i %*% V_inv[[i]] # define correlation weights
+    #     } else stop("Can't happen")
+    #
+    #     # # orginal code, which caused problems, see Tomas Telensky's mail
+    #     # if (z_t %*% f_i > 0) { # Application of method 1 is possible
+    #     #   alpha[i] <<- log(z_t %*% f_i) - log(z_t %*% exp(B_i %*% beta - log(wt_i)))
+    #     #   if (!is.finite(alpha[i])) stop("non-finite alpha problem 1a")
+    #     # } else { # Fall back to method 2
+    #     #   sumf <- sum(f_i)
+    #     #   sumu <- sum(mu_i)
+    #     #   dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
+    #     #   alpha[i] <<- alpha[i] + dalpha;
+    #     #   if (!is.finite(alpha[i])) stop("non-finite alpha problem 1b")
+    #     # }
+    #
+    #     # alternative approach with automatic fallback to method 2
+    #     a_method <- 2L
+    #     if (z_t %*% f_i > 0) a_method <- 1L # Application of method 1 is possible
+    #     old_alpha <- alpha[i]
+    #
+    #     if (a_method==1L) {
+    #       tmp1 <- z_t %*% f_i
+    #       tmp2 <- z_t %*% exp(B_i %*% beta - log(wt_i))
+    #       if (tmp1<0 | tmp2<0) {
+    #         # fall back of alternative method
+    #         a_method <- 2L
+    #       } else {
+    #         alpha[i] <<- log(tmp1) - log(tmp2)
+    #       }
+    #     }
+    #
+    #     if (a_method==2L) {
+    #       sumf <- sum(f_i)
+    #       sumu <- sum(mu_i)
+    #       dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
+    #       alpha[i] <<- old_alpha + dalpha;
+    #     }
+    #
+    #     if (!is.finite(alpha[i])) stop("non-finite alpha problem 1")
+    #
+    #     #if (z_t %*% f_i < 0) z_t = matrix(1, 1, nobs[i]) # alternative hack
+    #   } else { #method 2: classic TRIM
+    #     f_i <- f[i, obs]
+    #     mu_i <- mu[i, obs]
+    #     sumf <- sum(f_i)
+    #     sumu <- sum(mu_i)
+    #     dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
+    #     alpha[i] <<- alpha[i] + dalpha;
+    #     if (!is.finite(alpha[i])) stop("non-finite alpha problem 2")
+    #   }
+    # }
     #printf("\n\n** %f ** \n\n", max(abs(alpha1-alpha2)))
     #alpha <<- alpha1 # works better in some cases, i.e. testset 10104_0.tcf
     #if (!all(is.finite(alpha))) alpha <- alpha2
