@@ -858,18 +858,18 @@ results <- function(z) {
 }
 
 #' @export
-plot.trim.results <- function(z, ...) {
-  sites = levels(z$site)
-  nsite = nlevels(z$site)
+plot.trim.results <- function(x, ...) {
+  sites = levels(x$site)
+  nsite = nlevels(x$site)
   hues = seq(0, 360, length.out = nsite+1)[1:nsite]
   colors = hcl(hues, 100, 65) # C and L Similar to ggplot
   # hues = seq(0, 1, length.out = nsite+1)[1:nsite]
   # colors = hsv(hues, 0.5, 1)
-  xrange = range(z$time)
-  yrange = range(z$observed, z$modelled, na.rm=TRUE)
+  xrange = range(x$time)
+  yrange = range(x$observed, z$modelled, na.rm=TRUE)
   plot(xrange,yrange, type='n', xlab="Time", ylab="Counts")
   for (i in 1: nsite) {
-    df = z[z$site == sites[i], ]
+    df = x[x$site == sites[i], ]
     points(df$time, df$observed, pch=16, col=colors[i])
     lines(df$time, df$modelled, col=colors[i])
   }
