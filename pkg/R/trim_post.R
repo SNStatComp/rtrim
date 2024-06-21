@@ -857,6 +857,7 @@ results <- function(z) {
   out
 }
 
+#' @export
 plot.trim.results <- function(z, ...) {
   sites = levels(z$site)
   nsite = nlevels(z$site)
