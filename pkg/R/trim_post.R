@@ -866,7 +866,7 @@ plot.trim.results <- function(x, ...) {
   # hues = seq(0, 1, length.out = nsite+1)[1:nsite]
   # colors = hsv(hues, 0.5, 1)
   xrange = range(x$time)
-  yrange = range(x$observed, z$modelled, na.rm=TRUE)
+  yrange = range(x$observed, x$modelled, na.rm=TRUE)
   plot(xrange,yrange, type='n', xlab="Time", ylab="Counts")
   for (i in 1: nsite) {
     df = x[x$site == sites[i], ]
