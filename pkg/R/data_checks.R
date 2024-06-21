@@ -283,7 +283,7 @@ get_deletion <- function(count, time, changepoints, covars) {
       # the first column, representing th piece (second [[1]]).
       # These are chanepoints as factor, so with as.integer() we get their position.
       # however, a '0' changepoints was added earlier, so we have to extract it to find the correct index
-      out <- as.integer(err[[1]][[1]])-1
+      out <- as.integer(err[[1]][[1]][1])-1
       # e <- err[[1]]
       # cat("e:"); str(e); str(e[1,1]); str(as.integer(e[1,1]))
       # out <- as.numeric(as.character(e[1,1]))
@@ -311,6 +311,7 @@ autodelete <- function(count, time, changepoints, covars=NULL) {
   out <- get_deletion(count, time, changepoints, covars)
   niter <- 1
   tpts <- 1:length(time) # get_deletion always returns out as of time was expressed in time points
+  # str(out)
   while (out > 0) {
     # cat("\n")
     # cat("to_del:"); str(out)
