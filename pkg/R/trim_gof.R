@@ -40,12 +40,12 @@ gof <- function(x) UseMethod("gof")
 #' @rdname gof
 gof.trim <- function(x) {
   stopifnot(class(x)=="trim")
-  gof.numeric(x$f, x$mu, x$alpha, x$beta)
+  gof_numeric(x$f, x$mu, x$alpha, x$beta)
 }
 
 # Here is the workhorse function
 
-gof.numeric <- function(f, mu, alpha, beta) {
+gof_numeric <- function(f, mu, alpha, beta) {
   observed <- is.finite(f)
 
   # The $\chi^2$ (Chi-square) statistic is given by
