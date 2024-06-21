@@ -333,7 +333,7 @@ trim.formula <- function(object, data=NULL, weights=NULL, ...)
   if (is.null(data)) stop("no data given")
   if (!inherits(data,"data.frame")) stop("argument 'data' should be a data frame")
   if (!is.null(weights)) {
-    if (class(weights)!="character") stop("argument 'weights' should be character")
+    if (!is.character(weights)) stop("argument 'weights' should be character")
     if (!(weights %in% names(data))) stop("weights column not found in data frame")
   }
 
