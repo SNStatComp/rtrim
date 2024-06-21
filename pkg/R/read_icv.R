@@ -1,12 +1,16 @@
+# Functions to read the covariance matrix in case of iterative use of rtrim
+
+
 read_icv <- function(x,...){
   UseMethod("read_icv")
 }
 
+#' @export
 read_icv.character <- function(x, J=0, ...){
   icv_read(filenm=x, J=J)
 }
 
-
+#' @export
 read_icv.trimcommand <- function(x,...){
   basename <- strsplit(x$file,"\\.")[[1]][1]
   filenm <- paste0(basename,".ICV")
