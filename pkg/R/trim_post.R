@@ -337,17 +337,17 @@ totals <- function(x, which=c("imputed","fitted","both"), obs=FALSE, level=NULL,
 
 #------------------------------------------------------------------ Export ----
 
-export <- function(x, species, stratum) UseMethod("export")
-
-export.trim.totals <- function(x, species, stratum) {
-  stopifnot(inherits(x, "trim.totals"))
-
-  # Create extra columns to be put before the actual time totals
-  df1 = data.frame(species=species, stratum=stratum)
-  df2 = x$totals
-  df = cbind(df1, df2)
-  print(df, row.names=FALSE)
-}
+# export <- function(x, species, stratum) UseMethod("export")
+#
+# export.trim.totals <- function(x, species, stratum) {
+#   stopifnot(inherits(x, "trim.totals"))
+#
+#   # Create extra columns to be put before the actual time totals
+#   df1 = data.frame(species=species, stratum=stratum)
+#   df2 = x$totals
+#   df = cbind(df1, df2)
+#   print(df, row.names=FALSE)
+# }
 
 #------------------------------------------------------------------ Plot -----
 
