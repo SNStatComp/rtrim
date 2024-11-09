@@ -1,3 +1,4 @@
+#'
 #' Trend and Indices for Monitoring Data
 #'
 #' The TRIM model is used to estimate species populations based on frequent
@@ -33,8 +34,10 @@
 #' Enjoy!
 #' The rtrim team of Statistics Netherlands
 #'
-#' @name rtrim-package
-#' @docType package
+# #' @name rtrim-package
+# #' @docType package
+#' @aliases rtrim-package
+"_PACKAGE"
 #' @import methods
 #' @importFrom utils read.table head tail str capture.output packageVersion
 #' @importFrom grDevices  gray rgb hcl adjustcolor col2rgb

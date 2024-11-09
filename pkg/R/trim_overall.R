@@ -115,33 +115,62 @@ overall <- function(x, which=c("imputed","fitted"), changepoints=numeric(0), bc=
     blo <- bhat - tval * berr
     bhi <- bhat + tval * berr
 
-    # First priority: evidence for a strong trend?
-    if (blo[2] > +0.05) return("Strong increase (p<0.01)")
-    if (bhi[2] < -0.05) return("Strong decrease (p<0.01)")
-    if (blo[1] > +0.05) return("Strong increase (p<0.05)")
-    if (bhi[1] < -0.05) return("Strong decrease (p<0.05)")
-    # if (blo[2] > 1.05) return("Strong increase (p<0.01)")
-    # if (bhi[2] < 0.95) return("Strong decrease (p<0.01)")
-    # if (blo[1] > 1.05) return("Strong increase (p<0.05)")
-    # if (bhi[1] < 0.95) return("Strong decrease (p<0.05)")
+    # Trends are linear in the additive domain (log-counts);
+    # to interpret them in the counts domain, we have to take the exp()
+    # (multiplicattive domain)
 
-    # Second prority: evidence for a moderate trend?
-    eps = 1e-7 # required to get a correct interpretation for slope=0.0 (Stable)
-    if (blo[2] > +eps) return("Moderate increase (p<0.01)")
-    if (bhi[2] < -eps) return("Moderate decrease (p<0.01)")
-    if (blo[1] > +eps) return("Moderate increase (p<0.05)")
-    if (bhi[1] < -eps) return("Moderate decrease (p<0.05)")
-    # if (blo[2] > 1.0+eps) return("Moderate increase (p<0.01)")
-    # if (bhi[2] < 1.0-eps) return("Moderate decrease (p<0.01)")
-    # if (blo[1] > 1.0+eps) return("Moderate increase (p<0.05)")
-    # if (bhi[1] < 1.0-eps) return("Moderate decrease (p<0.05)")
-    #
-    # Third priority: evidency for stability?
-    if (blo[1] > -0.05 && bhi[1] < 0.05) return("Stable")
-    # if (blo[1]>0.95 && bhi[1]<1.05) return("Stable")
+    #                            0.95  1.0   1.05
+    #                             v     v     v
+    # Strong decrease   |---x---| .     .     .
+    # Moderate decreate      |---x---|  .     .
+    # Stable                      . |---x---| .
+    # Moderate increase           .       |---x---|
+    # Strong increase             .           .  |---x---|
+    # Uncertain                |--------x--------|
 
-    # Leftover category: uncertain
-    return("Uncertain")
+    multiplicative <- TRUE
+    if (multiplicative) {
+      blo <- exp(blo)
+      bhi <- exp(bhi)
+
+      # First priority: evidence for a strong trend?
+      if (blo[2] > 1.05) return("Strong increase (p<0.01)")
+      if (bhi[2] < 0.95) return("Strong decrease (p<0.01)")
+      if (blo[1] > 1.05) return("Strong increase (p<0.05)")
+      if (bhi[1] < 0.95) return("Strong decrease (p<0.05)")
+
+      # Second prority: evidence for a moderate trend?
+      eps = 1e-7 # required to get a correct interpretation for slope=0.0 (Stable)
+      if (blo[2] > 1.0+eps) return("Moderate increase (p<0.01)")
+      if (bhi[2] < 1.0-eps) return("Moderate decrease (p<0.01)")
+      if (blo[1] > 1.0+eps) return("Moderate increase (p<0.05)")
+      if (bhi[1] < 1.0-eps) return("Moderate decrease (p<0.05)")
+
+      # Third priority: evidency for stability?
+      if (blo[1]>0.95 && bhi[1]<1.05) return("Stable")
+
+      # Leftover category: uncertain
+      return("Uncertain")
+    } else { # i.e., additive
+      # First priority: evidence for a strong trend?
+      if (blo[2] > +0.05) return("Strong increase (p<0.01)")
+      if (bhi[2] < -0.05) return("Strong decrease (p<0.01)")
+      if (blo[1] > +0.05) return("Strong increase (p<0.05)")
+      if (bhi[1] < -0.05) return("Strong decrease (p<0.05)")
+
+      # Second prority: evidence for a moderate trend?
+      eps = 1e-7 # required to get a correct interpretation for slope=0.0 (Stable)
+      if (blo[2] > +eps) return("Moderate increase (p<0.01)")
+      if (bhi[2] < -eps) return("Moderate decrease (p<0.01)")
+      if (blo[1] > +eps) return("Moderate increase (p<0.05)")
+      if (bhi[1] < -eps) return("Moderate decrease (p<0.05)")
+
+      # Third priority: evidency for stability?
+      if (blo[1] > -0.05 && bhi[1] < 0.05) return("Stable")
+
+      # Leftover category: uncertain
+      return("Uncertain")
+    }
   }
 
   # The overall slope is computed for both the modeled and the imputed $\Mu$'s.
@@ -375,7 +404,7 @@ trendlines <- function(x) {
 #' Plot overall slope
 #'
 #' Creates a plot of the overall slope, its 95\% confidence band, the
-#' total population per time and their 95\% confidence intervals.
+#' total population per time and their standard errors.
 #'
 #' @param x An object of class \code{trim.overall} (returned by \code{\link{overall}})
 #' @param ... Further options passed to \code{\link[graphics]{plot}}

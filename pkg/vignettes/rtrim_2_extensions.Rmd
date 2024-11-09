@@ -115,7 +115,7 @@ See the vignettes [Models and statistical methods in rtrim](TRIM_methods_v2.pdf)
 
 # Stratified `rtrim`
 
-Sometimes it can be usefull to combine `rtrim` results for different regions ('strata') into a single, larger scale ('superstratum') `rtrim` analysis. One particular example is the case where individual EU countries use TRIM or `rtrim` to compute indices for their own countries, and submit the results to the European Bird Census Counsil [EBCC](http://www.ebcc.info) for aggregatation on the EU scale, see van Strien et al. [2001] for an example using the previous stand-alone version of TRIM.
+Sometimes it can be usefull to combine `rtrim` results for different regions ('strata') into a single, larger scale ('superstratum') `rtrim` analysis. One particular example is the case where individual EU countries use TRIM or `rtrim` to compute indices for their own countries, and submit the results to the European Bird Census Counsil [EBCC](https://www.ebcc.info/) for aggregatation on the EU scale, see van Strien et al. [2001] for an example using the previous stand-alone version of TRIM.
 In this case, the output of the lower scale `rtrim` runs, i.e., the time totals, are used as 'observations' in the higher scale run.
 Although this procedure works out well for the estimates and indices, it doesn't work for the associated standard errors, because the time totals are not Poisson distributed, where the original counts are. To circumvent this problem, `rtrim` has options to export the variances of the lower scale runs and to import these into the higher scale runs, to use instead.
 

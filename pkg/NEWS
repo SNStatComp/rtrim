@@ -1,5 +1,18 @@
-version 2.2
--
+version 2.3.0
+- Updated the FAQ
+- Fixed an issue regarding incomplete covariates
+- Added scaled index in addition to "formal"
+- Added 'long' output in index() and totals()
+- Added Trendlines() to process overall() output
+- Fixed a bug in autodelete()
+- Removed spurious option "imputed" in plot.trim.overall() *)
+- Fixed a bug that resulted in negative lower bounds for confidence intervals
+  in extreme cases (huge overdispersion) *)
+- Fixed issue reporting wrong package version *)
+- Fixed documentation of plot.trim.overall which erroneously mentioned that for
+  each time point confidence intervals are plotted rather than standard errors *)
+
+*) Thanks for Tomas Telensky for pointing at these issues.
 
 version 2.1.1
 - Fixed incompatibility with R 4.0

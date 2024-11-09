@@ -1,11 +1,15 @@
 Package: rtrim
 Title: Trends and Indices for Monitoring Data
-Version: 2.2.1
-Date: 2022-06-08
+Version: 2.3.0
+Date: 2024-06-21
 Authors@R: c(
-    person("Patrick","Bogaart", email="rtrim@cbs.nl", role=c("aut","cre")),
+    person("Patrick","Bogaart",
+      email="rtrim@cbs.nl",
+      role=c("aut","cre"),
+      comment=c(ORCID="0000-0002-8612-1289")),
     person("Mark", "van der Loo", role="aut"),
-    person("Jeroen","Pannekoek", role="aut"))
+    person("Jeroen","Pannekoek", role="aut"),
+    person("Statistics Netherlands", role="cph"))
 Description: The TRIM model is widely used for estimating growth and decline of
     animal populations based on (possibly sparsely available) count data. The
     current package is a reimplementation of the original TRIM software developed
@@ -24,6 +28,6 @@ Suggests:
     knitr,
     rmarkdown,
     R.rsp
-RoxygenNote: 7.2.0
+RoxygenNote: 7.3.1
 Encoding: UTF-8
 VignetteBuilder: knitr, R.rsp

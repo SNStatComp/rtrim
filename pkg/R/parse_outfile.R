@@ -15,6 +15,7 @@ read_tof <- function(file){
   r
 }
 
+#' @keywords internal
 print.tof <- function(x,...){
   cat(x)
 }
