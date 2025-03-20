@@ -1,3 +1,6 @@
+version 2.3.1
+- Exported weights in results()
+
 version 2.3.0
 - Updated the FAQ
 - Fixed an issue regarding incomplete covariates

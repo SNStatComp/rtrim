@@ -815,12 +815,13 @@ vcov.trim <- function(object, which = c("imputed","fitted"), ... ) {
 # counts. These results are presented as a data frame, which is readily exported to
 # a file by the user.
 
-#' collect observed, modelled, and imputed counts from TRIM output
+#' collect observed, modelled, and imputed counts from TRIM output,
+#' as well as weights (if applicable)
 #'
 #' @param z TRIM output structure (i.e., output of a call to \code{trim})
 #'
 #' @return A \code{data.frame}, one row per site-time combination, with columns for
-#' site, year, month (optionally), observed counts, modelled counts and imputed counts.
+#' site, year, month (optionally), observed counts, modelled and imputed counts, and weights
 #' Missing observations are marked as \code{NA}.
 #'
 #' @export
@@ -833,6 +834,8 @@ vcov.trim <- function(object, which = c("imputed","fitted"), ... ) {
 results <- function(z) {
   stopifnot(inherits(z,"trim"))
 
+  wt <- !is.null(z$wt)
+
   if (z$nmonth==1) {
     # No months
     out <- data.frame(
@@ -842,6 +845,7 @@ results <- function(z) {
       fitted   = as.vector(t(z$mu)),
       imputed  = as.vector(t(z$imputed))
     )
+    if (wt) out$weights <- as.vector(t(z$wt))
   } else {
     # With monthts
     out <- data.frame(
@@ -852,6 +856,7 @@ results <- function(z) {
       fitted   = as.vector(aperm(z$mu, c(3,2,1))),
       imputed  = as.vector(aperm(z$imputed, c(3,2,1)))
     )
+    if (wt) out$weights = as.vector(aperm(z$wt, c(3,2,1)))
   }
   class(out) <- c("trim.results","data.frame")
   out
