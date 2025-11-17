@@ -386,6 +386,7 @@ trendlines <- function(x) {
         sumdj2 <- sum((j-mean(j))^2)
         SSR = X$SSR[i] # Get stored SSR as computed by overall()
         dy <- t * sqrt((SSR/df)*(1/ntpt + dx2/sumdj2))
+        #print(c(t, SSR,df,ntpt,sumdj2))
         ylo <- exp(a + b*x - dy)
         yhi <- exp(a + b*x + dy)
       }
