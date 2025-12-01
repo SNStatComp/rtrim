@@ -179,7 +179,8 @@ pieces_from_changepoints <- function(year, changepoints, dbg=F) {
     cpts <- changepoints
   } else if (all(changepoints %in% year)) {
     # case 2: actual years (used); convert to 1..J-1
-    cpts <- match(changepoints, year) # should be sort(unique(year))
+    unique_years <- sort(unique(year))
+    cpts <- match(changepoints, unique_years)
   } else {
     stop("Invalid changepoints specified")
   }
