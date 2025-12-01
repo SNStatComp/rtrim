@@ -158,10 +158,14 @@ assert_sufficient_counts <- function(count, index) {
   assert_positive(time_totals, names(index))
 }
 
-
-# Get an indicator for the pieces in 'piecewise linear model'
-# that are encoded in changepoints.
-pieces_from_changepoints <- function(year, changepoints) {
+#' Link the time vector (assuming years) to the pieces (as in 'piecewise linear model) that are encoded in the changepoints.
+#'
+#' @param year integer vector of years (or time points 1..J)
+#' @param changepoints integer vector of suggested changepoints in the range 1..J-1
+#'
+#' @returns a vector of the changepoints (as in 1..J-1) for each year.
+pieces_from_changepoints <- function(year, changepoints, dbg=F) {
+  if (dbg) cat("pieces_from_changepoints()\n")
   # convert actual time from (possibly non-contiguous) years to time points 1..J
   jj <- as.integer(ordered(year))
   J <- max(jj)
@@ -175,7 +179,7 @@ pieces_from_changepoints <- function(year, changepoints) {
     cpts <- changepoints
   } else if (all(changepoints %in% year)) {
     # case 2: actual years (used); convert to 1..J-1
-    cpts <- match(changepoints, year)
+    cpts <- match(changepoints, year) # should be sort(unique(year))
   } else {
     stop("Invalid changepoints specified")
   }
@@ -190,7 +194,8 @@ pieces_from_changepoints <- function(year, changepoints) {
   }
 
   # Ready
-  pieces
+  if (dbg) rprintf("  returning: %s\n", vfmt(pieces, 20))
+  return(pieces)
 }
 
 
@@ -200,7 +205,7 @@ pieces_from_changepoints <- function(year, changepoints) {
 assert_plt_model <- function(count, time, changepoints, covars){
 
   # First check if the changepoints, are strictly increasing
-  if (!all(diff(changepoints)>0) ) {
+  if (!all(diff(changepoints)>0)) {
     msg <- "changepoints not ordered, or containing duplicates"
     stop(msg, call.=FALSE)
   }
@@ -265,99 +270,119 @@ assert_covariate_counts <- function(count, time, covars, timename="time"){
 }
 
 
-# Return the first changepoint to delete (if any).
-# returns the value of the CP, or -1 when nothing
-# needs to be deleted.
-get_deletion <- function(count, time, changepoints, covars) {
-  # browser()
+#' Return the index of the first changepoint to delete
+#'
+#' @param count integer vector of counts (NA, 0 or positive)
+#' @param time integer vector of years (or time points 1..J)
+#' @param changepoints integer vector of suggested changepoints in the range 1..J-1
+#' @param covars optional covariance info.
+#' @param dbg debug flag
+#'
+#' @returns the index of the first changepoint to delete; or 0 if there are none to delete
+get_deletion <- function(count, time, changepoints, covars, dbg=dbg) {
+  if (dbg) rprintf("get_deletion()\n")
+
+  .count_pos <- function(x) {
+    # count number of positive elements in vector x.
+    ispos <- x > 0
+    sum(ispos, na.rm=TRUE)
+  }
+
   # if ( changepoints[1] != 1) changepoints <- c(1,changepoints)
   out <- 0L
   if (length(changepoints)==1) return(out) # Never propose to delete a lonely changepoint
-  pieces <- pieces_from_changepoints(time, changepoints)
-  #cat("pieces"); str(pieces)
+  # link the time data to the corresponding change points
+  pieces <- pieces_from_changepoints(time, changepoints, dbg=dbg)
 
-  if ( length(covars)> 0){
+  if (length(covars) > 0){
     err <- get_cov_count_errlist(count, pieces, covars,timename="piece")
-    if ( length(err)>0){
+    if (length(err) > 0){
       # extract for the first covariant ([[1]]),
       # the first column, representing th piece (second [[1]]).
       # These are chanepoints as factor, so with as.integer() we get their position.
       # however, a '0' changepoints was added earlier, so we have to extract it to find the correct index
-      out <- as.integer(err[[1]][[1]][1])-1
+      out <- as.integer(err[[1]][[1]][1])-1L
       # e <- err[[1]]
       # cat("e:"); str(e); str(e[1,1]); str(as.integer(e[1,1]))
       # out <- as.numeric(as.character(e[1,1]))
     }
-  } else {
-    tab <- tapply(count, list(pieces=pieces), sum,na.rm=TRUE)
-    # print(tab)
-    # cat("tab:"); str(tab)
+  } else { # no covars to deal with
+    # count the number of positive counts per piece
+    tab <- tapply(count, list(pieces=pieces), .count_pos) # was: using sum, na.rm=TRUE
+    if (dbg) {
+      rprintf("Tabulating pieces:\n")
+      print(tab)
+      rprintf("---\n")
+    }
+    # look for this first piece without positive counts
     j <- tab <= 0
     if (any(j)){
-      wj = which(j)[1] # just get the index im the list of changepoints
-      # cat("wj:"); str(wj)
-      # out <- as.numeric(names(tab)[min(wj+1, length(tab))])
-      out <- unname(wj)
+      # return the index of that piece/changepoint
+      idx = which(j)[1]
+      out <- unname(idx)
     }
   }
-  out
+  if (dbg) rprintf("  Returning: %d\n", out)
+  return(out)
 }
 
-autodelete <- function(count, time, changepoints, covars=NULL) {
-
-  # cat("time: ");  str(time)
-  # cat("count:"); str(count)
-  # cat("cpts: ");  str(changepoints)
-  out <- get_deletion(count, time, changepoints, covars)
-  niter <- 1
-  tpts <- 1:length(time) # get_deletion always returns out as of time was expressed in time points
-  # str(out)
-  while (out > 0) {
-    # cat("\n")
-    # cat("to_del:"); str(out)
-    idx  <- as.integer(out)
-    if (idx > length(changepoints)) idx <- length(changepoints)
-    # str(idx)
-    # str(changepoints)
-    rprintf("Auto-deleting change point: %d\n", changepoints[idx])
-    # cpt
-    # cat("tpt:"); str(tpt)
-    #
-    # # get the actual year or time point, if that has been used)
-    # yr <- time[tpt]
-    #
-    # # which changepoint do we have to delete?
-    # if (yr==tpt) {
-    #   # using time-points
-    #   idx <- which(changepoints==tpt)
-    # } else {
-    #   # using years
-    #   idx <- which(changepoints)
-    # }
-    #
-    # #yr  <- changepoints[cp] # was: time[cp]
-    # #idx <- which(changepoints==cp)
-    # #yr <- changepoints[idx]
-    #
-    # yr <- time[cp]
-    # idx <- which(changepoints==yr)
-    #
-    # cat("idx:"); str(idx)
-    # cat("yr:"); str(yr)
-    # if (cp==yr) printf("Auto-deleting change point #%d\n", cp)
-    # else        printf("Auto-deleting change point #%d (%d)\n", cp, yr)
-    # delete changepoint
-    changepoints <- changepoints[-idx] # was: changepoints[changepoints != out]
-    # print(idx)
-    # print(changepoints)
-    out <- get_deletion(count, time, changepoints, covars)
-    niter <- niter+1
-    if (niter>100) stop("Infinite loop in autodelete()")
+#' Autodelete function
+#'
+#' @param count integer vector of counts (NA, 0 or positive)
+#' @param time integer vector of years (or time points 1..J)
+#' @param changepoints integer vector of suggested changepoints in the range 1..J-1
+#' @param covars optional covariance info.
+#' @param dbg debug flag
+#'
+#' @returns a vector with new changepoints
+#' @export
+#'
+#' @examples
+autodelete <- function(count, year, changepoints, covars=NULL, dbg=T) {
+  if (dbg) {
+    cat("autodelete()\n")
+    cat("  count:"); str(count)
+    cat("  year: ");  str(year)
+    cat("  cpts: ");  str(changepoints)
   }
-  changepoints
+  # get the index of the first changepoint to delete
+  idx <- get_deletion(count, year, changepoints, covars, dbg=dbg)
+  stopifnot(is.integer(idx))
+  niter <- 1L
+  while (idx > 0L) {
+    # Delete this changepoint.
+
+    # first a check
+    if (idx > length(changepoints)) {
+      msg <- sprintf("Can't happen: index %d too large in autodelete()", idx)
+      stop(msg, call.=FALSE)
+    }
+
+    # move on to actual deletion
+    if (dbg) rprintf("Auto-deleting change point %d : %d\n", idx, changepoints[idx])
+    changepoints <- changepoints[-idx] # was: changepoints[changepoints != out]
+
+    # get the index of the next changepoint to delete
+    idx <- get_deletion(count, time, changepoints, covars, dbg=dbg)
+
+    # prevent infinite loops.
+    niter <- niter + 1L
+    if (niter > 100L) stop("Infinite loop in autodelete()")
+  }
+  if (dbg) rprintf("  Returning: %s\n", vfmt(changepoints))
+  return(changepoints)
 }
 
-# rprintf <- function(fmt, ...) cat(sprintf(fmt,...))
+rprintf <- function(fmt, ...) cat(sprintf(fmt,...))
+vfmt <- function(v, maxlen=9) {
+  n <- length(v)
+  if (n>maxlen) {
+    s <- sprintf("%s ... %s", toString(v[1:(maxlen-4)]), toString(v[(n-2):n]))
+  } else {
+    s <- toString(v)
+  }
+  s
+}
 #
 # load("../tests/testthat/testdata/131183.RData")
 #
@@ -372,6 +397,21 @@ autodelete <- function(count, time, changepoints, covars=NULL) {
 
 #trim(count ~ site + year, data=df, model=2, overdisp=TRUE, serialcor=TRUE, changepoints="all", autodelete=TRUE)
 
+# new test code 2025
+# test code
+cat("\n\n--- testing with time 1... --- should be 4\n")
+time  <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+count <- c(1, 1, 1, 1, 0, 0, 0, 1, 9,  9)
+cpts  <- c(1,       4,       7          ) # cpt 7 is removed to provide data to cpt 4
+out <- autodelete(count, time, cpts)
+print(out)
+
+cat("\n\n--- testing with time 1... --- should be 4\n")
+time  <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+count <- c(1, 1, 1, 1,NA,NA,NA, 1, 1,  1)
+cpts  <- c(1,       4,       7          ) # cpt 7 is removed to provide data to cpt 4
+out <- autodelete(count, time, cpts)
+print(out)
 
 # # test code
 # cat("\n\n--- testing with time 1... --- should be 4\n")
