@@ -14,9 +14,6 @@
 
 #' Check whether there are sufficient observations to run a model
 #'
-#'
-#'
-#'
 #' @param x A \code{\link{trimcommand}} object, a \code{data.frame}, or the location of a TRIM command file.
 #' @param ... Parameters passed to other methods.
 #'
