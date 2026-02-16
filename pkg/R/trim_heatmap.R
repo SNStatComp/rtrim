@@ -156,7 +156,7 @@ heatmap <- function(z, what=c("data","imputed","fitted"), log=TRUE, xlab="auto",
   yy = c(0, nr)+0.5
 
   plot(xx,yy, type='n', ylim=rev(yy), xlab=xlab, ylab=ylab, ...)
-  rasterImage(img, xx[1], yy[1], xx[2], yy[2], interpolate=FALSE)
+  rasterImage(img, xx[1], yy[2], xx[2], yy[1], interpolate=FALSE)
 
   # Draw grid for monthly only
   if (M>1) {
