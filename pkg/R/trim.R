@@ -233,6 +233,7 @@ trim <- function(object, ...) {
 #'   Used within the iterative model estimation algorithm.
 #'   The default value is \code{1e-5}.).
 #'   May be set to higher values in case models don't converge.}
+#' \item{\code{min_obs}}{Minimum number of positive observations per change point (default: 1). Increase if the model does not convergere due to sparse data sets.}
 #' \item{\code{max_iter}}{Number of iterations. Default value is \code{200}. May be set to higher values in case models don't converge.}
 #' \item{\code{alpha_method}}{Choose between a more precise (method 1) or a more robust (method 2) method to estimate site parameters alpha.
 #' The default is the the more precise method; but consider setting it to the more robust method 2 if method results in warnings.}
