@@ -23,7 +23,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
                            model, changepoints, overdisp, serialcor, autodelete, stepwise,
                            covin = list(),
                            constrain_overdisp=1.0, conv_crit=1e-5, max_iter=200,
-                           alpha_method=1,
+                           alpha_method=1, min_obs=1L,
                            debug=FALSE)
 {
   # if (debug) browser()
@@ -35,7 +35,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   # These were user options, but are now fixed
   max_sub_step <- 7L
-  max_beta <- 20
+  max_beta <- 50 # was: 20
 
   # =========================================================== Preparation ====
 
@@ -567,8 +567,10 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
 
   # Parameter $\alpha$ has a unique value for each site.
   # alpha <- matrix(0, nsite,1) # Store as column vector
-  alpha <- matrix(log(rowSums(f, na.rm=TRUE)/nyear))
+  #alpha <- matrix(log(rowSums(f, na.rm=TRUE)/nyear))
   # alpha <- matrix(log(rowMeans(f*wt, na.rm=TRUE)));
+
+  alpha <- matrix(log(rowSums(f, na.rm=TRUE)/nyear))
 
   # Parameter $\beta$ is model dependent.
   # if (model==1) {
@@ -672,8 +674,8 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
     if (alpha_method==2 | !ok1) { # run method 2
       for (i in 1:nsite) {
         obs <- obsi[[i]] # observed[i, ]
-        f_i <- f[i, obs]
-        mu_i <- mu[i, obs]
+        f_i  <- if (use.months) as.vector(f[i,,])[obs] else f[i,obs]
+        mu_i <- if (use.months) as.vector(mu[i,,])[obs] else mu[i,obs]
         sumf <- sum(f_i)
         sumu <- sum(mu_i)
         dalpha <- if (sumf/sumu > 1e-7) log(sumf/sumu) else 0.0
@@ -794,6 +796,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       problem <- "excessive low beta value"
       idx <- which(beta < -max_beta)[1]
     }
+    problematic_beta <- beta[idx]
     if (problem != "") {
       if (model==2) {
         # Where does the problem occur?
@@ -807,12 +810,12 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
           advice <- "\nYou might consider removing this month."
         }
         # Report
-        msg <- sprintf("Model can't be estimated due to %s at %s.%s", problem, problem_pos, advice)
+        msg <- sprintf("Model can't be estimated due to %s (%f) at %s.%s", problem, problematic_beta, problem_pos, advice)
       } else if (model==3) {
          # TODO: report faulty months as well.
         problem_pos <- sprintf("year #%d (%s)", idx+1, year_id[idx+1])
         advice <- "\n"
-        msg <- sprintf("Model can't be estimated due to %s at %s.%s", problem, problem_pos, advice)
+        msg <- sprintf("Model can't be estimated due to %s (%f) at %s.%s", problem, problematic_beta, problem_pos, advice)
       } else stop("Unexpected model:", model)
       stop(msg, call.=FALSE)
     }
@@ -878,10 +881,15 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       } else {
         V_i <- sig2 * d_mu_i
       }
-      # if (any(abs(diag(V_i))<1e-12)) browser()
-      # printf("\n!!! Site: %d\n", i)
-      # print(mu_i)
-      # if (any(mu_i < 6e-18)) browser()
+      # todo: delete debug code?
+      # if (any(abs(diag(V_i))<1e-12)) {
+      #   printf("\n!!! Site: %d\n", i)
+      #   print(diag(V_i))
+      #   print(mu_i)
+      #   .mu <- mu[i,,]
+      #   print(.mu)
+      #   print(min(.mu[.mu > 0]))
+      # }
       V_inv[[i]] <<- solve(V_i) # Store $V^{-1}# for later use
       Omega[[i]] <<- d_mu_i %*% V_inv[[i]] %*% d_mu_i # idem for $\Omega_i$
     }
@@ -1052,13 +1060,13 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       i_b <<- i_b - t(B_i) %*% (Omega[[i]] - (Omega[[i]] %*% ones %*% t(ones) %*% Omega[[i]]) / d_i) %*% B_i
       U_b <<- U_b + t(B_i) %*% d_mu_i %*% V_inv[[i]] %*% (f_i - mu_i)
     }
-    # # PWB todo: the following gerenates a bug in the Grutto user case (Jelle)
-    # print(i_b)
-    # cat("\n")
-    # print(eigen(i_b)$values)
-    # print(colSums(i_b))
-    # print(abs(colSums(i_b)))
-    # if (use.beta && all(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
+    # PWB todo: the following gerenates a bug in the Grutto user case (Jelle)
+    #print(i_b)
+    #cat("\n")
+    #print(eigen(i_b)$values)
+    #print(colSums(i_b))
+    #print(abs(colSums(i_b)))
+    if (use.beta && all(abs(colSums(i_b))< 1e-12)) stop("Data does not contain enough information to estimate model.", call.=FALSE)
 
     #
     # invertable <- class(try(solve(i_b), silent=T))=="matrix" # not R4.0 compatible; use "matrix" %in% class() instead!
@@ -1087,19 +1095,25 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       }
       # browser()
 
+      # new (2026-01-10): constrain mu to be 1e-12
+      # update 2026-01-22: modify *global* mu!
+      min_allowed_mu <- 1e-12
+      mu <<- pmax(mu, min_allowed_mu)
+
       # Do not allow very small estimates, because that screws up the computation of $V$.
       # Anyway, the model is not designed to predict 0's
       if (use.months) {
         for (m in 1:M) {
-          mu_check <- mu[i, ,m] < 1e-12
+          mu_check <- mu[i, ,m] < min_allowed_mu
           if (any(mu_check)) {
             j <- which(mu_check)[1]
+            print(min(mu[i, ,m]))
             msg <- sprintf("Zero expected value at year %d month %d\n", year_id[j], month_id[m])
             stop(msg, call.=FALSE)
           }
         }
       } else {
-        mu_check <- mu[i, ] < 1e-12
+        mu_check <- mu[i, ] < min_allowed_mu
         if (any(mu_check)) {
           j <- which(mu_check)[1]
           msg <- sprintf("Zero expected value at year %d\n", year_id[j])
@@ -1199,6 +1213,7 @@ trim_workhorse <- function(count, site, year, month, weights, covars,
       update_R()
       if (!overdisp) sig2 <- 1.0 # hack
     }
+    # if (iter>20) browser()
     update_V(method)
     if (use.beta) { # model 2+changepoints, or model 3
       update_U_i() # update Score $U_b$ and Fisher Information $i_b$
